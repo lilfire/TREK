@@ -61,6 +61,63 @@ afterAll(() => {
   testDb.close();
 });
 
+describe('GET /api/public/trips', () => {
+  it('PLIST-001 — returns 200 and empty array when no public trips exist', async () => {
+    const res = await request(app).get('/api/public/trips');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(0);
+  });
+
+  it('PLIST-002 — returns only public trips, not private ones', async () => {
+    const { user } = createUser(testDb);
+    const publicTrip = createTrip(testDb, user.id, { title: 'Public Trip' });
+    createTrip(testDb, user.id, { title: 'Private Trip' }); // is_public defaults to 0
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(publicTrip.id);
+
+    const res = await request(app).get('/api/public/trips');
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0].id).toBe(publicTrip.id);
+    expect(res.body[0].name).toBe('Public Trip');
+  });
+
+  it('PLIST-003 — response includes required fields with correct values', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, {
+      title: 'Field Check Trip',
+      start_date: '2025-01-01',
+      end_date: '2025-01-07',
+      description: 'A great trip',
+    });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    createPlace(testDb, trip.id, { name: 'Louvre' });
+
+    const res = await request(app).get('/api/public/trips');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+    const t = res.body[0];
+    expect(t.id).toBeDefined();
+    expect(t.name).toBe('Field Check Trip');
+    expect(t.start_date).toBe('2025-01-01');
+    expect(t.end_date).toBe('2025-01-07');
+    expect(t.description).toBe('A great trip');
+    expect(t.cover_image_url).toBeNull();
+    expect(t.place_count).toBe(1);
+  });
+
+  it('PLIST-004 — requires no authentication', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Open Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app).get('/api/public/trips');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(1);
+  });
+});
+
 describe('GET /api/public/trips/:id', () => {
   it('PTRIP-001 — returns 404 for non-existent trip', async () => {
     const res = await request(app).get('/api/public/trips/999999');
