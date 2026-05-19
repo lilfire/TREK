@@ -290,6 +290,7 @@ describe('TripFormModal', () => {
   // ── Public visibility toggle (FE-COMP-TRIPFORM-029 to FE-COMP-TRIPFORM-033) ──
 
   it('FE-COMP-TRIPFORM-029: public visibility toggle renders for trip owner in edit mode', () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
     const ownerTrip = { ...buildTrip({ id: 1, is_public: false }), user_id: 1 };
     render(<TripFormModal {...defaultProps} trip={ownerTrip as any} />);
     expect(screen.getByText('List this trip on the public page')).toBeInTheDocument();
@@ -312,6 +313,7 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-032: toggling visibility calls PUT /api/trips/:id with is_public', async () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
     const user = userEvent.setup();
     let capturedBody: Record<string, unknown> | null = null;
     server.use(
@@ -330,6 +332,7 @@ describe('TripFormModal', () => {
   });
 
   it('FE-COMP-TRIPFORM-033: toggle reflects is_public=true state on load', () => {
+    seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true });
     const ownerTrip = { ...buildTrip({ id: 1, is_public: true }), user_id: 1 };
     render(<TripFormModal {...defaultProps} trip={ownerTrip as any} />);
     const toggle = screen.getByRole('switch', { name: 'List this trip on the public page' });
