@@ -15,6 +15,7 @@ import { tagsHandlers } from './tags';
 import { dayNotesHandlers } from './dayNotes';
 import { adminHandlers } from './admin';
 import { sharedHandlers } from './shared';
+import { publicTripsHandlers } from './publicTrips';
 
 export const defaultHandlers = [
   ...authHandlers,
@@ -34,4 +35,5 @@ export const defaultHandlers = [
   ...dayNotesHandlers,
   ...adminHandlers,
   ...sharedHandlers,
+  ...publicTripsHandlers,
 ];
