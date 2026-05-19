@@ -199,6 +199,7 @@ interface UpdateTripData {
   end_date?: string;
   currency?: string;
   is_archived?: boolean | number;
+  is_public?: boolean | number;
   cover_image?: string;
   reminder_days?: number;
   day_count?: number;
@@ -218,7 +219,7 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip & { reminder_days?: number } | undefined;
   if (!trip) throw new NotFoundError('Trip not found');
 
-  const { title, description, start_date, end_date, currency, is_archived, cover_image, reminder_days } = data;
+  const { title, description, start_date, end_date, currency, is_archived, is_public, cover_image, reminder_days } = data;
 
   if (start_date && end_date && new Date(end_date) < new Date(start_date))
     throw new ValidationError('End date must be after start date');
@@ -229,6 +230,7 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newEnd = end_date !== undefined ? end_date : trip.end_date;
   const newCurrency = currency || trip.currency;
   const newArchived = is_archived !== undefined ? (is_archived ? 1 : 0) : trip.is_archived;
+  const newPublic = is_public !== undefined ? (is_public ? 1 : 0) : (trip.is_public ?? 0);
   const newCover = cover_image !== undefined ? cover_image : trip.cover_image;
   const oldReminder = (trip as any).reminder_days ?? 3;
   const newReminder = reminder_days !== undefined
@@ -237,9 +239,9 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
-      currency=?, is_archived=?, cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP
+      currency=?, is_archived=?, is_public=?, cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
@@ -254,6 +256,7 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   if (newEnd !== trip.end_date) changes.end_date = newEnd;
   if (newReminder !== oldReminder) changes.reminder_days = newReminder === 0 ? 'none' : `${newReminder} days`;
   if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
+  if (is_public !== undefined && newPublic !== (trip.is_public ?? 0)) changes.is_public = !!newPublic;
 
   const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
   let ownerEmail: string | undefined;

@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../src/services/adminService.js', () => ({
+  isAddonEnabled: vi.fn().mockReturnValue(false),
+}));
+
 import { evaluate } from '../../../src/systemNotices/conditions.js';
 import type { SystemNotice } from '../../../src/systemNotices/types.js';
 
