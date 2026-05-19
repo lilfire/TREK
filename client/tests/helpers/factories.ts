@@ -72,6 +72,7 @@ export function buildTrip(overrides: Partial<Trip> = {}): Trip {
     end_date: '2025-06-05',
     cover_url: null,
     is_archived: false,
+    is_public: false,
     reminder_days: 7,
     owner_id: 1,
     created_at: '2025-01-01T00:00:00.000Z',
