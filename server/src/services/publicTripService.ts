@@ -1,6 +1,34 @@
 import { db } from '../db/database';
 import { loadTagsByPlaceIds } from './queryHelpers';
 
+export interface PublicTripSummary {
+  id: number;
+  name: string;
+  start_date: string | null;
+  end_date: string | null;
+  cover_image_url: string | null;
+  description: string | null;
+  place_count: number;
+}
+
+export function getPublicTripsList(): PublicTripSummary[] {
+  return db.prepare(`
+    SELECT
+      t.id,
+      t.title AS name,
+      t.start_date,
+      t.end_date,
+      t.cover_image AS cover_image_url,
+      t.description,
+      COUNT(p.id) AS place_count
+    FROM trips t
+    LEFT JOIN places p ON p.trip_id = t.id
+    WHERE t.is_public = 1
+    GROUP BY t.id
+    ORDER BY t.created_at DESC
+  `).all() as PublicTripSummary[];
+}
+
 /**
  * Loads the full read-only trip data for a publicly-listed trip (is_public = 1).
  * Returns null if the trip does not exist or is not public.
