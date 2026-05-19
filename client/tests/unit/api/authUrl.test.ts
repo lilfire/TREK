@@ -81,14 +81,11 @@ describe('fetchImageAsBlob', () => {
 
   describe('FE-COMP-AUTHURL-007: successful fetch returns blob object URL', () => {
     it('resolves to a blob URL for a valid image response', async () => {
-      // Node 22 URL.createObjectURL requires a native node:buffer Blob, not a
-      // jsdom Blob — passing the wrong type throws ERR_INVALID_ARG_TYPE (caught,
-      // returns ''). Mock fetch directly with a Node Blob so the real
-      // URL.createObjectURL works without any mocking needed.
-      const { Blob: NodeBlob } = await import('node:buffer');
+      // URL.createObjectURL is mocked to return 'blob:mock' via tests/setup.ts.
+      // Use the global Blob (available in jsdom) — the mock accepts any Blob type.
       vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
         ok: true,
-        blob: () => Promise.resolve(new NodeBlob(['fake-image'], { type: 'image/jpeg' }) as unknown as Blob),
+        blob: () => Promise.resolve(new Blob(['fake-image'], { type: 'image/jpeg' })),
       } as unknown as Response);
       const result = await fetchImageAsBlob('/uploads/photo.jpg');
       expect(result).toMatch(/^blob:/);
@@ -159,13 +156,12 @@ describe('fetchImageAsBlob', () => {
   describe('FE-COMP-AUTHURL-011: queued request runs after active slot frees', () => {
     it('7th request eventually resolves once one of the 6 active slots is freed', async () => {
       const resolvers: Array<() => void> = [];
-      const { Blob: NodeBlob } = await import('node:buffer');
 
       vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
         await new Promise<void>(r => resolvers.push(r));
         return {
           ok: true,
-          blob: () => Promise.resolve(new NodeBlob(['img'], { type: 'image/jpeg' }) as unknown as Blob),
+          blob: () => Promise.resolve(new Blob(['img'], { type: 'image/jpeg' })),
         } as unknown as Response;
       });
 
