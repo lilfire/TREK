@@ -1,4 +1,5 @@
 import { http, HttpResponse } from 'msw';
+import { buildUser } from '../../factories';
 
 const publicTrip = {
   trip: {
@@ -59,5 +60,10 @@ export const publicTripsHandlers = [
     }
 
     return HttpResponse.json(publicTrip);
+  }),
+
+  http.post('/api/public/trips/:id/rsvp', () => {
+    const user = buildUser();
+    return HttpResponse.json({ user, token: 'mock-rsvp-token' }, { status: 201 });
   }),
 ];
