@@ -64,6 +64,7 @@ const RESET_TABLES = [
   'day_accommodations',
   'days',
   // Trip
+  'trip_rsvps',
   'share_tokens',
   'trip_members',
   'trips',
