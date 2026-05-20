@@ -58,7 +58,7 @@ const zhTw: Record<string, string> = {
 
   // Navbar
   'nav.trip': '旅行',
-  'nav.share': '分享',
+  'nav.share': '分享行程',
   'nav.settings': '設定',
   'nav.admin': '管理',
   'nav.logout': '退出登入',

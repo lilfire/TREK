@@ -58,7 +58,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
 
   // Navigační lišta (Navbar)
   'nav.trip': 'Cesta',
-  'nav.share': 'Sdílet',
+  'nav.share': 'Sdílet cestu',
   'nav.settings': 'Nastavení',
   'nav.admin': 'Administrace',
   'nav.logout': 'Odhlásit se',

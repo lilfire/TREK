@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass } from 'lucide-react'
+import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Share2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 
@@ -17,6 +17,7 @@ interface NavbarProps {
   onBack?: () => void
   showBack?: boolean
   onShare?: () => void
+  isTripPublic?: boolean
 }
 
 interface Addon {
@@ -26,7 +27,7 @@ interface Addon {
   type: string
 }
 
-export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }: NavbarProps): React.ReactElement {
+export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare, isTripPublic }: NavbarProps): React.ReactElement {
   const { user, logout, isPrerelease, appVersion } = useAuthStore()
   const { settings, updateSetting } = useSettingsStore()
   const { addons: allAddons, loadAddons } = useAddonStore()
@@ -176,11 +177,26 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {onShare && (
         <button onClick={onShare}
           className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
-          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}
+          style={{
+            borderColor: isTripPublic ? 'var(--color-teal-500, #14b8a6)' : 'var(--border-primary)',
+            color: isTripPublic ? 'var(--color-teal-600, #0d9488)' : 'var(--text-secondary)',
+            background: isTripPublic ? 'var(--color-teal-50, rgba(20,184,166,0.08))' : 'var(--bg-card)',
+          }}
           onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}>
-          <Users className="w-4 h-4" />
-          <span className="hidden sm:inline">{t('nav.share')}</span>
+          onMouseLeave={e => {
+            e.currentTarget.style.background = isTripPublic ? 'var(--color-teal-50, rgba(20,184,166,0.08))' : 'var(--bg-card)'
+          }}>
+          <span className="relative flex-shrink-0">
+            {isTripPublic ? <Globe className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
+            {isTripPublic && (
+              <span
+                data-testid="share-public-dot"
+                className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                style={{ background: '#22c55e', border: '1.5px solid var(--bg-card)' }}
+              />
+            )}
+          </span>
+          <span>{t('nav.share')}</span>
         </button>
       )}
 
