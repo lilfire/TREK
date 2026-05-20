@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../db/database';
 import { JWT_SECRET } from '../config';
+import type { TripRsvp } from '../types';
 
 export interface CreateRsvpResult {
   rsvpId: number;
@@ -81,4 +82,10 @@ export function createRsvp(params: {
   );
 
   return { rsvpId, userId, authToken };
+}
+
+export function listRsvpsForTrip(tripId: number): TripRsvp[] {
+  return db.prepare(
+    'SELECT * FROM trip_rsvps WHERE trip_id = ? ORDER BY created_at ASC',
+  ).all(tripId) as TripRsvp[];
 }
