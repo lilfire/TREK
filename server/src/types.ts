@@ -420,3 +420,13 @@ export interface JourneyContributor {
   role: 'owner' | 'editor' | 'viewer';
   added_at: number;
 }
+
+export interface TripRsvp {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  name: string;
+  email: string;
+  message: string | null;
+  created_at: string;
+}
