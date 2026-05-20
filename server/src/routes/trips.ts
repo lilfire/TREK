@@ -142,6 +142,11 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
     if (!checkPermission('trip_cover_upload', authReq.user.role, tripOwnerId, authReq.user.id, isMember))
       return res.status(403).json({ error: 'No permission to change cover image' });
   }
+  // is_public check — only the trip owner can toggle visibility
+  if (req.body.is_public !== undefined) {
+    if (authReq.user.id !== tripOwnerId)
+      return res.status(403).json({ error: 'Only the trip owner can change trip visibility' });
+  }
   // General edit check (title, description, dates, currency, reminder_days)
   const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
   if (editFields.some(f => req.body[f] !== undefined)) {

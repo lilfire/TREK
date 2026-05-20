@@ -1082,3 +1082,104 @@ describe('Trip bundle', () => {
     expect(res.status).toBe(401);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Trip public visibility (LSO-1299)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Trip public visibility (is_public)', () => {
+  it('VIS-001 — owner can set is_public=true → 200 and response reflects new value', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Public Trip' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ is_public: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.is_public).toBe(1);
+  });
+
+  it('VIS-002 — owner can set is_public=false → 200 and value is persisted', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Private Trip' });
+    // First make it public
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ is_public: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.is_public).toBe(0);
+  });
+
+  it('VIS-003 — trip member (non-owner) cannot change is_public → 403', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Owner Trip' });
+    addTripMember(testDb, trip.id, member.id);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ is_public: true });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/owner/i);
+  });
+
+  it('VIS-004 — is_public defaults to 0 on new trip creation', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .post('/api/trips')
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'New Trip' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.trip.is_public).toBe(0);
+  });
+
+  it('VIS-005 — GET /api/trips/:id returns is_public field', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Visibility Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.is_public).toBe(1);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Migration: is_public column schema (LSO-1291)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Migration: is_public column on trips table', () => {
+  it('SCHEMA-001 — trips table has is_public column that is NOT NULL with default 0', () => {
+    type ColInfo = { cid: number; name: string; type: string; notnull: number; dflt_value: string | null; pk: number };
+    const cols = testDb.prepare("PRAGMA table_info('trips')").all() as ColInfo[];
+    const col = cols.find(c => c.name === 'is_public');
+
+    expect(col).toBeDefined();
+    expect(col!.type.toUpperCase()).toBe('INTEGER');
+    expect(col!.notnull).toBe(1);
+    expect(col!.dflt_value).toBe('0');
+  });
+
+  it('SCHEMA-002 — new trips get is_public = 0 by default when inserted directly', () => {
+    const { user } = createUser(testDb);
+    const result = testDb.prepare(
+      'INSERT INTO trips (user_id, title) VALUES (?, ?)'
+    ).run(user.id, 'Direct Insert Trip');
+
+    const row = testDb.prepare('SELECT is_public FROM trips WHERE id = ?').get(result.lastInsertRowid) as { is_public: number };
+    expect(row.is_public).toBe(0);
+  });
+});

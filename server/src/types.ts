@@ -33,6 +33,7 @@ export interface Trip {
   currency: string;
   cover_image?: string | null;
   is_archived: number;
+  is_public: number;
   reminder_days: number;
   created_at?: string;
   updated_at?: string;
@@ -418,4 +419,14 @@ export interface JourneyContributor {
   user_id: number;
   role: 'owner' | 'editor' | 'viewer';
   added_at: number;
+}
+
+export interface TripRsvp {
+  id: number;
+  trip_id: number;
+  user_id: number;
+  name: string;
+  email: string;
+  message: string | null;
+  created_at: string;
 }

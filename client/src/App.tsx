@@ -17,6 +17,8 @@ import JourneyPage from './pages/JourneyPage'
 import JourneyDetailPage from './pages/JourneyDetailPage'
 import JourneyPublicPage from './pages/JourneyPublicPage'
 import SharedTripPage from './pages/SharedTripPage'
+import PublicTripDetailPage from './pages/PublicTripDetailPage'
+import PublicTripsPage from './pages/PublicTripsPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import { ToastContainer } from './components/shared/Toast'
@@ -98,7 +100,11 @@ function RootRedirect() {
     )
   }
 
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return <PublicTripsPage />
 }
 
 export default function App() {
@@ -214,6 +220,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/shared/:token" element={<SharedTripPage />} />
         <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
+        <Route path="/public/trips/:id" element={<PublicTripDetailPage />} />
         <Route path="/register" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />

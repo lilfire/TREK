@@ -571,6 +571,13 @@ export const shareApi = {
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
 }
 
+export const publicTripsApi = {
+  list: () => apiClient.get('/public/trips').then(r => r.data),
+  get: (id: number | string) => apiClient.get(`/public/trips/${id}`).then(r => r.data),
+  rsvp: (id: number | string, data: { name: string; email: string; message?: string }) =>
+    apiClient.post(`/public/trips/${id}/rsvp`, data).then(r => r.data),
+}
+
 export const notificationsApi = {
   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),

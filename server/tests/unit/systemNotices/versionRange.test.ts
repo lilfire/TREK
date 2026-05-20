@@ -1,4 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../src/db/database.js', () => ({
+  db: { prepare: vi.fn().mockReturnValue({ get: vi.fn().mockReturnValue(undefined), all: vi.fn().mockReturnValue([]), run: vi.fn() }) },
+}));
+
 import { isNoticeVersionActive } from '../../../src/systemNotices/service.js';
 import type { SystemNotice } from '../../../src/systemNotices/types.js';
 
