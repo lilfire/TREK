@@ -1,6 +1,8 @@
 # Stage 1: Build React client
 FROM node:24-alpine AS client-builder
 WORKDIR /app/client
+# Upgrade base packages to pick up latest Alpine security patches
+RUN apk upgrade --no-cache
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
@@ -13,7 +15,9 @@ WORKDIR /app
 
 # Timezone support + native deps (better-sqlite3 needs build tools)
 COPY server/package*.json ./
-RUN apk add --no-cache tzdata dumb-init su-exec python3 make g++ && \
+# Upgrade base packages to pick up latest Alpine security patches before installing deps
+RUN apk upgrade --no-cache && \
+    apk add --no-cache tzdata dumb-init su-exec python3 make g++ && \
     npm ci --production && \
     rm package-lock.json && \
     apk del python3 make g++ && \
