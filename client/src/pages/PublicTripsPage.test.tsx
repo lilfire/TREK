@@ -1,0 +1,146 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, waitFor } from '../../tests/helpers/render';
+import { Routes, Route } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import { server } from '../../tests/helpers/msw/server';
+import { resetAllStores } from '../../tests/helpers/store';
+import PublicTripsPage from './PublicTripsPage';
+
+function renderPage() {
+  return render(
+    <Routes>
+      <Route path="/" element={<PublicTripsPage />} />
+      <Route path="/public/trips/:id" element={<div data-testid="trip-detail-page" />} />
+    </Routes>,
+    { initialEntries: ['/'] },
+  );
+}
+
+beforeEach(() => {
+  resetAllStores();
+  vi.clearAllMocks();
+});
+
+describe('PublicTripsPage', () => {
+  describe('FE-PUB-LIST-001: Renders trip cards', () => {
+    it('shows trip names after data loads', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Public Paris Trip')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Barcelona Weekend')).toBeInTheDocument();
+    });
+
+    it('renders a card for each returned trip', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByTestId('trip-card')).toHaveLength(2);
+      });
+    });
+
+    it('displays place counts on each card', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('3 places')).toBeInTheDocument();
+        expect(screen.getByText('5 places')).toBeInTheDocument();
+      });
+    });
+
+    it('displays date ranges on cards that have dates', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        const dates = screen.getAllByTestId('trip-dates');
+        expect(dates.length).toBeGreaterThan(0);
+      });
+
+      expect(document.body.textContent).toMatch(/Jul/i);
+    });
+  });
+
+  describe('FE-PUB-LIST-002: Empty state', () => {
+    it('renders empty state when no public trips exist', async () => {
+      server.use(
+        http.get('/api/public/trips', () => HttpResponse.json([])),
+      );
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/no public trips/i)).toBeInTheDocument();
+    });
+
+    it('does not render the trip grid when empty', async () => {
+      server.use(
+        http.get('/api/public/trips', () => HttpResponse.json([])),
+      );
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('trips-grid')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PUB-LIST-003: Login and Register links visible', () => {
+    it('shows a login link in the header', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('login-link')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('login-link')).toHaveAttribute('href', '/login');
+    });
+
+    it('shows a register link in the header', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('register-link')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('register-link')).toHaveAttribute('href', '/register');
+    });
+  });
+
+  describe('FE-PUB-LIST-004: Loading state', () => {
+    it('renders a loading spinner while fetching', async () => {
+      server.use(
+        http.get('/api/public/trips', async () => {
+          await new Promise(resolve => setTimeout(resolve, 300));
+          return HttpResponse.json([]);
+        }),
+      );
+
+      renderPage();
+
+      const spinner = document.querySelector('.animate-spin');
+      expect(spinner).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PUB-LIST-005: Graceful error handling', () => {
+    it('shows empty state when the API fails', async () => {
+      server.use(
+        http.get('/api/public/trips', () => new HttpResponse(null, { status: 500 })),
+      );
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTestId('empty-state')).toBeInTheDocument();
+      });
+    });
+  });
+});

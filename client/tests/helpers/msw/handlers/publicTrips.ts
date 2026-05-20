@@ -1,6 +1,27 @@
 import { http, HttpResponse } from 'msw';
 import { buildUser } from '../../factories';
 
+export const publicTripSummaries = [
+  {
+    id: 42,
+    name: 'Public Paris Trip',
+    start_date: '2026-07-01',
+    end_date: '2026-07-03',
+    cover_image_url: null,
+    description: 'A beautiful trip to Paris',
+    place_count: 3,
+  },
+  {
+    id: 99,
+    name: 'Barcelona Weekend',
+    start_date: '2026-08-10',
+    end_date: '2026-08-12',
+    cover_image_url: null,
+    description: null,
+    place_count: 5,
+  },
+];
+
 const publicTrip = {
   trip: {
     id: 42,
@@ -52,6 +73,10 @@ const publicTrip = {
 };
 
 export const publicTripsHandlers = [
+  http.get('/api/public/trips', () => {
+    return HttpResponse.json(publicTripSummaries);
+  }),
+
   http.get('/api/public/trips/:id', ({ params }) => {
     const { id } = params;
 
