@@ -1,4 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../../src/db/database.js', () => ({
+  db: { prepare: vi.fn().mockReturnValue({ get: vi.fn().mockReturnValue(undefined), all: vi.fn().mockReturnValue([]), run: vi.fn() }) },
+}));
+vi.mock('../../../src/services/adminService.js', () => ({
+  isAddonEnabled: vi.fn().mockReturnValue(false),
+}));
+
 import fs from 'node:fs';
 import path from 'node:path';
 import semver from 'semver';

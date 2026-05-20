@@ -42,6 +42,7 @@ import shareRoutes from './routes/share';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import publicConfigRoutes from './routes/publicConfig';
+import publicTripsRoutes from './routes/publicTrips';
 import systemNoticesRoutes from './routes/systemNotices';
 import { mcpHandler } from './mcp';
 import { trekOAuthProvider, trekClientsStore } from './mcp/oauthProvider';
@@ -357,6 +358,7 @@ export function createApp(): express.Application {
     next();
   }, journeyRoutes);
   app.use('/api/public/journey', journeyPublicRoutes);
+  app.use('/api/public/trips', publicTripsRoutes);
   app.use('/api/integrations/memories', memoriesRoutes);
   app.use('/api/photos', photoRoutes);
   app.use('/api/maps', mapsRoutes);

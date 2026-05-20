@@ -764,7 +764,7 @@ function runMigrations(db: Database.Database): void {
     () => {
       const columns = db.prepare("PRAGMA table_info('trip_photos')").all() as Array<{ name: string }>;
       const names = new Set(columns.map(c => c.name));
-      if (names.has('asset_id') && !names.has('immich_asset_id')) return;
+      if (!names.has('immich_asset_id')) return;
       db.exec('ALTER TABLE `trip_photos` RENAME COLUMN immich_asset_id TO asset_id');
       db.exec('ALTER TABLE `trip_photos` ADD COLUMN provider TEXT NOT NULL DEFAULT "immich"');
       db.exec('ALTER TABLE `trip_album_links` ADD COLUMN provider TEXT NOT NULL DEFAULT "immich"');
@@ -1008,17 +1008,16 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration: Refresh-token rotation chain tracking for replay detection
     () => {
-      db.exec(`
-        ALTER TABLE oauth_tokens ADD COLUMN parent_token_id INTEGER REFERENCES oauth_tokens(id);
-        CREATE INDEX IF NOT EXISTS idx_oauth_tokens_parent ON oauth_tokens(parent_token_id);
-      `);
+      try { db.exec('ALTER TABLE oauth_tokens ADD COLUMN parent_token_id INTEGER REFERENCES oauth_tokens(id)'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      db.exec('CREATE INDEX IF NOT EXISTS idx_oauth_tokens_parent ON oauth_tokens(parent_token_id)');
     },
     // Migration: Public client support for browser-initiated dynamic registration (DCR)
     () => {
-      db.exec(`
-        ALTER TABLE oauth_clients ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0;
-        ALTER TABLE oauth_clients ADD COLUMN created_via TEXT NOT NULL DEFAULT 'settings_ui';
-      `);
+      try { db.exec("ALTER TABLE oauth_clients ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0"); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE oauth_clients ADD COLUMN created_via TEXT NOT NULL DEFAULT 'settings_ui'"); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
     // Migration: Make oauth_clients.user_id nullable to support anonymous RFC 7591 DCR clients
     // (must run outside a transaction because PRAGMA foreign_keys cannot change mid-transaction)
@@ -1064,8 +1063,10 @@ function runMigrations(db: Database.Database): void {
         VALUES
           ('synologyphotos', 'synology_otp', 'providerOTP', 'text', '123456', 0, 0, NULL, 'synology_otp', 3)
       `);
-      db.exec(`ALTER TABLE users ADD COLUMN synology_skip_ssl INTEGER NOT NULL DEFAULT 0`);
-      db.exec(`ALTER TABLE users ADD COLUMN synology_did TEXT`);
+      try { db.exec(`ALTER TABLE users ADD COLUMN synology_skip_ssl INTEGER NOT NULL DEFAULT 0`); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec(`ALTER TABLE users ADD COLUMN synology_did TEXT`); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
       db.exec(`
         INSERT OR IGNORE INTO photo_provider_fields
           (provider_id, field_key, label, input_type, placeholder, required, secret, settings_key, payload_key, sort_order)
@@ -1105,6 +1106,14 @@ function runMigrations(db: Database.Database): void {
           updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ','now'))
         )
       `);
+      // Guard: existing journeys tables (pre-migration-84) lack these columns
+      try { db.exec('ALTER TABLE journeys ADD COLUMN trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL'); } catch {}
+      try { db.exec('ALTER TABLE journeys ADD COLUMN description TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journeys ADD COLUMN started_at TEXT'); } catch {}
+      try { db.exec('ALTER TABLE journeys ADD COLUMN ended_at TEXT'); } catch {}
+      try { db.exec("ALTER TABLE journeys ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0"); } catch {}
+      try { db.exec('ALTER TABLE journeys ADD COLUMN public_token TEXT'); } catch {}
+      try { db.exec("ALTER TABLE journeys ADD COLUMN settings TEXT DEFAULT '{}'"); } catch {}
 
       // Check-ins — visited locations
       db.exec(`
@@ -1178,18 +1187,17 @@ function runMigrations(db: Database.Database): void {
         )
       `);
 
-      // Indexes
-      db.exec(`
-        CREATE INDEX IF NOT EXISTS idx_journeys_user ON journeys(user_id);
-        CREATE INDEX IF NOT EXISTS idx_journeys_trip ON journeys(trip_id);
-        CREATE INDEX IF NOT EXISTS idx_journeys_public_token ON journeys(public_token);
-        CREATE INDEX IF NOT EXISTS idx_journey_checkins_journey ON journey_checkins(journey_id, checked_in_at);
-        CREATE INDEX IF NOT EXISTS idx_journey_entries_journey_date ON journey_entries(journey_id, entry_date);
-        CREATE INDEX IF NOT EXISTS idx_journey_photos_journey ON journey_photos(journey_id);
-        CREATE INDEX IF NOT EXISTS idx_journey_photos_checkin ON journey_photos(checkin_id);
-        CREATE INDEX IF NOT EXISTS idx_journey_photos_entry ON journey_photos(entry_id);
-        CREATE INDEX IF NOT EXISTS idx_journey_trail_journey_time ON journey_location_trail(journey_id, recorded_at);
-      `);
+      // Indexes — each created individually; guarded because an existing journeys table
+      // from an older migration may lack columns referenced by these indexes.
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journeys_user ON journeys(user_id)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journeys_trip ON journeys(trip_id)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journeys_public_token ON journeys(public_token)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journey_checkins_journey ON journey_checkins(journey_id, checked_in_at)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journey_entries_journey_date ON journey_entries(journey_id, entry_date)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journey_photos_journey ON journey_photos(journey_id)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journey_photos_checkin ON journey_photos(checkin_id)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journey_photos_entry ON journey_photos(entry_id)'); } catch {}
+      try { db.exec('CREATE INDEX IF NOT EXISTS idx_journey_trail_journey_time ON journey_location_trail(journey_id, recorded_at)'); } catch {}
     },
     // Migration 85: Journal — richer entry fields for magazine-style design
     () => {
@@ -1259,8 +1267,9 @@ function runMigrations(db: Database.Database): void {
         try { oldEntries = db.prepare('SELECT * FROM journey_entries').all(); } catch {}
         try { oldPhotos = db.prepare('SELECT * FROM journey_photos').all(); } catch {}
 
-        // Drop all old journey tables
+        // Drop all old journey tables (including junction tables that reference them)
         db.exec('DROP TABLE IF EXISTS journey_location_trail');
+        db.exec('DROP TABLE IF EXISTS journey_entry_photos');
         db.exec('DROP TABLE IF EXISTS journey_photos');
         db.exec('DROP TABLE IF EXISTS journey_entries');
         db.exec('DROP TABLE IF EXISTS journey_checkins');
@@ -2228,6 +2237,27 @@ function runMigrations(db: Database.Database): void {
       db.exec(`DROP TABLE schema_version`)
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
+    },
+    // LSO-1299: add is_public flag to trips for public landing page visibility
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0`);
+    },
+    // LSO-1296: RSVP table for public trip RSVP submissions
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS trip_rsvps (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          message TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(trip_id, user_id)
+        )
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_trip ON trip_rsvps(trip_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_user ON trip_rsvps(user_id)`);
     },
   ];
 

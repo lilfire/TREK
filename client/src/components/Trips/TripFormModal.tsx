@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, X, Clipboard, UserPlus, Bell } from 'lucide-react'
+import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
@@ -39,6 +39,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     day_count: 7,
   })
   const [customReminder, setCustomReminder] = useState(false)
+  const [isPublic, setIsPublic] = useState(false)
+  const [togglingPublic, setTogglingPublic] = useState(false)
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [coverPreview, setCoverPreview] = useState(null)
@@ -62,10 +64,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
+      setIsPublic(Boolean((trip as any).is_public))
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
       setCoverPreview(null)
+      setIsPublic(false)
     }
     setPendingCoverFile(null)
     setSelectedMembers([])
@@ -214,6 +218,20 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
     return next
   })
+
+  const handleTogglePublic = async () => {
+    if (!trip?.id || togglingPublic) return
+    const next = !isPublic
+    setTogglingPublic(true)
+    try {
+      await tripsApi.update(trip.id, { is_public: next })
+      setIsPublic(next)
+    } catch {
+      toast.error(t('trips.visibilityUpdateError'))
+    } finally {
+      setTogglingPublic(false)
+    }
+  }
 
   const inputCls = "w-full px-3 py-2.5 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-transparent text-sm"
 
@@ -445,6 +463,30 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 size="sm"
               />
             </div>
+          </div>
+        )}
+
+        {/* Public visibility — only visible to the trip owner in edit mode */}
+        {isEditing && (trip as any)?.user_id === currentUser?.id && (
+          <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+            <Globe size={16} className="mt-0.5 text-slate-500 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-slate-700">{t('trips.publicVisibilityLabel')}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{t('trips.publicVisibilitySubtext')}</p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isPublic}
+              aria-label={t('trips.publicVisibilityLabel')}
+              disabled={togglingPublic}
+              onClick={handleTogglePublic}
+              className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1 disabled:opacity-50 ${isPublic ? 'bg-slate-900' : 'bg-slate-300'}`}
+            >
+              <span
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${isPublic ? 'translate-x-4' : 'translate-x-0.5'}`}
+              />
+            </button>
           </div>
         )}
 
