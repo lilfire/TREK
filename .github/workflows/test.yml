@@ -5,7 +5,7 @@ permissions:
 
 on:
   pull_request:
-    branches: [main, dev]
+    branches: [main, development]
     paths:
       - 'server/**'
       - '.github/workflows/test.yml'
