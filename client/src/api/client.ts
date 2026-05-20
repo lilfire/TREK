@@ -573,6 +573,8 @@ export const shareApi = {
 
 export const publicTripsApi = {
   get: (id: number | string) => apiClient.get(`/public/trips/${id}`).then(r => r.data),
+  rsvp: (id: number | string, data: { name: string; email: string; message?: string }) =>
+    apiClient.post(`/public/trips/${id}/rsvp`, data).then(r => r.data),
 }
 
 export const notificationsApi = {
