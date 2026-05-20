@@ -61,7 +61,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
 
   // Navbar
   'nav.trip': 'Perjalanan',
-  'nav.share': 'Bagikan',
+  'nav.share': 'Bagikan perjalanan',
   'nav.settings': 'Pengaturan',
   'nav.admin': 'Admin',
   'nav.logout': 'Keluar',

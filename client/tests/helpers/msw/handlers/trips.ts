@@ -72,4 +72,8 @@ export const tripsHandlers = [
     const trip = buildTrip({ id: Number(params.id) + 1000, ...body });
     return HttpResponse.json({ trip });
   }),
+
+  http.get('/api/trips/:id/share-link', () => {
+    return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+  }),
 ];

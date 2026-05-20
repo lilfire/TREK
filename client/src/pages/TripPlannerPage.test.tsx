@@ -1557,4 +1557,83 @@ describe('TripPlannerPage', () => {
       });
     });
   });
+
+  describe('FE-PAGE-PLANNER-036: shareApi.getLink called on mount', () => {
+    it('fetches share link state on mount and shows public dot when link exists', async () => {
+      server.use(
+        http.get('/api/trips/:tripId/share-link', () =>
+          HttpResponse.json({ token: 'abc123', trip_id: 42 }),
+        ),
+      );
+
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+
+      // Dismiss splash screen timer (1500ms)
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      // isTripPublic=true → Navbar receives the prop → public dot is rendered
+      await waitFor(() => {
+        expect(document.querySelector('[data-testid="share-public-dot"]')).toBeInTheDocument();
+      });
+    });
+
+    it('does not show public dot when no share link exists (404)', async () => {
+      server.use(
+        http.get('/api/trips/:tripId/share-link', () =>
+          HttpResponse.json({ message: 'Not found' }, { status: 404 }),
+        ),
+      );
+
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      // Navbar renders after splash, but isTripPublic=false so no dot
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+      expect(document.querySelector('[data-testid="share-public-dot"]')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-037: share link state refreshes after TripMembersModal closes', () => {
+    it('re-fetches share link when TripMembersModal onClose is called', async () => {
+      let callCount = 0;
+      server.use(
+        http.get('/api/trips/:tripId/share-link', () => {
+          callCount++;
+          return HttpResponse.json({ message: 'Not found' }, { status: 404 });
+        }),
+      );
+
+      vi.useFakeTimers();
+      seedTripStore({ id: 42 });
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      // Wait for initial render
+      await waitFor(() => {
+        expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
+      });
+
+      const callCountAfterMount = callCount;
+
+      // Trigger onClose of TripMembersModal via captured props
+      await act(async () => {
+        capturedTripMembersModalProps.current.onClose?.();
+      });
+
+      // After close, refresh is called → call count increases
+      await waitFor(() => {
+        expect(callCount).toBeGreaterThan(callCountAfterMount);
+      });
+    });
+  });
 });

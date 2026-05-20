@@ -58,7 +58,7 @@ const nl: Record<string, string> = {
 
   // Navbar
   'nav.trip': 'Reis',
-  'nav.share': 'Delen',
+  'nav.share': 'Reis delen',
   'nav.settings': 'Instellingen',
   'nav.admin': 'Admin',
   'nav.logout': 'Uitloggen',

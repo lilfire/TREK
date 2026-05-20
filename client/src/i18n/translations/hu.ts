@@ -58,7 +58,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
 
   // Navbar
   'nav.trip': 'Utazás',
-  'nav.share': 'Megosztás',
+  'nav.share': 'Utazás megosztása',
   'nav.settings': 'Beállítások',
   'nav.admin': 'Admin',
   'nav.logout': 'Kijelentkezés',
