@@ -20,7 +20,8 @@ describe('cookieOptions', () => {
   });
 
   it('sets secure: false in test environment (COOKIE_SECURE=false from setup)', () => {
-    // setup.ts sets COOKIE_SECURE=false, so secure should be false
+    vi.stubEnv('COOKIE_SECURE', 'false');
+    vi.stubEnv('NODE_ENV', 'test');
     const opts = cookieOptions();
     expect(opts.secure).toBe(false);
   });
