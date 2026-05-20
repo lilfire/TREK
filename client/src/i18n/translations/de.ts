@@ -61,7 +61,7 @@ const de: Record<string, string | { name: string; category: string }[]> = {
 
   // Navbar
   'nav.trip': 'Reise',
-  'nav.share': 'Teilen',
+  'nav.share': 'Reise teilen',
   'nav.settings': 'Einstellungen',
   'nav.admin': 'Admin',
   'nav.logout': 'Abmelden',

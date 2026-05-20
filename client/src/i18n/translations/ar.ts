@@ -62,7 +62,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
 
   // Navbar
   'nav.trip': 'الرحلة',
-  'nav.share': 'مشاركة',
+  'nav.share': 'مشاركة الرحلة',
   'nav.settings': 'الإعدادات',
   'nav.admin': 'الإدارة',
   'nav.logout': 'تسجيل الخروج',
