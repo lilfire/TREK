@@ -309,7 +309,6 @@ describe('Navbar', () => {
     render(<Navbar onShare={vi.fn()} isTripPublic={false} />);
     const shareBtn = screen.getByRole('button', { name: /share trip/i });
     expect(shareBtn).toBeInTheDocument();
-    // Public indicator dot should NOT be present
     expect(document.querySelector('[data-testid="share-public-dot"]')).not.toBeInTheDocument();
   });
 
@@ -317,14 +316,12 @@ describe('Navbar', () => {
     render(<Navbar onShare={vi.fn()} isTripPublic={true} />);
     const shareBtn = screen.getByRole('button', { name: /share trip/i });
     expect(shareBtn).toBeInTheDocument();
-    // Green dot badge indicates public state
     expect(document.querySelector('[data-testid="share-public-dot"]')).toBeInTheDocument();
   });
 
   it('FE-COMP-NAVBAR-036: share button label always visible (no hidden sm:inline)', () => {
     render(<Navbar onShare={vi.fn()} />);
     const shareBtn = screen.getByRole('button', { name: /share trip/i });
-    // The label span should not have the hidden class
     const labelSpan = Array.from(shareBtn.querySelectorAll('span')).find(
       s => s.textContent === 'Share trip',
     );
@@ -335,7 +332,78 @@ describe('Navbar', () => {
   it('FE-COMP-NAVBAR-037: share button teal styling applied when isTripPublic is true', () => {
     render(<Navbar onShare={vi.fn()} isTripPublic={true} />);
     const shareBtn = screen.getByRole('button', { name: /share trip/i });
-    // Button border color should reference teal CSS variable when public
     expect(shareBtn.style.borderColor).toContain('teal');
+  });
+
+  it('FE-COMP-NAVBAR-038: Make Public toggle shown to trip owner', () => {
+    const owner = buildUser({ id: 10 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    const onTogglePublic = vi.fn();
+    render(<Navbar trip={{ is_public: false, owner_id: 10 }} onTogglePublic={onTogglePublic} />);
+    const toggle = screen.getByRole('switch', { name: /list this trip on the public page/i });
+    expect(toggle).toBeInTheDocument();
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
+  });
+
+  it('FE-COMP-NAVBAR-039: Make Public toggle NOT shown when user is not owner', () => {
+    const nonOwner = buildUser({ id: 99 });
+    seedStore(useAuthStore, { user: nonOwner, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: false, owner_id: 10 }} onTogglePublic={vi.fn()} />);
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-040: Make Public toggle NOT shown when onTogglePublic not provided', () => {
+    const owner = buildUser({ id: 5 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: false, owner_id: 5 }} />);
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-041: clicking Make Public toggle calls onTogglePublic', async () => {
+    const user = userEvent.setup();
+    const owner = buildUser({ id: 7 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    const onTogglePublic = vi.fn();
+    render(<Navbar trip={{ is_public: false, owner_id: 7 }} onTogglePublic={onTogglePublic} />);
+    await user.click(screen.getByRole('switch'));
+    expect(onTogglePublic).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-COMP-NAVBAR-042: aria-checked is true when trip.is_public is true', () => {
+    const owner = buildUser({ id: 3 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: true, owner_id: 3 }} onTogglePublic={vi.fn()} />);
+    const toggle = screen.getByRole('switch');
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+
+  it('FE-COMP-NAVBAR-043: toggle disabled while isPublicToggling is true', () => {
+    const owner = buildUser({ id: 4 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: false, owner_id: 4 }} onTogglePublic={vi.fn()} isPublicToggling={true} />);
+    expect(screen.getByRole('switch')).toBeDisabled();
+  });
+
+  it('FE-COMP-NAVBAR-044: admin user sees toggle regardless of owner_id', () => {
+    const admin = buildUser({ id: 1, role: 'admin' });
+    seedStore(useAuthStore, { user: admin, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: false, owner_id: 999 }} onTogglePublic={vi.fn()} />);
+    expect(screen.getByRole('switch')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-045: Make Public toggle works with user_id ownership field', () => {
+    const owner = buildUser({ id: 8 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: false, user_id: 8 }} onTogglePublic={vi.fn()} />);
+    expect(screen.getByRole('switch')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-046: green dot indicator shown when trip is public', () => {
+    const owner = buildUser({ id: 6 });
+    seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+    render(<Navbar trip={{ is_public: true, owner_id: 6 }} onTogglePublic={vi.fn()} />);
+    const toggle = screen.getByRole('switch');
+    const greenDot = toggle.querySelector('.rounded-full');
+    expect(greenDot).toBeInTheDocument();
   });
 });
