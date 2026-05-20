@@ -1,4 +1,4 @@
-// FE-CLIENT-INTERCEPTOR-001 to FE-CLIENT-INTERCEPTOR-012
+// FE-CLIENT-INTERCEPTOR-001 to FE-CLIENT-INTERCEPTOR-014
 import { describe, it, expect } from 'vitest'
 import { isAuthPublicPath } from '../../../src/api/client'
 
@@ -18,6 +18,10 @@ describe('FE-CLIENT-INTERCEPTOR: 401 AUTH_REQUIRED redirect allowlist', () => {
 
     it('FE-CLIENT-INTERCEPTOR-004: /reset-password', () => {
       expect(isAuthPublicPath('/reset-password')).toBe(true)
+    })
+
+    it('FE-CLIENT-INTERCEPTOR-014: / (root) — landing page is public', () => {
+      expect(isAuthPublicPath('/')).toBe(true)
     })
   })
 
@@ -62,10 +66,6 @@ describe('FE-CLIENT-INTERCEPTOR: 401 AUTH_REQUIRED redirect allowlist', () => {
 
     it('FE-CLIENT-INTERCEPTOR-013: /trips/123', () => {
       expect(isAuthPublicPath('/trips/123')).toBe(false)
-    })
-
-    it('FE-CLIENT-INTERCEPTOR-014: / (root)', () => {
-      expect(isAuthPublicPath('/')).toBe(false)
     })
   })
 })
