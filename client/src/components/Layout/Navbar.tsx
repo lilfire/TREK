@@ -11,6 +11,12 @@ import InAppNotificationBell from './InAppNotificationBell.tsx'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass }
 
+interface TripPublicContext {
+  is_public?: boolean
+  user_id?: number
+  owner_id?: number
+}
+
 interface NavbarProps {
   tripTitle?: string
   tripId?: string
@@ -18,6 +24,9 @@ interface NavbarProps {
   showBack?: boolean
   onShare?: () => void
   isTripPublic?: boolean
+  trip?: TripPublicContext
+  onTogglePublic?: () => void
+  isPublicToggling?: boolean
 }
 
 interface Addon {
@@ -27,11 +36,15 @@ interface Addon {
   type: string
 }
 
-export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare, isTripPublic }: NavbarProps): React.ReactElement {
+export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare, isTripPublic, trip, onTogglePublic, isPublicToggling }: NavbarProps): React.ReactElement {
   const { user, logout, isPrerelease, appVersion } = useAuthStore()
   const { settings, updateSetting } = useSettingsStore()
   const { addons: allAddons, loadAddons } = useAddonStore()
   const { t, locale } = useTranslation()
+  const isTripOwner = !!trip && !!user && (() => {
+    const ownerId = (trip as any).user_id ?? trip.owner_id ?? null
+    return user.role === 'admin' || (ownerId !== null && ownerId === user.id)
+  })()
   const navigate = useNavigate()
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
@@ -197,6 +210,32 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare, i
             )}
           </span>
           <span>{t('nav.share')}</span>
+        </button>
+      )}
+
+      {/* Make Public toggle — trip owners only */}
+      {isTripOwner && onTogglePublic && trip && (
+        <button
+          role="switch"
+          aria-checked={!!trip.is_public}
+          aria-label={t('trips.publicVisibilityLabel')}
+          disabled={isPublicToggling}
+          onClick={onTogglePublic}
+          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
+          style={{
+            borderColor: trip.is_public ? 'rgba(34,197,94,0.5)' : 'var(--border-primary)',
+            color: trip.is_public ? '#16a34a' : 'var(--text-secondary)',
+            background: 'var(--bg-card)',
+            opacity: isPublicToggling ? 0.7 : 1,
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)' }}
+        >
+          <Globe className="w-4 h-4" />
+          <span className="hidden sm:inline">{t('trips.makePublic')}</span>
+          {trip.is_public && (
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#22c55e' }} />
+          )}
         </button>
       )}
 

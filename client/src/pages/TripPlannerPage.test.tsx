@@ -1570,11 +1570,9 @@ describe('TripPlannerPage', () => {
       seedTripStore({ id: 42 });
       renderPlannerPage(42);
 
-      // Dismiss splash screen timer (1500ms)
       act(() => { vi.runAllTimers(); });
       vi.useRealTimers();
 
-      // isTripPublic=true → Navbar receives the prop → public dot is rendered
       await waitFor(() => {
         expect(document.querySelector('[data-testid="share-public-dot"]')).toBeInTheDocument();
       });
@@ -1594,7 +1592,6 @@ describe('TripPlannerPage', () => {
       act(() => { vi.runAllTimers(); });
       vi.useRealTimers();
 
-      // Navbar renders after splash, but isTripPublic=false so no dot
       await waitFor(() => {
         expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
       });
@@ -1618,21 +1615,201 @@ describe('TripPlannerPage', () => {
       act(() => { vi.runAllTimers(); });
       vi.useRealTimers();
 
-      // Wait for initial render
       await waitFor(() => {
         expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument();
       });
 
       const callCountAfterMount = callCount;
 
-      // Trigger onClose of TripMembersModal via captured props
       await act(async () => {
         capturedTripMembersModalProps.current.onClose?.();
       });
 
-      // After close, refresh is called → call count increases
       await waitFor(() => {
         expect(callCount).toBeGreaterThan(callCountAfterMount);
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-038: Make Public toggle shown to trip owner', () => {
+    it('renders Make Public toggle in Navbar for the trip owner', async () => {
+      vi.useFakeTimers();
+
+      const owner = buildUser({ id: 1 });
+      seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+      const trip = { ...buildTrip({ id: 42, is_public: false }), title: 'Owner Trip', owner_id: 1 };
+      seedStore(useTripStore, {
+        trip,
+        isLoading: false,
+        days: [],
+        places: [],
+        assignments: {},
+        packingItems: [],
+        todoItems: [],
+        categories: [],
+        reservations: [],
+        budgetItems: [],
+        files: [],
+        loadTrip: vi.fn().mockResolvedValue(undefined),
+        loadFiles: vi.fn().mockResolvedValue(undefined),
+        loadReservations: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        const toggle = screen.getByRole('switch', { name: /list this trip on the public page/i });
+        expect(toggle).toBeInTheDocument();
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-039: Make Public toggle hidden from non-owners', () => {
+    it('does not render Make Public toggle for non-owners', async () => {
+      vi.useFakeTimers();
+
+      const nonOwner = buildUser({ id: 99 });
+      seedStore(useAuthStore, { user: nonOwner, isAuthenticated: true });
+      const trip = { ...buildTrip({ id: 43, is_public: false }), title: 'Member Trip', owner_id: 1 };
+      seedStore(useTripStore, {
+        trip,
+        isLoading: false,
+        days: [],
+        places: [],
+        assignments: {},
+        packingItems: [],
+        todoItems: [],
+        categories: [],
+        reservations: [],
+        budgetItems: [],
+        files: [],
+        loadTrip: vi.fn().mockResolvedValue(undefined),
+        loadFiles: vi.fn().mockResolvedValue(undefined),
+        loadReservations: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      renderPlannerPage(43);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        expect(screen.queryByRole('switch')).not.toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-040: Make Public toggle calls PUT /api/trips/:id with is_public', () => {
+    it('sends is_public:true when toggling a private trip', async () => {
+      let capturedBody: Record<string, unknown> | null = null;
+      server.use(
+        http.put('/api/trips/44', async ({ request }) => {
+          capturedBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ trip: { ...buildTrip({ id: 44 }), is_public: true, owner_id: 1 } });
+        }),
+      );
+
+      vi.useFakeTimers();
+
+      const owner = buildUser({ id: 1 });
+      seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+      const trip = { ...buildTrip({ id: 44, is_public: false }), title: 'Toggle Trip', owner_id: 1 };
+      seedStore(useTripStore, {
+        trip,
+        isLoading: false,
+        days: [],
+        places: [],
+        assignments: {},
+        packingItems: [],
+        todoItems: [],
+        categories: [],
+        reservations: [],
+        budgetItems: [],
+        files: [],
+        loadTrip: vi.fn().mockResolvedValue(undefined),
+        loadFiles: vi.fn().mockResolvedValue(undefined),
+        loadReservations: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      renderPlannerPage(44);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      const toggle = await screen.findByRole('switch', { name: /list this trip on the public page/i });
+      await act(async () => { fireEvent.click(toggle); });
+
+      await waitFor(() => {
+        expect(capturedBody).toMatchObject({ is_public: true });
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-041: Make Public toggle aria-checked reflects trip.is_public not share-link', () => {
+    it('aria-checked is true when trip.is_public is true regardless of share link state', async () => {
+      vi.useFakeTimers();
+
+      const owner = buildUser({ id: 1 });
+      seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+      const trip = { ...buildTrip({ id: 45, is_public: true }), title: 'Public Trip', owner_id: 1 };
+      seedStore(useTripStore, {
+        trip,
+        isLoading: false,
+        days: [],
+        places: [],
+        assignments: {},
+        packingItems: [],
+        todoItems: [],
+        categories: [],
+        reservations: [],
+        budgetItems: [],
+        files: [],
+        loadTrip: vi.fn().mockResolvedValue(undefined),
+        loadFiles: vi.fn().mockResolvedValue(undefined),
+        loadReservations: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      renderPlannerPage(45);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        const toggle = screen.getByRole('switch');
+        expect(toggle).toHaveAttribute('aria-checked', 'true');
+      });
+    });
+
+    it('aria-checked is false when trip.is_public is false', async () => {
+      vi.useFakeTimers();
+
+      const owner = buildUser({ id: 1 });
+      seedStore(useAuthStore, { user: owner, isAuthenticated: true });
+      const trip = { ...buildTrip({ id: 46, is_public: false }), title: 'Private Trip', owner_id: 1 };
+      seedStore(useTripStore, {
+        trip,
+        isLoading: false,
+        days: [],
+        places: [],
+        assignments: {},
+        packingItems: [],
+        todoItems: [],
+        categories: [],
+        reservations: [],
+        budgetItems: [],
+        files: [],
+        loadTrip: vi.fn().mockResolvedValue(undefined),
+        loadFiles: vi.fn().mockResolvedValue(undefined),
+        loadReservations: vi.fn().mockResolvedValue(undefined),
+      } as any);
+
+      renderPlannerPage(46);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => {
+        const toggle = screen.getByRole('switch');
+        expect(toggle).toHaveAttribute('aria-checked', 'false');
       });
     });
   });

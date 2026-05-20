@@ -197,11 +197,26 @@ export default function TripPlannerPage(): React.ReactElement | null {
     toast.info(t('undo.done', { action: label ?? '' }))
   }, [undo, lastActionLabel, toast])
 
+  const [isPublicToggling, setIsPublicToggling] = useState(false)
   const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false })
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, polls: true, whatsnext: true })
   const [tripAccommodations, setTripAccommodations] = useState<Accommodation[]>([])
   const [allowedFileTypes, setAllowedFileTypes] = useState<string | null>(null)
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
+
+  const handleTogglePublic = useCallback(async () => {
+    if (!trip || !tripId || isPublicToggling) return
+    const next = !trip.is_public
+    setIsPublicToggling(true)
+    try {
+      await tripsApi.update(tripId, { is_public: next })
+      useTripStore.setState(s => ({ trip: s.trip ? { ...s.trip, is_public: next } : s.trip }))
+    } catch {
+      toast.error(t('trips.visibilityUpdateError'))
+    } finally {
+      setIsPublicToggling(false)
+    }
+  }, [trip, tripId, isPublicToggling, toast, t])
 
   const loadAccommodations = useCallback(() => {
     if (tripId) {
@@ -792,7 +807,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
   return (
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', ...fontStyle }}>
-      <Navbar tripTitle={trip.title} tripId={tripId} showBack onBack={() => navigate('/dashboard')} onShare={() => setShowMembersModal(true)} isTripPublic={isTripPublic} />
+      <Navbar tripTitle={trip.title} tripId={tripId} showBack onBack={() => navigate('/dashboard')} onShare={() => setShowMembersModal(true)} isTripPublic={isTripPublic} trip={trip} onTogglePublic={handleTogglePublic} isPublicToggling={isPublicToggling} />
 
       <div style={{
         position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 40,
