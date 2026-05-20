@@ -65,7 +65,7 @@ apiClient.interceptors.request.use(
 )
 
 export function isAuthPublicPath(pathname: string): boolean {
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password']
+  const publicPaths = ['/', '/login', '/register', '/forgot-password', '/reset-password']
   const publicPrefixes = ['/shared/', '/public/']
   return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))
 }
