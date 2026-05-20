@@ -43,6 +43,7 @@ import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayNote } from '../helpers/factories';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
+import { rsvpAttempts } from '../../src/routes/publicTrips';
 
 const app: Application = createApp();
 
@@ -55,6 +56,7 @@ beforeEach(() => {
   resetTestDb(testDb);
   loginAttempts.clear();
   mfaAttempts.clear();
+  rsvpAttempts.clear();
 });
 
 afterAll(() => {
@@ -197,5 +199,169 @@ describe('GET /api/public/trips/:id', () => {
     expect(Array.isArray(dayNotes)).toBe(true);
     expect(dayNotes).toHaveLength(1);
     expect(dayNotes[0].text).toBe('Arrive early');
+  });
+});
+
+describe('POST /api/public/trips/:id/rsvp', () => {
+  it('RSVP-001 — valid submission creates user + RSVP + trip member, returns 201 with rsvpId/userId/authToken', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'My RSVP Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Alice Smith', email: 'alice@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.rsvpId).toBe('number');
+    expect(typeof res.body.userId).toBe('number');
+    expect(typeof res.body.authToken).toBe('string');
+    expect(res.body.authToken.length).toBeGreaterThan(20);
+
+    const newUser = testDb.prepare('SELECT * FROM users WHERE email = ?').get('alice@example.com') as any;
+    expect(newUser).toBeDefined();
+    expect(newUser.id).toBe(res.body.userId);
+
+    const rsvp = testDb.prepare('SELECT * FROM trip_rsvps WHERE trip_id = ? AND user_id = ?').get(trip.id, res.body.userId) as any;
+    expect(rsvp).toBeDefined();
+    expect(rsvp.name).toBe('Alice Smith');
+    expect(rsvp.email).toBe('alice@example.com');
+
+    const member = testDb.prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, res.body.userId);
+    expect(member).toBeDefined();
+  });
+
+  it('RSVP-002 — existing email reuses user without overwriting password', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'RSVP Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const { user: existingUser } = createUser(testDb, { email: 'existing@example.com' });
+    const originalHash = (testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(existingUser.id) as any).password_hash;
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Existing User', email: 'existing@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.userId).toBe(existingUser.id);
+
+    const currentHash = (testDb.prepare('SELECT password_hash FROM users WHERE id = ?').get(existingUser.id) as any).password_hash;
+    expect(currentHash).toBe(originalHash);
+
+    const userCount = (testDb.prepare('SELECT COUNT(*) as c FROM users WHERE LOWER(email) = ?').get('existing@example.com') as any).c;
+    expect(userCount).toBe(1);
+  });
+
+  it('RSVP-003 — invalid email returns 400 with descriptive error', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Alice', email: 'not-an-email' });
+
+    expect(res.status).toBe(400);
+    expect(typeof res.body.error).toBe('string');
+    expect(res.body.error.length).toBeGreaterThan(0);
+  });
+
+  it('RSVP-004 — private trip (is_public = 0) returns 404', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    // is_public defaults to 0
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Alice', email: 'alice@example.com' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('RSVP-005 — missing name returns 400', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ email: 'alice@example.com' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('RSVP-006 — non-existent trip returns 404', async () => {
+    const res = await request(app)
+      .post('/api/public/trips/999999/rsvp')
+      .send({ name: 'Alice', email: 'alice@example.com' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('RSVP-007 — trip owner RSVPs own trip creates RSVP record but does not add owner as trip_member', async () => {
+    const { user: owner } = createUser(testDb, { email: 'owner@example.com' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Owner Name', email: 'owner@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.userId).toBe(owner.id);
+
+    // Owner must NOT appear in trip_members (they own the trip, not a member)
+    const member = testDb.prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, owner.id);
+    expect(member).toBeUndefined();
+
+    const rsvp = testDb.prepare('SELECT * FROM trip_rsvps WHERE trip_id = ? AND user_id = ?').get(trip.id, owner.id);
+    expect(rsvp).toBeDefined();
+  });
+
+  it('RSVP-008 — existing member RSVPs creates RSVP without duplicating trip_member row', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { email: 'member@example.com' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    testDb.prepare('INSERT INTO trip_members (trip_id, user_id, invited_by) VALUES (?, ?, ?)').run(trip.id, member.id, owner.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Member Name', email: 'member@example.com' });
+
+    expect(res.status).toBe(201);
+
+    const rows = testDb.prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?').all(trip.id, member.id) as any[];
+    expect(rows).toHaveLength(1);
+  });
+
+  it('RSVP-009 — optional message is persisted in the RSVP record', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Alice', email: 'alice@example.com', message: "Can't wait!" });
+
+    expect(res.status).toBe(201);
+    const rsvp = testDb.prepare('SELECT * FROM trip_rsvps WHERE id = ?').get(res.body.rsvpId) as any;
+    expect(rsvp.message).toBe("Can't wait!");
+  });
+
+  it('RSVP-010 — requires no authentication (unauthenticated request succeeds)', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Anonymous', email: 'anon@example.com' });
+
+    expect(res.status).toBe(201);
   });
 });

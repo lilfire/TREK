@@ -2242,6 +2242,23 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.exec(`ALTER TABLE trips ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0`);
     },
+    // LSO-1296: RSVP table for public trip RSVP submissions
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS trip_rsvps (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          message TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(trip_id, user_id)
+        )
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_trip ON trip_rsvps(trip_id)`);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_user ON trip_rsvps(user_id)`);
+    },
   ];
 
   if (currentVersion < migrations.length) {
