@@ -304,4 +304,38 @@ describe('Navbar', () => {
     await user.click(screen.getByText('adminuser'));
     expect(screen.getByText('Administrator')).toBeInTheDocument();
   });
+
+  it('FE-COMP-NAVBAR-034: share button shows Share2 icon label when isTripPublic is false', () => {
+    render(<Navbar onShare={vi.fn()} isTripPublic={false} />);
+    const shareBtn = screen.getByRole('button', { name: /share trip/i });
+    expect(shareBtn).toBeInTheDocument();
+    // Public indicator dot should NOT be present
+    expect(document.querySelector('[data-testid="share-public-dot"]')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-035: share button shows Globe icon and public dot when isTripPublic is true', () => {
+    render(<Navbar onShare={vi.fn()} isTripPublic={true} />);
+    const shareBtn = screen.getByRole('button', { name: /share trip/i });
+    expect(shareBtn).toBeInTheDocument();
+    // Green dot badge indicates public state
+    expect(document.querySelector('[data-testid="share-public-dot"]')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-NAVBAR-036: share button label always visible (no hidden sm:inline)', () => {
+    render(<Navbar onShare={vi.fn()} />);
+    const shareBtn = screen.getByRole('button', { name: /share trip/i });
+    // The label span should not have the hidden class
+    const labelSpan = Array.from(shareBtn.querySelectorAll('span')).find(
+      s => s.textContent === 'Share trip',
+    );
+    expect(labelSpan).toBeTruthy();
+    expect(labelSpan!.className).not.toContain('hidden');
+  });
+
+  it('FE-COMP-NAVBAR-037: share button teal styling applied when isTripPublic is true', () => {
+    render(<Navbar onShare={vi.fn()} isTripPublic={true} />);
+    const shareBtn = screen.getByRole('button', { name: /share trip/i });
+    // Button border color should reference teal CSS variable when public
+    expect(shareBtn.style.borderColor).toContain('teal');
+  });
 });

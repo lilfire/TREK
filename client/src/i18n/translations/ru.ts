@@ -58,7 +58,7 @@ const ru: Record<string, string> = {
 
   // Navbar
   'nav.trip': 'Поездка',
-  'nav.share': 'Поделиться',
+  'nav.share': 'Поделиться поездкой',
   'nav.settings': 'Настройки',
   'nav.admin': 'Админ',
   'nav.logout': 'Выйти',
