@@ -78,13 +78,22 @@ export default function PublicTripDetailPage() {
         style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px', overflow: 'hidden' }}
       >
         {trip.cover_image && (
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
-              backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15,
-            }}
-          />
+          <>
+            <div
+              data-testid="cover-image"
+              style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
+                backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.5,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.65) 100%)',
+              }}
+            />
+          </>
         )}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />

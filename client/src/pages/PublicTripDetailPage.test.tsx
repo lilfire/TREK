@@ -231,4 +231,52 @@ describe('PublicTripDetailPage', () => {
       expect(screen.getByText(/no days planned/i)).toBeInTheDocument();
     });
   });
+
+  describe('FE-PUB-TRIP-009: Cover image is visibly displayed', () => {
+    it('renders the cover image with opacity >= 0.4 when cover_image is set', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: {
+              id: 42,
+              title: 'Public Paris Trip',
+              description: 'A beautiful trip to Paris',
+              start_date: '2026-07-01',
+              end_date: '2026-07-03',
+              cover_image: 'paris.jpg',
+              currency: 'EUR',
+            },
+            days: [],
+            assignments: {},
+            dayNotes: {},
+            places: [],
+            categories: [],
+            reservations: [],
+            accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      const coverImageEl = screen.getByTestId('cover-image');
+      expect(coverImageEl).toBeInTheDocument();
+      const opacity = parseFloat((coverImageEl as HTMLElement).style.opacity);
+      expect(opacity).toBeGreaterThanOrEqual(0.4);
+    });
+
+    it('does not render cover image element when cover_image is null', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('cover-image')).not.toBeInTheDocument();
+    });
+  });
 });
