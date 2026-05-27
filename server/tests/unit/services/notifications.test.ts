@@ -24,7 +24,9 @@ vi.mock('../../../src/utils/ssrfGuard', () => ({
   createPinnedDispatcher: vi.fn(() => ({})),
 }));
 
-import { getEventText, buildEmailHtml, buildWebhookBody, sendWebhook, sendNtfy, resolveNtfyUrl, type NtfyConfig } from '../../../src/services/notifications';
+import { getEventText, buildEmailHtml } from '../../../src/services/notifications';
+import { buildWebhookBody, sendWebhook } from '../../../src/services/webhookService';
+import { sendNtfy, resolveNtfyUrl, type NtfyConfig } from '../../../src/services/ntfyService';
 import { checkSsrf } from '../../../src/utils/ssrfGuard';
 import { logError } from '../../../src/services/auditLog';
 

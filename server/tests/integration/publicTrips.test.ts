@@ -37,6 +37,13 @@ vi.mock('../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
+const { mockSendRsvpEmail } = vi.hoisted(() => ({
+  mockSendRsvpEmail: vi.fn().mockResolvedValue(true),
+}));
+vi.mock('../../src/services/rsvpEmailService', () => ({
+  sendRsvpConfirmationEmail: mockSendRsvpEmail,
+}));
+
 import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
@@ -57,6 +64,7 @@ beforeEach(() => {
   loginAttempts.clear();
   mfaAttempts.clear();
   rsvpAttempts.clear();
+  mockSendRsvpEmail.mockReset().mockResolvedValue(true);
 });
 
 afterAll(() => {
@@ -363,5 +371,40 @@ describe('POST /api/public/trips/:id/rsvp', () => {
       .send({ name: 'Anonymous', email: 'anon@example.com' });
 
     expect(res.status).toBe(201);
+  });
+
+  it('RSVP-011 — returns 201 even when sendRsvpConfirmationEmail throws', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Error Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    mockSendRsvpEmail.mockRejectedValueOnce(new Error('Email service down'));
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Bob', email: 'bob@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.rsvpId).toBe('number');
+  });
+
+  it('RSVP-012 — fires sendRsvpConfirmationEmail with correct trip title', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'My Test Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Carol', email: 'carol@example.com' });
+
+    // Give the fire-and-forget promise time to settle
+    await new Promise(r => setTimeout(r, 10));
+    expect(mockSendRsvpEmail).toHaveBeenCalledWith(
+      expect.any(String),
+      'Carol',
+      'My Test Trip',
+      trip.id,
+      expect.any(Number),
+    );
   });
 });
