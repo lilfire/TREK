@@ -54,6 +54,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'trips.publicVisibilityLabel': 'List this trip on the public page',
   'trips.publicVisibilitySubtext': 'Anyone can view this trip without logging in.',
   'trips.visibilityUpdateError': 'Failed to update visibility',
+  'trips.makePublic': 'Make public',
   'common.update': 'Update',
   'common.change': 'Change',
   'common.uploading': 'Uploading…',
