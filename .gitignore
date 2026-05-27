@@ -18,6 +18,7 @@ client/public/icons/*.png
 *.sqlite-wal
 
 # User data
+data/
 server/data/*
 server/uploads/
 
