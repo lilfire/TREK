@@ -45,7 +45,18 @@ vi.mock('../../src/services/notifications', async (importOriginal) => {
   return {
     ...actual,
     testSmtp: vi.fn().mockResolvedValue({ success: true }),
-    testWebhook: vi.fn().mockResolvedValue({ success: true }),
+  };
+});
+vi.mock('../../src/services/webhookService', () => ({
+  buildWebhookBody: vi.fn(() => '{}'),
+  sendWebhook: vi.fn().mockResolvedValue(true),
+  testWebhook: vi.fn().mockResolvedValue({ success: true }),
+}));
+vi.mock('../../src/services/ntfyService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../src/services/ntfyService')>();
+  return {
+    ...actual,
+    testNtfy: vi.fn().mockResolvedValue({ success: true }),
   };
 });
 

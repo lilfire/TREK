@@ -66,9 +66,9 @@ export function getActiveChannels(): NotifChannel[] {
  * In-app is always available. Email/webhook depend on configuration.
  */
 export function getAvailableChannels(): AvailableChannels {
-  const hasSmtp = !!(process.env.SMTP_HOST || getAppSetting('smtp_host'));
   const activeChannels = getActiveChannels();
-  return { email: hasSmtp, webhook: activeChannels.includes('webhook'), ntfy: activeChannels.includes('ntfy'), inapp: true };
+  // email is always true: direct transport is available even without SMTP config
+  return { email: true, webhook: activeChannels.includes('webhook'), ntfy: activeChannels.includes('ntfy'), inapp: true };
 }
 
 // ── Per-user preference checks ─────────────────────────────────────────────

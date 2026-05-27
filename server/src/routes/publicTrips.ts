@@ -3,6 +3,8 @@ import { db } from '../db/database';
 import { getPublicTripData, getPublicTripsList } from '../services/publicTripService';
 import { findOrCreateUserForRsvp, createRsvp } from '../services/rsvpService';
 import { addMember } from '../services/tripService';
+import { sendRsvpConfirmationEmail } from '../services/rsvpEmailService';
+import { logError } from '../services/auditLog';
 
 const router = express.Router();
 
@@ -50,8 +52,8 @@ router.post('/:id/rsvp', rsvpRateLimiter, (req: Request, res: Response) => {
   if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
 
   const trip = db.prepare(
-    'SELECT id, user_id FROM trips WHERE id = ? AND is_public = 1',
-  ).get(tripId) as { id: number; user_id: number } | undefined;
+    'SELECT id, user_id, title FROM trips WHERE id = ? AND is_public = 1',
+  ).get(tripId) as { id: number; user_id: number; title: string } | undefined;
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
   const { name, email, message } = req.body;
@@ -86,6 +88,9 @@ router.post('/:id/rsvp', rsvpRateLimiter, (req: Request, res: Response) => {
   });
 
   res.status(201).json(result);
+
+  sendRsvpConfirmationEmail(storedEmail, trimmedName, trip.title, trip.id, userId)
+    .catch((err) => logError(`RSVP confirmation email failed: ${err}`));
 });
 
 export default router;
