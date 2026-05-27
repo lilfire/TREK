@@ -21,6 +21,7 @@ client/public/icons/*.png
 data/
 server/data/*
 server/uploads/
+uploads/
 
 # Environment
 .env

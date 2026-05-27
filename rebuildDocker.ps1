@@ -1,14 +1,18 @@
 # Rebuilds the TREK image from the local source and restarts the container.
 #
-# Note: docker-compose.yml pins `image: mauriceboe/trek:latest` and has no
+# Note: docker-compose.yml pins `image: trek:local` and has no
 # `build:` section, so `docker compose up --build` would NOT rebuild local code.
 # Instead we build the image ourselves and tag it as the name Compose expects,
 # then bring the stack up so it uses the freshly built image.
+#
+# `trek:local` is a local-only tag (this is a fork) — it deliberately does NOT
+# use the upstream `mauriceboe/trek` namespace, so `docker compose pull` can
+# never overwrite the local build with an upstream image.
 
 $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot
 
-$ImageName = "mauriceboe/trek:latest"
+$ImageName = "trek:local"
 $AppVersion = "dev"
 
 # Check if Docker is running
@@ -24,7 +28,11 @@ docker compose down
 
 Write-Host "Building image $ImageName from local source..." -ForegroundColor Cyan
 $env:DOCKER_BUILDKIT = "1"
-docker build --build-arg APP_VERSION=$AppVersion -t $ImageName .
+# --no-cache-filter client-builder forces the React/Vite build to re-run every
+# time, so the served bundle always reflects the current source. Without it,
+# Docker can reuse a stale `npm run build` layer and ship an old frontend.
+# (Remove it for faster builds if you trust the cache.)
+docker build --no-cache-filter client-builder --build-arg APP_VERSION=$AppVersion -t $ImageName .
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed. Check the errors above." -ForegroundColor Red
     exit 1
