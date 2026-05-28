@@ -1,28 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Calendar } from 'lucide-react'
-import { publicTripsApi } from '../api/client'
-
-interface PublicTripSummary {
-  id: number
-  name: string
-  start_date: string | null
-  end_date: string | null
-  cover_image_url: string | null
-  description: string | null
-  place_count: number
-}
-
-function formatDateRange(start: string | null, end: string | null): string {
-  const fmt = (d: string) =>
-    new Date(d + 'T00:00:00Z').toLocaleDateString('en', {
-      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
-    })
-  if (start && end) return `${fmt(start)} — ${fmt(end)}`
-  if (start) return fmt(start)
-  if (end) return fmt(end)
-  return ''
-}
+import { publicTripsApi, type PublicTripSummary } from '../api/client'
+import { formatDateRange } from '../utils/formatters'
 
 export default function PublicTripsPage() {
   const navigate = useNavigate()

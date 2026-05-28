@@ -4,17 +4,7 @@ import { MapPin, Calendar, Loader2 } from 'lucide-react'
 import { publicTripsApi, type PublicTripSummary } from '../api/client'
 import { useToast } from '../components/shared/Toast'
 import { type DashboardTrip } from './DashboardTripCards'
-
-function formatDateRange(start: string | null, end: string | null): string {
-  const fmt = (d: string) =>
-    new Date(d + 'T00:00:00Z').toLocaleDateString('en', {
-      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
-    })
-  if (start && end) return `${fmt(start)} — ${fmt(end)}`
-  if (start) return fmt(start)
-  if (end) return fmt(end)
-  return ''
-}
+import { formatDateRange } from '../utils/formatters'
 
 interface Props {
   userTrips: DashboardTrip[]
