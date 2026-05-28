@@ -83,7 +83,7 @@ export default function PublicTripDetailPage() {
               data-testid="cover-image"
               style={{
                 position: 'absolute', inset: 0,
-                backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
+                backgroundImage: `url(${trip.cover_image.startsWith('http') || trip.cover_image.startsWith('/') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
                 backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.5,
               }}
             />
