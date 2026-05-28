@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { db } from '../db/database';
 import { getPublicTripData, getPublicTripsList } from '../services/publicTripService';
-import { findOrCreateUserForRsvp, createRsvp } from '../services/rsvpService';
+import { findOrCreateUserForRsvp, createRsvp, CreateRsvpResult } from '../services/rsvpService';
 import { addMember } from '../services/tripService';
 import { sendRsvpConfirmationEmail } from '../services/rsvpEmailService';
 import { logError } from '../services/auditLog';
@@ -79,13 +79,24 @@ router.post('/:id/rsvp', rsvpRateLimiter, (req: Request, res: Response) => {
     }
   }
 
-  const result = createRsvp({
-    tripId,
-    userId,
-    name: trimmedName,
-    email: storedEmail,
-    message: typeof message === 'string' && message.trim() ? message.trim() : undefined,
-  });
+  let result: CreateRsvpResult;
+  try {
+    result = createRsvp({
+      tripId,
+      userId,
+      name: trimmedName,
+      email: storedEmail,
+      message: typeof message === 'string' && message.trim() ? message.trim() : undefined,
+    });
+  } catch (err: unknown) {
+    if (err instanceof Error && (err as any).code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      return res.status(409).json({
+        error: 'duplicate_rsvp',
+        message: 'This email already has an RSVP for this trip.',
+      });
+    }
+    throw err;
+  }
 
   res.status(201).json(result);
 

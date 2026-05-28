@@ -407,4 +407,22 @@ describe('POST /api/public/trips/:id/rsvp', () => {
       expect.any(Number),
     );
   });
+
+  it('RSVP-013 — duplicate RSVP (same email + trip) returns 409 with duplicate_rsvp error code', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Alice', email: 'alice@example.com' });
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Alice', email: 'alice@example.com' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.error).toBe('duplicate_rsvp');
+    expect(typeof res.body.message).toBe('string');
+  });
 });
