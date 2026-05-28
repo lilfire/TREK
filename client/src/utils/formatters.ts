@@ -39,6 +39,17 @@ export function currencyDecimals(currency: string): number {
   return ZERO_DECIMAL_CURRENCIES.has(currency.toUpperCase()) ? 0 : 2
 }
 
+export function formatDateRange(start: string | null, end: string | null): string {
+  const fmt = (d: string) =>
+    new Date(d + 'T00:00:00Z').toLocaleDateString('en', {
+      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+    })
+  if (start && end) return `${fmt(start)} — ${fmt(end)}`
+  if (start) return fmt(start)
+  if (end) return fmt(end)
+  return ''
+}
+
 export function formatDate(dateStr: string | null | undefined, locale: string, timeZone?: string): string | null {
   if (!dateStr) return null
   const opts: Intl.DateTimeFormatOptions = {
