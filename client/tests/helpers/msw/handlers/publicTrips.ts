@@ -89,6 +89,6 @@ export const publicTripsHandlers = [
 
   http.post('/api/public/trips/:id/rsvp', () => {
     const user = buildUser();
-    return HttpResponse.json({ user, token: 'mock-rsvp-token' }, { status: 201 });
+    return HttpResponse.json({ rsvpId: 1, userId: user.id, authToken: 'mock-rsvp-token' }, { status: 201 });
   }),
 ];

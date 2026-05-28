@@ -166,7 +166,7 @@ describe('PublicTripDetailPage', () => {
 
       expect(screen.getByLabelText(/name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /rsvp/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
     });
   });
 

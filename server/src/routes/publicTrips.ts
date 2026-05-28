@@ -5,6 +5,8 @@ import { findOrCreateUserForRsvp, createRsvp, CreateRsvpResult } from '../servic
 import { addMember } from '../services/tripService';
 import { sendRsvpConfirmationEmail } from '../services/rsvpEmailService';
 import { logError } from '../services/auditLog';
+import { optionalAuth } from '../middleware/auth';
+import type { OptionalAuthRequest } from '../types';
 
 const router = express.Router();
 
@@ -47,7 +49,7 @@ router.get('/:id', (req: Request, res: Response) => {
   res.json(data);
 });
 
-router.post('/:id/rsvp', rsvpRateLimiter, (req: Request, res: Response) => {
+router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, (req: Request, res: Response) => {
   const tripId = Number(req.params.id);
   if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
 
@@ -56,6 +58,35 @@ router.post('/:id/rsvp', rsvpRateLimiter, (req: Request, res: Response) => {
   ).get(tripId) as { id: number; user_id: number; title: string } | undefined;
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
+  const authReq = req as OptionalAuthRequest;
+
+  if (authReq.user) {
+    const { id: userId, username: name, email } = authReq.user;
+
+    const existingRsvp = db.prepare('SELECT id FROM trip_rsvps WHERE trip_id = ? AND user_id = ?').get(tripId, userId);
+    if (existingRsvp) {
+      return res.status(200).json({ alreadyMember: true });
+    }
+
+    if (userId !== trip.user_id) {
+      try {
+        addMember(tripId, email, trip.user_id, trip.user_id);
+      } catch (err: unknown) {
+        if (!(err instanceof Error && err.message === 'User already has access')) {
+          throw err;
+        }
+      }
+    }
+
+    const result = createRsvp({ tripId, userId, name, email });
+    res.status(201).json(result);
+
+    sendRsvpConfirmationEmail(email, name, trip.title, trip.id, userId)
+      .catch((err) => logError(`RSVP confirmation email failed: ${err}`));
+    return;
+  }
+
+  // Unauthenticated path — validate name + email from body
   const { name, email, message } = req.body;
 
   if (!name || typeof name !== 'string' || !name.trim()) {

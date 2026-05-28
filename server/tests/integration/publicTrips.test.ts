@@ -49,6 +49,7 @@ import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayNote } from '../helpers/factories';
+import { authHeader } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import { rsvpAttempts } from '../../src/routes/publicTrips';
 
@@ -424,5 +425,85 @@ describe('POST /api/public/trips/:id/rsvp', () => {
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('duplicate_rsvp');
     expect(typeof res.body.message).toBe('string');
+  });
+
+  // AC1: authenticated RSVP creates record using user's own details
+  it('RSVP-014 — authenticated user RSVPs without body, uses their account details', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: rsvpUser } = createUser(testDb, { email: 'auth-rsvp@example.com' });
+    const trip = createTrip(testDb, owner.id, { title: 'Auth RSVP Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .set(authHeader(rsvpUser.id));
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.rsvpId).toBe('number');
+    expect(res.body.userId).toBe(rsvpUser.id);
+    expect(typeof res.body.authToken).toBe('string');
+
+    const rsvp = testDb.prepare('SELECT * FROM trip_rsvps WHERE trip_id = ? AND user_id = ?').get(trip.id, rsvpUser.id) as any;
+    expect(rsvp).toBeDefined();
+    expect(rsvp.email).toBe('auth-rsvp@example.com');
+
+    const member = testDb.prepare('SELECT * FROM trip_members WHERE trip_id = ? AND user_id = ?').get(trip.id, rsvpUser.id);
+    expect(member).toBeDefined();
+  });
+
+  // AC2: authenticated user who already RSVP'd gets 200 { alreadyMember: true }
+  it('RSVP-015 — authenticated user who already RSVPd returns 200 alreadyMember', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: rsvpUser } = createUser(testDb, { email: 'repeat@example.com' });
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    // First RSVP
+    const first = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .set(authHeader(rsvpUser.id));
+    expect(first.status).toBe(201);
+
+    // Second RSVP — same user
+    const second = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .set(authHeader(rsvpUser.id));
+    expect(second.status).toBe(200);
+    expect(second.body.alreadyMember).toBe(true);
+
+    // Only one RSVP row should exist
+    const rows = testDb.prepare('SELECT * FROM trip_rsvps WHERE trip_id = ? AND user_id = ?').all(trip.id, rsvpUser.id) as any[];
+    expect(rows).toHaveLength(1);
+  });
+
+  // AC3: unauthenticated RSVP with valid name+email body still works
+  it('RSVP-016 — unauthenticated RSVP with valid name+email body succeeds (existing flow unchanged)', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Unauth User', email: 'unauth@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.rsvpId).toBe('number');
+    expect(typeof res.body.authToken).toBe('string');
+    const rsvp = testDb.prepare('SELECT * FROM trip_rsvps WHERE trip_id = ? AND email = ?').get(trip.id, 'unauth@example.com') as any;
+    expect(rsvp).toBeDefined();
+  });
+
+  // AC4: unauthenticated RSVP with no body returns validation error
+  it('RSVP-017 — unauthenticated RSVP with no body returns 400 validation error', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`);
+
+    expect(res.status).toBe(400);
+    expect(typeof res.body.error).toBe('string');
+    expect(res.body.error.length).toBeGreaterThan(0);
   });
 });
