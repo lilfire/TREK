@@ -246,8 +246,8 @@ export default function PublicTripDetailPage() {
 
         {/* RSVP section */}
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
-          <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-1">RSVP</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">Let the organiser know you're coming.</p>
+          <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-1">Join this trip</h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">Add your details below and we&apos;ll reserve your spot.</p>
           <RsvpForm tripId={id!} />
         </section>
 
