@@ -42,16 +42,15 @@ export default function DashboardDiscoverTab({ userTrips }: Props) {
   async function handleJoinTrip(tripId: number) {
     setJoining(tripId)
     try {
-      await publicTripsApi.rsvpAuthenticated(tripId)
-      toast.success("🎉 You've joined the trip! It will appear in My Trips shortly.")
-      navigate('/dashboard')
-    } catch (err: unknown) {
-      const apiErr = err as { response?: { status?: number } }
-      if (apiErr?.response?.status === 409) {
-        toast.error("You're already on the list for this trip.")
+      const result = await publicTripsApi.rsvpAuthenticated(tripId)
+      if (result?.alreadyMember) {
+        toast.success("You're already on the list for this trip.")
       } else {
-        toast.error('Something went wrong. Please try again.')
+        toast.success("🎉 You've joined the trip! It will appear in My Trips shortly.")
       }
+      navigate('/dashboard')
+    } catch {
+      toast.error('Something went wrong. Please try again.')
     } finally {
       setJoining(null)
     }

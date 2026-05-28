@@ -60,8 +60,10 @@ export default function RsvpForm({ tripId, isMember }: Props) {
     setError(null)
     setSubmitting(true)
     try {
-      await publicTripsApi.rsvpAuthenticated(tripId)
-      toast.success("🎉 You're in! Check your dashboard to view the full itinerary.")
+      const result = await publicTripsApi.rsvpAuthenticated(tripId)
+      if (!result?.alreadyMember) {
+        toast.success("🎉 You're in! Check your dashboard to view the full itinerary.")
+      }
       setJoinDone(true)
     } catch (err: unknown) {
       setError(parseRsvpError(err))
@@ -225,7 +227,7 @@ export default function RsvpForm({ tripId, isMember }: Props) {
         className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {submitting && <Loader2 size={14} className="animate-spin" />}
-        {submitting ? 'Confirming...' : 'RSVP'}
+        {submitting ? 'Confirming...' : 'Confirm my spot'}
       </button>
     </form>
   )

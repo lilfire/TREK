@@ -11,6 +11,7 @@ import TripFormModal from '../components/Trips/TripFormModal'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CopyTripDialog from '../components/shared/CopyTripDialog'
 import DashboardDiscoverTab from './DashboardDiscoverTab'
+import DashboardToolbar from './DashboardToolbar'
 import { useDashboardData } from '../hooks/useDashboardData'
 import {
   LiquidGlass, SpotlightCard, MobileTripCard, TripCard, TripListItem,
@@ -18,8 +19,7 @@ import {
 } from './DashboardTripCards'
 import {
   Plus, Map, ChevronDown, ChevronUp,
-  Archive, Clock, Settings, X, ArrowRightLeft,
-  LayoutGrid, List, Bell,
+  Archive, Clock, X, ArrowRightLeft, Bell,
 } from 'lucide-react'
 import { useCanDo } from '../store/permissionsStore'
 
@@ -171,109 +171,20 @@ export default function DashboardPage(): React.ReactElement {
           </div>
 
           {/* Desktop header — unified toolbar */}
-          <div className="hidden md:block" style={{ marginBottom: 20 }}>
-            <div style={{
-              background: 'var(--bg-tertiary)', borderRadius: 18,
-              border: '1px solid var(--border-primary)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-              padding: '14px 16px 14px 22px',
-              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            }}>
-              {/* Tab navigation */}
-              <div style={{ display: 'flex', gap: 2 }}>
-                <button
-                  data-testid="tab-my-trips"
-                  onClick={() => setActiveTab('trips')}
-                  style={{
-                    padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                    background: activeTab === 'trips' ? 'var(--bg-card)' : 'transparent',
-                    color: activeTab === 'trips' ? 'var(--text-primary)' : 'var(--text-muted)',
-                    boxShadow: activeTab === 'trips' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  }}
-                >
-                  {t('dashboard.title')}
-                </button>
-                <button
-                  data-testid="tab-discover"
-                  onClick={() => setActiveTab('discover')}
-                  style={{
-                    padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
-                    background: activeTab === 'discover' ? 'var(--bg-card)' : 'transparent',
-                    color: activeTab === 'discover' ? 'var(--text-primary)' : 'var(--text-muted)',
-                    boxShadow: activeTab === 'discover' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  }}
-                >
-                  Discover
-                </button>
-              </div>
-
-              <div style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-
-              {activeTab === 'trips' && (
-                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  {isLoading ? t('common.loading')
-                    : trips.length > 0 ? `${t(trips.length !== 1 ? 'dashboard.subtitle.activeMany' : 'dashboard.subtitle.activeOne', { count: trips.length })}${archivedTrips.length > 0 ? t('dashboard.subtitle.archivedSuffix', { count: archivedTrips.length }) : ''}`
-                    : t('dashboard.subtitle.empty')}
-                </span>
-              )}
-
-              <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-                {activeTab === 'trips' && (
-                  <>
-                    <button
-                      onClick={toggleViewMode}
-                      title={viewMode === 'grid' ? t('dashboard.listView') : t('dashboard.gridView')}
-                      style={{
-                        appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '7px 11px', borderRadius: 99,
-                        background: 'transparent', color: 'var(--text-muted)',
-                        transition: 'all 0.15s ease',
-                      }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' }}
-                    >
-                      {viewMode === 'grid' ? <List size={15} /> : <LayoutGrid size={15} />}
-                    </button>
-                    <button
-                      onClick={() => setShowWidgetSettings(s => s ? false : true)}
-                      title={t('dashboard.widgets') || 'Widgets'}
-                      style={{
-                        appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '7px 11px', borderRadius: 99,
-                        background: showWidgetSettings ? 'var(--bg-card)' : 'transparent',
-                        color: showWidgetSettings ? 'var(--text-primary)' : 'var(--text-muted)',
-                        boxShadow: showWidgetSettings ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                        transition: 'all 0.15s ease',
-                      }}
-                      onMouseEnter={e => { if (!showWidgetSettings) { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
-                      onMouseLeave={e => { if (!showWidgetSettings) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)' } }}
-                    >
-                      <Settings size={15} />
-                    </button>
-                    {can('trip_create') && (
-                      <button
-                        onClick={() => { setEditingTrip(null); setShowForm(true) }}
-                        style={{
-                          appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                          padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                          background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-                          marginLeft: 2,
-                        }}
-                        className="hover:opacity-[0.88]"
-                      >
-                        <Plus size={14} strokeWidth={2.5} /> {t('dashboard.newTrip')}
-                      </button>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
+          <DashboardToolbar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            viewMode={viewMode}
+            onViewToggle={toggleViewMode}
+            showWidgetSettings={showWidgetSettings}
+            onWidgetSettingsToggle={() => setShowWidgetSettings(s => s ? false : true)}
+            tripCount={trips.length}
+            archivedCount={archivedTrips.length}
+            isLoading={isLoading}
+            canCreateTrip={can('trip_create')}
+            onNewTrip={() => { setEditingTrip(null); setShowForm(true) }}
+            t={t}
+          />
 
           {/* Widget settings dropdown */}
           {showWidgetSettings && activeTab === 'trips' && (

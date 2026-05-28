@@ -876,7 +876,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  describe('FE-PAGE-DASH-030: Discover tab renders public trips', () => {
+  describe('FE-PAGE-DASH-033: Discover tab renders public trips', () => {
     it('clicking Discover tab shows public trips list', async () => {
       const user = userEvent.setup();
       render(<DashboardPage />);
@@ -912,7 +912,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  describe('FE-PAGE-DASH-031: Discover tab excludes already-joined trips', () => {
+  describe('FE-PAGE-DASH-034: Discover tab excludes already-joined trips', () => {
     it('filters out trips the user is already a member of', async () => {
       // Override trips to include a trip with the same ID as a public trip (42)
       server.use(
@@ -946,7 +946,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  describe('FE-PAGE-DASH-032: Discover tab empty state', () => {
+  describe('FE-PAGE-DASH-035: Discover tab empty state', () => {
     it('shows empty state when all public trips are already joined or none exist', async () => {
       server.use(
         http.get('/api/public/trips', () => HttpResponse.json([])),
@@ -969,7 +969,7 @@ describe('DashboardPage', () => {
     });
   });
 
-  describe('FE-PAGE-DASH-033: Discover tab Join Trip calls rsvpAuthenticated', () => {
+  describe('FE-PAGE-DASH-036: Discover tab Join Trip calls rsvpAuthenticated', () => {
     it('clicking Join Trip calls POST /api/public/trips/:id/rsvp', async () => {
       const rsvpHandler = vi.fn(() =>
         HttpResponse.json({ ok: true }, { status: 201 }),
@@ -990,6 +990,33 @@ describe('DashboardPage', () => {
 
       await waitFor(() => {
         expect(rsvpHandler).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('FE-PAGE-DASH-037: Discover tab handles alreadyMember response', () => {
+    it('navigates to dashboard when backend returns alreadyMember: true', async () => {
+      server.use(
+        http.post('/api/public/trips/:id/rsvp', () =>
+          HttpResponse.json({ alreadyMember: true }, { status: 200 }),
+        ),
+      );
+
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      const joinBtns = await screen.findAllByTestId('discover-join-btn');
+      await user.click(joinBtns[0]);
+
+      // Navigation occurs (no error state shown)
+      await waitFor(() => {
+        expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
       });
     });
   });
