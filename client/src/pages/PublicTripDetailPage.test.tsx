@@ -205,6 +205,73 @@ describe('PublicTripDetailPage', () => {
     });
   });
 
+  describe('FE-PUB-TRIP-009: Cover image URL construction', () => {
+    it('uses an absolute path cover image as-is (no double prefix)', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: { id: 1, title: 'Cover Test', start_date: null, end_date: null, cover_image: '/uploads/covers/abc.jpg', currency: 'EUR' },
+            days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('1');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      const heroDiv = document.querySelector('[style*="background-image"]') as HTMLElement;
+      expect(heroDiv).not.toBeNull();
+      // JSDOM wraps URL values in quotes; use toContain to avoid quoting differences
+      expect(heroDiv.style.backgroundImage).toContain('/uploads/covers/abc.jpg');
+      expect(heroDiv.style.backgroundImage).not.toContain('//uploads');
+    });
+
+    it('uses an external http URL as-is', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: { id: 1, title: 'Cover Test', start_date: null, end_date: null, cover_image: 'https://example.com/photo.jpg', currency: 'EUR' },
+            days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('1');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      const heroDiv = document.querySelector('[style*="background-image"]') as HTMLElement;
+      expect(heroDiv).not.toBeNull();
+      expect(heroDiv.style.backgroundImage).toContain('https://example.com/photo.jpg');
+    });
+
+    it('prepends /uploads/ for a relative path without leading slash', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: { id: 1, title: 'Cover Test', start_date: null, end_date: null, cover_image: 'covers/abc.jpg', currency: 'EUR' },
+            days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('1');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      const heroDiv = document.querySelector('[style*="background-image"]') as HTMLElement;
+      expect(heroDiv).not.toBeNull();
+      expect(heroDiv.style.backgroundImage).toContain('/uploads/covers/abc.jpg');
+    });
+  });
+
   describe('FE-PUB-TRIP-008: Handles trip with no days gracefully', () => {
     it('shows a "no days" message when the itinerary is empty', async () => {
       server.use(

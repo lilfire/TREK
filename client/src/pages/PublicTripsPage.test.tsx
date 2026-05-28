@@ -130,6 +130,65 @@ describe('PublicTripsPage', () => {
     });
   });
 
+  describe('FE-PUB-LIST-006: Cover image URL construction', () => {
+    it('uses an absolute path cover image as-is (no double prefix)', async () => {
+      server.use(
+        http.get('/api/public/trips', () =>
+          HttpResponse.json([
+            { id: 1, name: 'Cover Trip', start_date: null, end_date: null, cover_image_url: '/uploads/covers/abc.jpg', description: null, place_count: 0 },
+          ]),
+        ),
+      );
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('')).toBeInTheDocument();
+      });
+
+      const img = screen.getByAltText('') as HTMLImageElement;
+      expect(img.src).toMatch(/\/uploads\/covers\/abc\.jpg$/);
+    });
+
+    it('uses an external http URL as-is', async () => {
+      server.use(
+        http.get('/api/public/trips', () =>
+          HttpResponse.json([
+            { id: 1, name: 'Cover Trip', start_date: null, end_date: null, cover_image_url: 'https://example.com/photo.jpg', description: null, place_count: 0 },
+          ]),
+        ),
+      );
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('')).toBeInTheDocument();
+      });
+
+      const img = screen.getByAltText('') as HTMLImageElement;
+      expect(img.src).toBe('https://example.com/photo.jpg');
+    });
+
+    it('prepends /uploads/ for a relative path without leading slash', async () => {
+      server.use(
+        http.get('/api/public/trips', () =>
+          HttpResponse.json([
+            { id: 1, name: 'Cover Trip', start_date: null, end_date: null, cover_image_url: 'covers/abc.jpg', description: null, place_count: 0 },
+          ]),
+        ),
+      );
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByAltText('')).toBeInTheDocument();
+      });
+
+      const img = screen.getByAltText('') as HTMLImageElement;
+      expect(img.src).toMatch(/\/uploads\/covers\/abc\.jpg$/);
+    });
+  });
+
   describe('FE-PUB-LIST-005: Graceful error handling', () => {
     it('shows empty state when the API fails', async () => {
       server.use(

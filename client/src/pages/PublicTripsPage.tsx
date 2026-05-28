@@ -116,7 +116,7 @@ export default function PublicTripsPage() {
                 {trip.cover_image_url ? (
                   <div className="h-36 overflow-hidden">
                     <img
-                      src={trip.cover_image_url.startsWith('http') ? trip.cover_image_url : `/uploads/${trip.cover_image_url}`}
+                      src={trip.cover_image_url.startsWith('http') || trip.cover_image_url.startsWith('/') ? trip.cover_image_url : `/uploads/${trip.cover_image_url}`}
                       alt=""
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
