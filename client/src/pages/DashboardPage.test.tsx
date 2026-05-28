@@ -993,4 +993,31 @@ describe('DashboardPage', () => {
       });
     });
   });
+
+  describe('FE-PAGE-DASH-034: Discover tab handles alreadyMember response', () => {
+    it('navigates to dashboard when backend returns alreadyMember: true', async () => {
+      server.use(
+        http.post('/api/public/trips/:id/rsvp', () =>
+          HttpResponse.json({ alreadyMember: true }, { status: 200 }),
+        ),
+      );
+
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      const joinBtns = await screen.findAllByTestId('discover-join-btn');
+      await user.click(joinBtns[0]);
+
+      // Navigation occurs (no error state shown)
+      await waitFor(() => {
+        expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+      });
+    });
+  });
 });

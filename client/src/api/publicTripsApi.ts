@@ -15,6 +15,6 @@ export const publicTripsApi = {
   get: (id: number | string) => apiClient.get(`/public/trips/${id}`).then(r => r.data),
   rsvp: (id: number | string, data: { name: string; email: string; message?: string }) =>
     apiClient.post(`/public/trips/${id}/rsvp`, data).then(r => r.data),
-  rsvpAuthenticated: (id: number | string) =>
+  rsvpAuthenticated: (id: number | string): Promise<{ alreadyMember?: boolean }> =>
     apiClient.post(`/public/trips/${id}/rsvp`, {}).then(r => r.data),
 }
