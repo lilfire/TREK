@@ -306,6 +306,14 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/explore"
+          element={
+            <ProtectedRoute>
+              <PublicTripsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </TranslationProvider>

@@ -1,4 +1,4 @@
-// FE-COMP-RSVP-001 to FE-COMP-RSVP-015
+// FE-COMP-RSVP-001 to FE-COMP-RSVP-017
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -360,25 +360,122 @@ describe('RsvpForm', () => {
     });
   });
 
-  describe('FE-COMP-RSVP-013: Already-authenticated state', () => {
-    it('hides the form and shows the already-going message when authenticated', () => {
+  describe('FE-COMP-RSVP-013: Authenticated non-member state (no isMember prop)', () => {
+    it('hides the RSVP form and shows Join Trip button when authenticated but not a member', () => {
       seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
 
       renderForm();
 
       expect(screen.queryByTestId('rsvp-form')).not.toBeInTheDocument();
-      expect(screen.getByTestId('rsvp-already-going')).toBeInTheDocument();
-      expect(screen.getByTestId('rsvp-already-going')).toHaveTextContent(/already going/i);
+      expect(screen.getByTestId('rsvp-join-form')).toBeInTheDocument();
+      expect(screen.getByTestId('rsvp-join-btn')).toBeInTheDocument();
+      expect(screen.getByTestId('rsvp-join-btn')).toHaveTextContent(/join trip/i);
     });
+  });
 
-    it('includes a link to /dashboard in the already-going message', () => {
+  describe('FE-COMP-RSVP-016: Authenticated member state (isMember=true)', () => {
+    it('shows "You\'re on the list." and hides the form when isMember=true', () => {
       seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
 
-      renderForm();
+      render(<RsvpForm tripId="42" isMember={true} />);
+
+      expect(screen.queryByTestId('rsvp-form')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('rsvp-join-form')).not.toBeInTheDocument();
+      expect(screen.getByTestId('rsvp-on-the-list')).toBeInTheDocument();
+      expect(screen.getByTestId('rsvp-on-the-list')).toHaveTextContent(/on the list/i);
+    });
+
+    it('includes a link to /dashboard in the member view', () => {
+      seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+
+      render(<RsvpForm tripId="42" isMember={true} />);
 
       const link = screen.getByRole('link', { name: /view the trip in your dashboard/i });
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute('href', '/dashboard');
+    });
+  });
+
+  describe('FE-COMP-RSVP-017: Authenticated non-member Join Trip flow', () => {
+    it('calls rsvpAuthenticated endpoint when Join Trip is clicked', async () => {
+      const rsvpHandler = vi.fn(() => HttpResponse.json({ ok: true }, { status: 201 }));
+      server.use(http.post('/api/public/trips/:id/rsvp', rsvpHandler));
+
+      seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.click(screen.getByTestId('rsvp-join-btn'));
+
+      await waitFor(() => {
+        expect(rsvpHandler).toHaveBeenCalledTimes(1);
+      });
+    });
+
+    it('shows success state after joining', async () => {
+      server.use(
+        http.post('/api/public/trips/:id/rsvp', () =>
+          HttpResponse.json({ ok: true }, { status: 201 }),
+        ),
+      );
+
+      seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.click(screen.getByTestId('rsvp-join-btn'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('rsvp-join-success')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('rsvp-join-success')).toHaveTextContent(/on the list/i);
+    });
+
+    it('shows error message when join fails', async () => {
+      server.use(
+        http.post('/api/public/trips/:id/rsvp', () =>
+          HttpResponse.json({ error: 'internal_error' }, { status: 500 }),
+        ),
+      );
+
+      seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+
+      const user = userEvent.setup();
+      renderForm();
+
+      await user.click(screen.getByTestId('rsvp-join-btn'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('rsvp-error')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/something went wrong/i);
+    });
+
+    it('disables the Join Trip button while submitting', async () => {
+      let resolveJoin!: (v: unknown) => void;
+      server.use(
+        http.post('/api/public/trips/:id/rsvp', () =>
+          new Promise(resolve => { resolveJoin = resolve; }),
+        ),
+      );
+
+      seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+
+      const user = userEvent.setup();
+      renderForm();
+
+      fireEvent.click(screen.getByTestId('rsvp-join-btn'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('rsvp-join-btn')).toBeDisabled();
+      });
+
+      resolveJoin(HttpResponse.json({ error: 'cancelled' }, { status: 500 }));
+      await waitFor(() => {
+        expect(screen.getByTestId('rsvp-join-btn')).not.toBeDisabled();
+      });
     });
   });
 

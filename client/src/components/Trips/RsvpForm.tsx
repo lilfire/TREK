@@ -7,6 +7,7 @@ import { useToast } from '../shared/Toast'
 
 interface Props {
   tripId: number | string
+  isMember?: boolean
 }
 
 interface RsvpError {
@@ -43,7 +44,7 @@ function parseRsvpError(err: unknown): RsvpError {
   return { message: "Something went wrong. Please try again.", hasLoginLink: false }
 }
 
-export default function RsvpForm({ tripId }: Props) {
+export default function RsvpForm({ tripId, isMember }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
@@ -53,16 +54,20 @@ export default function RsvpForm({ tripId }: Props) {
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<RsvpError | null>(null)
+  const [joinDone, setJoinDone] = useState(false)
 
-  if (isAuthenticated) {
-    return (
-      <div data-testid="rsvp-already-going" className="text-sm text-zinc-600 dark:text-zinc-400 py-2">
-        You&apos;re already going!{' '}
-        <Link to="/dashboard" className="underline font-medium text-zinc-900 dark:text-white">
-          View the trip in your dashboard &rarr;
-        </Link>
-      </div>
-    )
+  async function handleJoin() {
+    setError(null)
+    setSubmitting(true)
+    try {
+      await publicTripsApi.rsvpAuthenticated(tripId)
+      toast.success("🎉 You're in! Check your dashboard to view the full itinerary.")
+      setJoinDone(true)
+    } catch (err: unknown) {
+      setError(parseRsvpError(err))
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -94,6 +99,50 @@ export default function RsvpForm({ tripId }: Props) {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (isAuthenticated && isMember) {
+    return (
+      <div data-testid="rsvp-on-the-list" className="text-sm text-zinc-600 dark:text-zinc-400 py-2">
+        You&apos;re on the list.{' '}
+        <Link to="/dashboard" className="underline font-medium text-zinc-900 dark:text-white">
+          View the trip in your dashboard &rarr;
+        </Link>
+      </div>
+    )
+  }
+
+  if (isAuthenticated && !isMember) {
+    if (joinDone) {
+      return (
+        <div data-testid="rsvp-join-success" className="text-sm text-zinc-600 dark:text-zinc-400 py-2">
+          You&apos;re on the list.{' '}
+          <Link to="/dashboard" className="underline font-medium text-zinc-900 dark:text-white">
+            View the trip in your dashboard &rarr;
+          </Link>
+        </div>
+      )
+    }
+
+    return (
+      <div data-testid="rsvp-join-form" className="flex flex-col gap-4">
+        {error && (
+          <p data-testid="rsvp-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {error.message}
+          </p>
+        )}
+        <button
+          type="button"
+          data-testid="rsvp-join-btn"
+          disabled={submitting}
+          onClick={handleJoin}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {submitting && <Loader2 size={14} className="animate-spin" />}
+          {submitting ? 'Joining...' : 'Join Trip'}
+        </button>
+      </div>
+    )
   }
 
   return (
