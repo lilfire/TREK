@@ -84,3 +84,20 @@ if (typeof URL.createObjectURL === 'undefined') {
 
 // Element.prototype.scrollIntoView — jsdom doesn't implement it
 Element.prototype.scrollIntoView = vi.fn();
+
+// ProgressEvent — MSW's XHR interceptor fires ProgressEvent during teardown
+// but jsdom doesn't define it as a global constructor; polyfill to prevent
+// "ReferenceError: ProgressEvent is not defined" in post-test cleanup.
+if (typeof globalThis.ProgressEvent === 'undefined') {
+  globalThis.ProgressEvent = class ProgressEvent extends Event {
+    readonly loaded: number
+    readonly total: number
+    readonly lengthComputable: boolean
+    constructor(type: string, init?: ProgressEventInit) {
+      super(type, init)
+      this.loaded = init?.loaded ?? 0
+      this.total = init?.total ?? 0
+      this.lengthComputable = init?.lengthComputable ?? false
+    }
+  } as unknown as typeof ProgressEvent
+}

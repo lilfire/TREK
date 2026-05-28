@@ -225,7 +225,7 @@ export default function RsvpForm({ tripId, isMember }: Props) {
         className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
         {submitting && <Loader2 size={14} className="animate-spin" />}
-        {submitting ? 'Confirming...' : 'Confirm my spot'}
+        {submitting ? 'Confirming...' : 'RSVP'}
       </button>
     </form>
   )

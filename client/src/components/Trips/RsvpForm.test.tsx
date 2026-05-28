@@ -46,7 +46,7 @@ describe('RsvpForm', () => {
       expect(screen.getByLabelText(/your name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/message/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /rsvp/i })).toBeInTheDocument();
     });
 
     it('has data-testid="rsvp-form"', () => {
@@ -86,9 +86,9 @@ describe('RsvpForm', () => {
       expect(screen.getByLabelText(/message.*optional/i)).toBeInTheDocument();
     });
 
-    it('submit button text is "Confirm my spot"', () => {
+    it('submit button text is "RSVP"', () => {
       renderForm();
-      expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /rsvp/i })).toBeInTheDocument();
     });
   });
 
@@ -98,7 +98,7 @@ describe('RsvpForm', () => {
       renderForm();
 
       await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/name is required/i);
@@ -113,7 +113,7 @@ describe('RsvpForm', () => {
       renderForm();
 
       await user.type(screen.getByLabelText(/email address/i), 'test@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       expect(postSpy).not.toHaveBeenCalled();
     });
@@ -125,7 +125,7 @@ describe('RsvpForm', () => {
       renderForm();
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/email is required/i);
@@ -148,7 +148,7 @@ describe('RsvpForm', () => {
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
 
-      fireEvent.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      fireEvent.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /confirming/i })).toBeDisabled();
@@ -157,7 +157,7 @@ describe('RsvpForm', () => {
       // Resolve with an error to avoid leaking auth state into subsequent tests
       resolveRsvp(HttpResponse.json({ error: 'cancelled' }, { status: 500 }));
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /confirm my spot/i })).not.toBeDisabled();
+        expect(screen.getByRole('button', { name: /rsvp/i })).not.toBeDisabled();
       });
     });
   });
@@ -169,7 +169,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
@@ -190,7 +190,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(useAuthStore.getState().isAuthenticated).toBe(true);
@@ -204,7 +204,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
@@ -229,7 +229,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/already on the list/i);
@@ -251,7 +251,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/linked to a trek account/i);
@@ -274,7 +274,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/no longer accepting rsvps/i);
@@ -296,7 +296,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/too many attempts/i);
@@ -318,7 +318,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/something went wrong on our end/i);
@@ -337,10 +337,10 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /confirm my spot/i })).not.toBeDisabled();
+        expect(screen.getByRole('button', { name: /rsvp/i })).not.toBeDisabled();
       });
     });
   });
@@ -352,7 +352,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
@@ -495,7 +495,7 @@ describe('RsvpForm', () => {
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
       await user.type(screen.getByLabelText(/message/i), 'Looking forward to it!');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(mockNavigate).toHaveBeenCalled();
@@ -522,7 +522,7 @@ describe('RsvpForm', () => {
 
       await user.type(screen.getByLabelText(/your name/i), 'Alice');
       await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
-      await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+      await user.click(screen.getByRole('button', { name: /rsvp/i }));
 
       await waitFor(() => {
         expect(screen.getByTestId('rsvp-error')).toBeInTheDocument();
