@@ -1707,7 +1707,7 @@ describe('DayPlanSidebar', () => {
       days: [day],
       places: [place],
       assignments: { '10': [assignment] },
-      trip: buildTrip({ id: 1, currency: undefined as any }),
+      trip: buildTrip({ id: 1 }),
     })} />)
     expect(screen.getByText(/NOK/)).toBeInTheDocument()
   })
