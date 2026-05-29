@@ -227,7 +227,7 @@ describe('Prompt: trip-summary', () => {
     const text = await invokePromptText(server, 'trip-summary', { tripId: trip.id });
     expect(text).toContain('Untitled');
     expect(text).toContain('?');   // start/end date fallback
-    expect(text).toContain('EUR'); // currency fallback
+    expect(text).toContain('NOK'); // currency fallback
   });
 });
 
@@ -552,7 +552,7 @@ describe('Prompt: place-budget-binding', () => {
     const text = await invokePrompt(server, 'place-budget-binding', {
       tripId: trip.id, placeName: 'Beach Club', category: 'Fun', amount: 75,
     });
-    expect(text).toContain("Added 'Beach Club' (75 EUR) to budget group 'Fun'.");
+    expect(text).toContain("Added 'Beach Club' (75 NOK) to budget group 'Fun'.");
   });
 
   it('uses trip currency when available', async () => {

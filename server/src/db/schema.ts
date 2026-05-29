@@ -57,7 +57,7 @@ function createTables(db: Database.Database): void {
       description TEXT,
       start_date TEXT,
       end_date TEXT,
-      currency TEXT DEFAULT 'EUR',
+      currency TEXT DEFAULT 'NOK',
       cover_image TEXT,
       is_archived INTEGER DEFAULT 0,
       reminder_days INTEGER DEFAULT 3,

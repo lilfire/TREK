@@ -21,7 +21,7 @@ const CURRENCY_OPTIONS = CURRENCIES.map(c => ({ value: c, label: c }))
 
 export default function CurrencyWidget() {
   const { t, locale } = useTranslation()
-  const [from, setFrom] = useState(() => localStorage.getItem('currency_from') || 'EUR')
+  const [from, setFrom] = useState(() => localStorage.getItem('currency_from') || 'NOK')
   const [to, setTo] = useState(() => localStorage.getItem('currency_to') || 'USD')
   const [amount, setAmount] = useState('100')
   const [rate, setRate] = useState(null)

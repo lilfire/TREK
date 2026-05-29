@@ -537,10 +537,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   setFeeDeadline('')
                 }
               }}
-              placeholder={`Amount (${(trip as any)?.currency || 'EUR'})`}
+              placeholder={`Amount (${(trip as any)?.currency || 'NOK'})`}
               className={inputCls + ' flex-1'}
             />
-            <span className="text-sm text-slate-500 shrink-0">{(trip as any)?.currency || 'EUR'}</span>
+            <span className="text-sm text-slate-500 shrink-0">{(trip as any)?.currency || 'NOK'}</span>
           </div>
 
           {feeAmount && parseFloat(feeAmount) > 0 && (

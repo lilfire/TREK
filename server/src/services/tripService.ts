@@ -175,7 +175,7 @@ export function createTrip(userId: number, data: CreateTripData, maxDays?: numbe
   const result = db.prepare(`
     INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days)
     VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd);
+  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'NOK', rd);
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);

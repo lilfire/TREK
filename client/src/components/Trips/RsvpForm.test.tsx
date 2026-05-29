@@ -1,5 +1,6 @@
-// FE-COMP-RSVP-001 to FE-COMP-RSVP-017 + FEE-RSVP-001 to FEE-RSVP-010
+// FE-COMP-RSVP-001 to FE-COMP-RSVP-017 + FEE-RSVP-001 to FEE-RSVP-010 + I18N-RSVP-001 to I18N-RSVP-009
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { parseRsvpError } from './RsvpForm';
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -7,6 +8,7 @@ import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import RsvpForm from './RsvpForm';
 
 const mockNavigate = vi.fn();
@@ -739,5 +741,100 @@ describe('RsvpForm — Case A: no fee', () => {
     expect(screen.queryByTestId('fee-deadline-notice')).not.toBeInTheDocument();
     expect(screen.queryByTestId('paypal-buttons')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
+  });
+});
+
+// ── i18n tests ────────────────────────────────────────────────────────────────
+
+describe('parseRsvpError — translation key coverage', () => {
+  function makeMockT() {
+    const calls: string[] = [];
+    const t = vi.fn((key: string) => {
+      calls.push(key);
+      return key;
+    });
+    return { t, calls };
+  }
+
+  it('I18N-RSVP-001: 409 duplicate_rsvp uses rsvp.error.duplicateRsvp key', () => {
+    const { t } = makeMockT();
+    const err = { response: { status: 409, data: { error: 'duplicate_rsvp' } } };
+    const result = parseRsvpError(t, err);
+    expect(t).toHaveBeenCalledWith('rsvp.error.duplicateRsvp');
+    expect(result.message).toBe('rsvp.error.duplicateRsvp');
+    expect(result.hasLoginLink).toBe(false);
+  });
+
+  it('I18N-RSVP-002: 409 email conflict uses rsvp.error.emailConflict key', () => {
+    const { t } = makeMockT();
+    const err = { response: { status: 409, data: { error: 'email_account_conflict' } } };
+    const result = parseRsvpError(t, err);
+    expect(t).toHaveBeenCalledWith('rsvp.error.emailConflict');
+    expect(result.message).toBe('rsvp.error.emailConflict');
+    expect(result.hasLoginLink).toBe(true);
+  });
+
+  it('I18N-RSVP-003: 404 uses rsvp.error.notFound key', () => {
+    const { t } = makeMockT();
+    const err = { response: { status: 404, data: {} } };
+    const result = parseRsvpError(t, err);
+    expect(t).toHaveBeenCalledWith('rsvp.error.notFound');
+    expect(result.message).toBe('rsvp.error.notFound');
+    expect(result.hasLoginLink).toBe(false);
+  });
+
+  it('I18N-RSVP-004: 429 uses rsvp.error.tooManyAttempts key', () => {
+    const { t } = makeMockT();
+    const err = { response: { status: 429, data: {} } };
+    const result = parseRsvpError(t, err);
+    expect(t).toHaveBeenCalledWith('rsvp.error.tooManyAttempts');
+    expect(result.message).toBe('rsvp.error.tooManyAttempts');
+    expect(result.hasLoginLink).toBe(false);
+  });
+
+  it('I18N-RSVP-005: 500 uses rsvp.error.serverError key', () => {
+    const { t } = makeMockT();
+    const err = { response: { status: 500, data: {} } };
+    const result = parseRsvpError(t, err);
+    expect(t).toHaveBeenCalledWith('rsvp.error.serverError');
+    expect(result.message).toBe('rsvp.error.serverError');
+    expect(result.hasLoginLink).toBe(false);
+  });
+
+  it('I18N-RSVP-006: unknown error uses rsvp.error.unknown key', () => {
+    const { t } = makeMockT();
+    const result = parseRsvpError(t, null);
+    expect(t).toHaveBeenCalledWith('rsvp.error.unknown');
+    expect(result.message).toBe('rsvp.error.unknown');
+    expect(result.hasLoginLink).toBe(false);
+  });
+});
+
+describe('RsvpForm — i18n locale rendering', () => {
+  it('I18N-RSVP-007: renders form fields in English (default locale)', () => {
+    render(<RsvpForm tripId="42" />);
+    expect(screen.getByLabelText(/your name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
+  });
+
+  it('I18N-RSVP-008: renders form fields in German locale via translation system', () => {
+    seedStore(useSettingsStore, { settings: { language: 'de' } } as any);
+    render(<RsvpForm tripId="42" />);
+    // German file has English placeholders (TODO: translate)
+    // Verifies component renders without crashing and uses translation keys
+    expect(screen.getByTestId('rsvp-form')).toBeInTheDocument();
+    expect(screen.getByTestId('rsvp-intro')).toBeInTheDocument();
+    expect(screen.getByTestId('rsvp-account-notice')).toBeInTheDocument();
+  });
+
+  it('I18N-RSVP-009: renders authenticated member view in French locale', () => {
+    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+    seedStore(useSettingsStore, { settings: { language: 'fr' } } as any);
+    render(<RsvpForm tripId="42" isMember={true} />);
+    const onTheList = screen.getByTestId('rsvp-on-the-list');
+    expect(onTheList).toBeInTheDocument();
+    // French file uses English placeholder — string comes from translation system
+    expect(onTheList).toHaveTextContent(/on the list/i);
   });
 });
