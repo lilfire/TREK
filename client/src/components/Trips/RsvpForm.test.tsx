@@ -834,7 +834,6 @@ describe('RsvpForm — i18n locale rendering', () => {
     render(<RsvpForm tripId="42" isMember={true} />);
     const onTheList = screen.getByTestId('rsvp-on-the-list');
     expect(onTheList).toBeInTheDocument();
-    // French file uses English placeholder — string comes from translation system
-    expect(onTheList).toHaveTextContent(/on the list/i);
+    expect(onTheList).toHaveTextContent(/sur la liste/i);
   });
 });
