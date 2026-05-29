@@ -1,8 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
-import { canAccessTrip } from '../../db/database';
+import { db, canAccessTrip } from '../../db/database';
 import { getTripSummary } from '../../services/tripService';
 import { listItems as listPackingItems } from '../../services/packingService';
+import { listBudgetItems } from '../../services/budgetService';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
 
@@ -95,6 +96,79 @@ ${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.l
       return {
         description: `Packing list for "${trip?.title || tripId}"`,
         messages: [{ role: 'user', content: { type: 'text', text: `# Packing List: ${trip?.title || 'Trip'}\n\n${lines}\n\n_${items.length} items across ${Object.keys(grouped).length} categories_` } }],
+      };
+    }
+  );
+
+  if (isAddonEnabled(ADDON_IDS.BUDGET)) server.registerPrompt(
+    'place-budget-binding',
+    {
+      title: 'Place / Activity → Budget Group',
+      description: 'Provides structured context to associate an existing place or activity with a trip budget group (category), creating a linked budget entry.',
+      argsSchema: {
+        tripId: z.number().int().positive().describe('Trip ID'),
+        placeName: z.string().min(1).describe('Name of the place or activity to bind'),
+        category: z.string().min(1).describe('Budget group (category) to file the item under'),
+        amount: z.number().nonnegative().describe("Cost amount in the trip's currency"),
+        note: z.string().max(500).optional().describe('Optional note for the budget entry'),
+      },
+    },
+    async ({ tripId, placeName, category, amount, note }) => {
+      if (!canAccessTrip(tripId, userId)) {
+        return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found or access denied.' } }] };
+      }
+      const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, any> | undefined;
+      if (!trip) {
+        return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found.' } }] };
+      }
+      const currency = (trip.currency as string | null) || 'EUR';
+
+      const placePool = db.prepare('SELECT id, name FROM places WHERE trip_id = ?').all(tripId) as { id: number; name: string }[];
+      const placeExists = placePool.some(p => p.name?.toLowerCase() === placeName.toLowerCase());
+
+      const budgetItems = listBudgetItems(tripId);
+      const existingCategories = [...new Set(budgetItems.map(b => b.category).filter(Boolean))] as string[];
+      const categoryExists = existingCategories.includes(category);
+
+      const duplicateInCategory = budgetItems.some(
+        b => b.name?.toLowerCase() === placeName.toLowerCase() && b.category === category
+      );
+
+      const noteDisplay = note || '(none)';
+      const noteArg = note ? `\n   - note: "${note}"` : '';
+
+      const placeStep = placeExists
+        ? `1. ✓ "${placeName}" found in the trip's place pool.`
+        : `1. ⚠️ "${placeName}" was NOT found in the trip's place pool. Ask the user whether to create it first before adding a budget entry.`;
+
+      const categoryStep = categoryExists
+        ? `2. ✓ Budget group "${category}" already exists.`
+        : `2. ⚠️ No existing budget group named "${category}". Confirm with the user: "No existing group named '${category}' — create it?"`;
+
+      const duplicateWarning = duplicateInCategory
+        ? `\n⚠️ DUPLICATE WARNING: A budget item named "${placeName}" already exists in group "${category}". Warn the user before creating another.`
+        : '';
+
+      const text = `Associate place with budget group${duplicateWarning}
+
+Place / activity: ${placeName}
+Budget group (category): ${category}
+Amount: ${amount} ${currency}
+Note: ${noteDisplay}
+
+Steps to complete:
+${placeStep}
+${categoryStep}
+3. Call create_budget_item:
+   - name: "${placeName}"
+   - category: "${category}"
+   - total_price: ${amount}${noteArg}
+4. If this is a group trip, ask whether the cost should be split among specific members and call set_budget_item_members if so.
+5. Confirm success: "Added '${placeName}' (${amount} ${currency}) to budget group '${category}'."`;
+
+      return {
+        description: `Bind "${placeName}" to budget group "${category}" for trip "${trip.title || tripId}"`,
+        messages: [{ role: 'user' as const, content: { type: 'text' as const, text } }],
       };
     }
   );

@@ -57,7 +57,7 @@ vi.mock('../../../src/services/tripService', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, addTripMember, createPackingItem, createBudgetItem } from '../../helpers/factories';
+import { createUser, createTrip, addTripMember, createPackingItem, createBudgetItem, createPlace } from '../../helpers/factories';
 import { registerMcpPrompts } from '../../../src/mcp/tools/prompts';
 
 beforeAll(() => {
@@ -403,5 +403,193 @@ describe('Prompt: budget-overview', () => {
     const server = buildServer(user.id);
     const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('No expenses recorded.');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// place-budget-binding
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Prompt: place-budget-binding', () => {
+  it('is NOT registered when budget addon is disabled', async () => {
+    isAddonEnabledMock.mockReturnValue(false);
+    const { user } = createUser(testDb);
+    const server = buildServer(user.id);
+    expect(listRegisteredPrompts(server)).not.toContain('place-budget-binding');
+  });
+
+  it('is registered when budget addon is enabled', async () => {
+    const { user } = createUser(testDb);
+    const server = buildServer(user.id);
+    expect(listRegisteredPrompts(server)).toContain('place-budget-binding');
+  });
+
+  it('returns access denied for a trip the user cannot access', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const trip = createTrip(testDb, other.id, { title: 'Private' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Beach Club', category: 'Fun', amount: 50,
+    });
+    expect(text.toLowerCase()).toContain('access denied');
+  });
+
+  it('returns trip not found when trip row does not exist', async () => {
+    const { user } = createUser(testDb);
+    // canAccessTrip returns falsy for non-existent trip → access denied path
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: 999999, placeName: 'Nowhere', category: 'Mystery', amount: 0,
+    });
+    expect(text.toLowerCase()).toMatch(/access denied|not found/);
+  });
+
+  it('warns when place is NOT in the trip place pool', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Adventure Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Gunfire Range', category: 'Activities', amount: 75,
+    });
+    expect(text).toContain('NOT found in the trip');
+    expect(text).toContain('create it first');
+  });
+
+  it('confirms when place IS found in the trip place pool (case-insensitive)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'City Trip' });
+    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'eiffel tower', category: 'Sightseeing', amount: 30,
+    });
+    expect(text).toContain('found in the trip');
+    expect(text).not.toContain('NOT found');
+  });
+
+  it('warns when budget category does not yet exist', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'New Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Sky Bar', category: 'Nightlife', amount: 120,
+    });
+    expect(text).toContain('No existing budget group named "Nightlife"');
+    expect(text).toContain('create it');
+  });
+
+  it('confirms existing budget category without warning', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
+    createBudgetItem(testDb, trip.id, { name: 'Hostel', category: 'Accommodation', total_price: 200 });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Grand Hotel', category: 'Accommodation', amount: 350,
+    });
+    expect(text).toContain('Budget group "Accommodation" already exists');
+    expect(text).not.toContain('No existing budget group');
+  });
+
+  it('warns about duplicate when same name+category already exists', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Dup Trip' });
+    createBudgetItem(testDb, trip.id, { name: 'Gunfire Range', category: 'Activities', total_price: 60 });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Gunfire Range', category: 'Activities', amount: 60,
+    });
+    expect(text).toContain('DUPLICATE WARNING');
+    expect(text).toContain('already exists');
+  });
+
+  it('does not warn about duplicate when name is in a different category', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    createBudgetItem(testDb, trip.id, { name: 'Gunfire Range', category: 'Fun', total_price: 60 });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Gunfire Range', category: 'Activities', amount: 60,
+    });
+    expect(text).not.toContain('DUPLICATE WARNING');
+  });
+
+  it('includes note in create_budget_item call when provided', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Noted Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Spa Resort', category: 'Wellness', amount: 200, note: 'Couples package',
+    });
+    expect(text).toContain('note: "Couples package"');
+  });
+
+  it('omits note line in create_budget_item call when not provided', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Museum', category: 'Culture', amount: 15,
+    });
+    expect(text).toContain('Note: (none)');
+    expect(text).not.toContain('note: "');
+  });
+
+  it('includes amount and currency in confirmation step', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'EUR Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Beach Club', category: 'Fun', amount: 75,
+    });
+    expect(text).toContain("Added 'Beach Club' (75 EUR) to budget group 'Fun'.");
+  });
+
+  it('uses trip currency when available', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'USD Trip' });
+    testDb.prepare('UPDATE trips SET currency = ? WHERE id = ?').run('USD', trip.id);
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Theme Park', category: 'Entertainment', amount: 120,
+    });
+    expect(text).toContain('120 USD');
+    expect(text).toContain("Added 'Theme Park' (120 USD) to budget group 'Entertainment'.");
+  });
+
+  it('includes create_budget_item step with correct args', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Zoo', category: 'Family', amount: 40,
+    });
+    expect(text).toContain('name: "Zoo"');
+    expect(text).toContain('category: "Family"');
+    expect(text).toContain('total_price: 40');
+  });
+
+  it('accepts amount of 0 (free activity)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Free Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Public Park', category: 'Leisure', amount: 0,
+    });
+    expect(text).toContain('total_price: 0');
+    expect(text).toContain("Added 'Public Park' (0");
   });
 });
