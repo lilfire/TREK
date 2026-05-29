@@ -52,6 +52,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'trips.reminderDay': 'يوم',
   'trips.reminderDays': 'أيام',
   'trips.reminderCustom': 'مخصص',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'أيام قبل المغادرة',
   'trips.reminderDisabledHint': 'تذكيرات الرحلة معطلة. قم بتفعيلها من الإدارة > الإعدادات > الإشعارات.',
   'common.update': 'تحديث',

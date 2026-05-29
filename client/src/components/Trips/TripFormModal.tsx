@@ -41,6 +41,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [customReminder, setCustomReminder] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
   const [togglingPublic, setTogglingPublic] = useState(false)
+  const [country, setCountry] = useState(trip?.country || '')
+  const [currency, setCurrency] = useState(trip?.currency || 'NOK')
   const [feeAmount, setFeeAmount] = useState('')
   const [feeMode, setFeeMode] = useState<'deadline' | 'rsvp' | ''>('')
   const [feeDeadline, setFeeDeadline] = useState('')
@@ -73,6 +75,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setFeeMode((trip as any).fee_mode || '')
       setFeeDeadline((trip as any).fee_deadline || '')
       setRsvpDeadline((trip as any).rsvp_deadline || '')
+      setCountry(trip.country || '')
+      setCurrency(trip.currency || 'NOK')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
@@ -82,6 +86,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setFeeMode('')
       setFeeDeadline('')
       setRsvpDeadline('')
+      setCountry('')
+      setCurrency('NOK')
     }
     setPendingCoverFile(null)
     setSelectedMembers([])
@@ -140,6 +146,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
+        country: country.trim() || null,
+        currency: currency || 'NOK',
         ...feePayload,
       })
       // Add selected members for newly created trips
@@ -522,6 +530,38 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           </div>
         )}
 
+        {/* Country & Currency */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('trips.country')}
+            </label>
+            <input
+              data-testid="country-input"
+              type="text"
+              value={country}
+              onChange={e => setCountry(e.target.value)}
+              placeholder="e.g. Norway"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('trips.currency')}
+            </label>
+            <select
+              data-testid="currency-select"
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+              className={inputCls}
+            >
+              {['NOK', 'EUR', 'USD', 'GBP', 'SEK', 'DKK'].map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {/* Registration Fee */}
         <div data-testid="fee-section">
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -541,10 +581,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   setFeeDeadline('')
                 }
               }}
-              placeholder={`Amount (${(trip as any)?.currency || 'NOK'})`}
+              placeholder={`Amount (${currency})`}
               className={inputCls + ' flex-1'}
             />
-            <span className="text-sm text-slate-500 shrink-0">{(trip as any)?.currency || 'NOK'}</span>
+            <span className="text-sm text-slate-500 shrink-0">{currency}</span>
           </div>
 
           {feeAmount && parseFloat(feeAmount) > 0 && (

@@ -48,6 +48,8 @@ const es: Record<string, string> = {
   'trips.memberRemoveError': 'Error al eliminar',
   'trips.memberAdded': '{username} añadido',
   'trips.memberAddError': 'Error al añadir',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'días antes de la salida',
   'trips.reminderDisabledHint': 'Los recordatorios de viaje están desactivados. Actívalos en Admin > Configuración > Notificaciones.',
   'common.update': 'Actualizar',

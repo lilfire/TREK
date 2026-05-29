@@ -1679,6 +1679,8 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'trips.reminderDay': 'dzień',
   'trips.reminderDays': 'dni',
   'trips.reminderCustom': 'Niestandardowe',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'dni przed wyjazdem',
   'trips.reminderDisabledHint': 'Przypomnienia o podróżach są wyłączone.',
   'dashboard.members': 'Towarzysze',
