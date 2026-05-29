@@ -2383,6 +2383,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.paymentSuccess': "🎉 Regisztrálva vagy! {amount} {currency} kifizetés megerősítve.",
   'rsvp.paypalFeeNotice': "Regisztrációs díj: {amount} {currency}. Erősítsd meg a helyedet az alábbi fizetéssel.",
   'rsvp.paymentNotCompleted': "A fizetés nem fejeződött be. A regisztrációd nem lett elmentve.",
+  'rsvp.paymentUnavailable': "Az online fizetés átmenetileg nem elérhető. Kérjük, vedd fel a kapcsolatot az utazás szervezőjével a regisztrációhoz.",
   'rsvp.toastJoined': "🎉 Csatlakoztál! Tekintsd meg az irányítópulton a teljes útitervet.",
   'rsvp.toastRegistered': "🎉 Csatlakoztál! Üdvözlünk a TREK-en — ellenőrizd a postaládádat.",
   'rsvp.error.duplicateRsvp': "Már rajta vagy az utazás listáján. Ellenőrizd a postaládádat.",

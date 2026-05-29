@@ -1,6 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
+import fs from 'fs';
 import { db } from '../db/database';
 import { getPublicTripData, getPublicTripsList } from '../services/publicTripService';
+import { resolveFilePath } from '../services/fileService';
 import { findOrCreateUserForRsvp, createRsvp, CreateRsvpResult } from '../services/rsvpService';
 import { addMember } from '../services/tripService';
 import { sendRsvpConfirmationEmail } from '../services/rsvpEmailService';
@@ -205,6 +207,33 @@ router.post('/:id/rsvp/payment-capture', rsvpRateLimiter, async (req: Request, r
     logError(`PayPal capture error: ${err}`);
     res.status(502).json({ error: 'Payment capture failed. Please try again.' });
   }
+});
+
+router.get('/:tripId/files/:fileId', (req: Request, res: Response) => {
+  const tripId = Number(req.params.tripId);
+  const fileId = Number(req.params.fileId);
+  if (!Number.isFinite(tripId) || !Number.isFinite(fileId)) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  const trip = db.prepare(
+    'SELECT id FROM trips WHERE id = ? AND is_public = 1'
+  ).get(tripId);
+  if (!trip) return res.status(404).json({ error: 'Not found' });
+
+  const file = db.prepare(
+    'SELECT id, filename, original_name, mime_type FROM trip_files WHERE id = ? AND trip_id = ? AND deleted_at IS NULL'
+  ).get(fileId, tripId) as { id: number; filename: string; original_name: string; mime_type: string } | undefined;
+  if (!file) return res.status(404).json({ error: 'Not found' });
+
+  const { resolved, safe } = resolveFilePath(file.filename);
+  if (!safe || !fs.existsSync(resolved)) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
+  res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename=${file.original_name}`);
+  fs.createReadStream(resolved).pipe(res);
 });
 
 export default router;

@@ -296,6 +296,11 @@ export default function PublicTripDetailPage() {
             tripId={id!}
             isMember={data?.trip?.user_is_member === true}
             rsvpDeadline={data?.trip?.rsvp_deadline ?? null}
+            registrationFee={data?.trip?.registration_fee ?? null}
+            feeMode={data?.trip?.fee_mode ?? null}
+            feeDeadline={data?.trip?.fee_deadline ?? null}
+            currency={data?.trip?.currency ?? 'NOK'}
+            paypalClientId={data?.trip?.paypalClientId ?? null}
           />
         </section>
 

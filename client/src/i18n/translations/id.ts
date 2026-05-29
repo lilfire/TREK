@@ -2424,6 +2424,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.paymentSuccess': "🎉 Anda terdaftar! Pembayaran {amount} {currency} dikonfirmasi.",
   'rsvp.paypalFeeNotice': "Biaya pendaftaran: {amount} {currency}. Selesaikan pembayaran di bawah untuk konfirmasi tempat Anda.",
   'rsvp.paymentNotCompleted': "Pembayaran tidak selesai. Pendaftaran Anda tidak tersimpan.",
+  'rsvp.paymentUnavailable': "Pembayaran online untuk sementara tidak tersedia. Silakan hubungi penyelenggara perjalanan untuk mendaftar.",
   'rsvp.toastJoined': "🎉 Anda bergabung! Cek dasbor untuk melihat itinerary lengkap.",
   'rsvp.toastRegistered': "🎉 Anda bergabung! Selamat datang di TREK — cek kotak masuk Anda.",
   'rsvp.error.duplicateRsvp': "Anda sudah terdaftar untuk perjalanan ini. Cek kotak masuk Anda.",

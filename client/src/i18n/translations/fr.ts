@@ -2382,6 +2382,7 @@ const fr: Record<string, string> = {
   'rsvp.paymentSuccess': "🎉 Vous êtes inscrit ! Paiement de {amount} {currency} confirmé.",
   'rsvp.paypalFeeNotice': "Frais d'inscription : {amount} {currency}. Effectuez le paiement ci-dessous pour confirmer votre place.",
   'rsvp.paymentNotCompleted': "Le paiement n'a pas été complété. Votre inscription n'a pas été enregistrée.",
+  'rsvp.paymentUnavailable': "Le paiement en ligne est temporairement indisponible. Veuillez contacter l'organisateur du voyage pour vous inscrire.",
   'rsvp.toastJoined': "🎉 C'est bon ! Consultez votre tableau de bord pour voir l'itinéraire.",
   'rsvp.toastRegistered': "🎉 C'est bon ! Bienvenue sur TREK — vérifiez votre boîte de réception.",
   'rsvp.error.duplicateRsvp': "Vous êtes déjà sur la liste pour ce voyage. Vérifiez votre boîte de réception.",

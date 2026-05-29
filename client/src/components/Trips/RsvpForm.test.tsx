@@ -706,7 +706,7 @@ describe('RsvpForm — Case C: fee at registration (PayPal)', () => {
     });
   });
 
-  it('FEE-RSVP-008: does not render PayPal when paypalClientId is null', () => {
+  it('FEE-RSVP-008: shows payment unavailable notice when paypalClientId is null', () => {
     render(
       <RsvpForm
         tripId="42"
@@ -717,8 +717,24 @@ describe('RsvpForm — Case C: fee at registration (PayPal)', () => {
       />
     );
     expect(screen.queryByTestId('paypal-buttons')).not.toBeInTheDocument();
-    // Falls back to standard form (no fee)
-    expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
+    expect(screen.getByTestId('rsvp-payment-unavailable')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /confirm my spot/i })).not.toBeInTheDocument();
+  });
+
+  it('FEE-RSVP-011: payment unavailable notice contains correct text', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={500}
+        feeMode="rsvp"
+        currency="NOK"
+        paypalClientId={null}
+      />
+    );
+    const notice = screen.getByTestId('rsvp-payment-unavailable');
+    expect(notice).toBeInTheDocument();
+    expect(notice).toHaveTextContent(/temporarily unavailable/i);
+    expect(screen.queryByTestId('rsvp-form')).not.toBeInTheDocument();
   });
 
   it('FEE-RSVP-009: shows fee notice with amount and currency', () => {

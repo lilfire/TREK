@@ -59,6 +59,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     const allAssignments = db.prepare(`
       SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
         p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
+        p.website, p.phone,
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes, p.image_url, p.transport_mode,
@@ -83,13 +84,42 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
           lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
           price: a.price, place_time: a.place_time, end_time: a.end_time,
           image_url: a.image_url, transport_mode: a.transport_mode,
+          website: a.website, phone: a.phone, notes: a.place_notes, currency: a.place_currency,
           category: a.category_id
             ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon }
             : null,
           tags: tagsByPlace[a.place_id] || [],
+          files: [],
         },
       });
     }
+    if (placeIds.length > 0) {
+      const fph = placeIds.map(() => '?').join(',');
+      const fileRows = db.prepare(`
+        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description,
+               fl.place_id
+        FROM trip_files tf
+        JOIN file_links fl ON fl.file_id = tf.id
+        WHERE fl.place_id IN (${fph})
+          AND tf.deleted_at IS NULL
+      `).all(...placeIds) as any[];
+
+      for (const f of fileRows) {
+        const url = `/api/public/trips/${tripId}/files/${f.id}`;
+        for (const dayArr of Object.values(byDay)) {
+          for (const entry of dayArr) {
+            if (entry.place.id === f.place_id) {
+              entry.place.files.push({
+                id: f.id, original_name: f.original_name,
+                file_size: f.file_size, mime_type: f.mime_type,
+                description: f.description, url,
+              });
+            }
+          }
+        }
+      }
+    }
+
     assignments = byDay;
 
     const allNotes = db.prepare(

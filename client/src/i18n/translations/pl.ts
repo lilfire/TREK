@@ -2375,6 +2375,7 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.paymentSuccess': "🎉 Jesteś zarejestrowany/a! Płatność {amount} {currency} potwierdzona.",
   'rsvp.paypalFeeNotice': "Opłata rejestracyjna: {amount} {currency}. Dokonaj płatności poniżej, aby potwierdzić swoje miejsce.",
   'rsvp.paymentNotCompleted': "Płatność nie została zakończona. Twoja rejestracja nie została zapisana.",
+  'rsvp.paymentUnavailable': "Płatność online jest tymczasowo niedostępna. Aby się zarejestrować, skontaktuj się z organizatorem wycieczki.",
   'rsvp.toastJoined': "🎉 Dołączyłeś/aś! Sprawdź swój panel, aby zobaczyć pełne itinerarium.",
   'rsvp.toastRegistered': "🎉 Dołączyłeś/aś! Witamy w TREK — sprawdź swoją skrzynkę.",
   'rsvp.error.duplicateRsvp': "Jesteś już na liście tej wycieczki. Sprawdź swoją skrzynkę odbiorczą.",

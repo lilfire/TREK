@@ -2382,6 +2382,7 @@ const zh: Record<string, string> = {
   'rsvp.paymentSuccess': "🎉 报名成功！已确认付款 {amount} {currency}。",
   'rsvp.paypalFeeNotice': "报名费：{amount} {currency}。请在下方完成付款以确认您的名额。",
   'rsvp.paymentNotCompleted': "付款未完成。您的报名未保存。",
+  'rsvp.paymentUnavailable': "在线支付暂时不可用。请联系行程组织者进行报名。",
   'rsvp.toastJoined': "🎉 您已加入！请查看控制台了解完整行程。",
   'rsvp.toastRegistered': "🎉 您已加入！欢迎来到 TREK — 请查收确认邮件。",
   'rsvp.error.duplicateRsvp': "您已在该行程名单上。请查收确认邮件。",

@@ -7,6 +7,11 @@ import { resetAllStores } from '../../tests/helpers/store';
 import { useSettingsStore } from '../store/settingsStore';
 import PublicTripDetailPage from './PublicTripDetailPage';
 
+vi.mock('@paypal/react-paypal-js', () => ({
+  PayPalScriptProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  PayPalButtons: () => <div data-testid="paypal-buttons" />,
+}));
+
 function renderPublicTrip(id: string) {
   return render(
     <Routes>
@@ -430,6 +435,103 @@ describe('PublicTripDetailPage', () => {
 
       fireEvent.click(langBtn);
       expect(screen.queryByTestId('lang-picker-dropdown')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PUB-TRIP-011: RSVP fee props forwarded from trip data', () => {
+    it('renders PayPal fee notice when fee_mode=rsvp and paypalClientId is set', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: {
+              id: 1,
+              title: 'Fee Trip',
+              start_date: null,
+              end_date: null,
+              cover_image: null,
+              currency: 'NOK',
+              registration_fee: 500,
+              fee_mode: 'rsvp',
+              fee_deadline: null,
+              rsvp_deadline: null,
+              paypalClientId: 'test-client-id',
+            },
+            days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('1');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('paypal-fee-notice')).toBeInTheDocument();
+      expect(screen.getByTestId('paypal-fee-notice')).toHaveTextContent('500');
+    });
+
+    it('renders fee-deadline notice when fee_mode=deadline', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: {
+              id: 1,
+              title: 'Deadline Fee Trip',
+              start_date: null,
+              end_date: null,
+              cover_image: null,
+              currency: 'EUR',
+              registration_fee: 100,
+              fee_mode: 'deadline',
+              fee_deadline: '2027-12-01',
+              rsvp_deadline: null,
+            },
+            days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('1');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('fee-deadline-notice')).toBeInTheDocument();
+      expect(screen.getByTestId('fee-deadline-notice')).toHaveTextContent('100 EUR');
+    });
+
+    it('renders payment unavailable when fee_mode=rsvp but paypalClientId is absent', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            trip: {
+              id: 1,
+              title: 'No PayPal Trip',
+              start_date: null,
+              end_date: null,
+              cover_image: null,
+              currency: 'NOK',
+              registration_fee: 300,
+              fee_mode: 'rsvp',
+              fee_deadline: null,
+              rsvp_deadline: null,
+              paypalClientId: null,
+            },
+            days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          }),
+        ),
+      );
+
+      renderPublicTrip('1');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('rsvp-payment-unavailable')).toBeInTheDocument();
+      expect(screen.queryByTestId('paypal-fee-notice')).not.toBeInTheDocument();
     });
   });
 });

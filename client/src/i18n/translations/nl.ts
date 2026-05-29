@@ -2382,6 +2382,7 @@ const nl: Record<string, string> = {
   'rsvp.paymentSuccess': "🎉 Je bent ingeschreven! Betaling van {amount} {currency} bevestigd.",
   'rsvp.paypalFeeNotice': "Inschrijfgeld: {amount} {currency}. Voltooi de betaling hieronder om je plek te bevestigen.",
   'rsvp.paymentNotCompleted': "De betaling is niet voltooid. Je inschrijving is niet opgeslagen.",
+  'rsvp.paymentUnavailable': "Online betaling is tijdelijk niet beschikbaar. Neem contact op met de reisorganisator om je in te schrijven.",
   'rsvp.toastJoined': "🎉 Je bent erbij! Bekijk je dashboard voor het volledige reisschema.",
   'rsvp.toastRegistered': "🎉 Je bent erbij! Welkom bij TREK — controleer je inbox.",
   'rsvp.error.duplicateRsvp': "Je staat al op de lijst voor deze reis. Controleer je inbox.",
