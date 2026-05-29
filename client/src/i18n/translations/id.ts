@@ -2443,6 +2443,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Ikut perjalanan ini",
   'publicTrip.rsvp.subheading': "Isi detail Anda di bawah dan kami akan memesan tempat Anda.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 };
 
 export default id;

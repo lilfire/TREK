@@ -2198,6 +2198,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "انضم إلى هذه الرحلة",
   'publicTrip.rsvp.subheading': "أدخل تفاصيلك أدناه وسنحجز مكانك.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default ar

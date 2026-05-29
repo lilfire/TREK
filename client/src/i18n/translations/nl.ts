@@ -2401,6 +2401,7 @@ const nl: Record<string, string> = {
   'publicTrip.rsvp.heading': "Sluit je aan bij deze reis",
   'publicTrip.rsvp.subheading': "Vul je gegevens in en we reserveren je plek.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default nl

@@ -2394,6 +2394,7 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Dołącz do tej wycieczki",
   'publicTrip.rsvp.subheading': "Wpisz swoje dane poniżej, a zarezerwujemy Twoje miejsce.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default pl

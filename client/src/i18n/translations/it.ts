@@ -2402,6 +2402,7 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Unisciti a questo viaggio",
   'publicTrip.rsvp.subheading': "Inserisci i tuoi dati qui sotto e riserveremo il tuo posto.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default it

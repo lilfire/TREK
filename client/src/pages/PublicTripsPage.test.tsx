@@ -125,8 +125,14 @@ describe('PublicTripsPage', () => {
 
       renderPage();
 
-      const spinner = document.querySelector('.animate-spin');
-      expect(spinner).toBeInTheDocument();
+      // Spinner is visible immediately while the delayed request is in flight
+      expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+
+      // Wait for the request to resolve so the in-flight XHR is fully drained
+      // before the test environment tears down (prevents ProgressEvent ReferenceError).
+      await waitFor(() => {
+        expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+      }, { timeout: 1000 });
     });
   });
 

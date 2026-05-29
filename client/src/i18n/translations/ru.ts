@@ -2401,6 +2401,7 @@ const ru: Record<string, string> = {
   'publicTrip.rsvp.heading': "Присоединиться к этой поездке",
   'publicTrip.rsvp.subheading': "Введите свои данные, и мы зарезервируем ваше место.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default ru

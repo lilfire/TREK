@@ -115,6 +115,7 @@ function createTables(db: Database.Database): void {
       website TEXT,
       phone TEXT,
       transport_mode TEXT DEFAULT 'walking',
+      budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

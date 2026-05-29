@@ -77,6 +77,7 @@ export interface Place {
   website?: string | null;
   phone?: string | null;
   transport_mode?: string;
+  budget_item_id?: number | null;
   created_at?: string;
   updated_at?: string;
 }
