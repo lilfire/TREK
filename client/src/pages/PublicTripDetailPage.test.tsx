@@ -534,4 +534,161 @@ describe('PublicTripDetailPage', () => {
       expect(screen.queryByTestId('paypal-fee-notice')).not.toBeInTheDocument();
     });
   });
+
+  describe('FE-PUB-TRIP-012: Activity detail modal', () => {
+    const tripWithFiles = {
+      trip: {
+        id: 42,
+        title: 'Public Paris Trip',
+        description: 'A beautiful trip to Paris',
+        start_date: '2026-07-01',
+        end_date: '2026-07-03',
+        cover_image: null,
+        currency: 'EUR',
+      },
+      days: [
+        { id: 101, trip_id: 42, day_number: 1, date: '2026-07-01', title: 'Arrival Day' },
+      ],
+      assignments: {
+        '101': [
+          {
+            id: 201,
+            day_id: 101,
+            order_index: 0,
+            notes: null,
+            place: {
+              id: 301,
+              name: 'Eiffel Tower',
+              description: 'Iconic Parisian landmark',
+              lat: 48.8584,
+              lng: 2.2945,
+              address: 'Champ de Mars, Paris',
+              category_id: null,
+              price: 25,
+              currency: 'EUR',
+              website: 'https://www.toureiffel.paris',
+              phone: '+33 892 70 12 39',
+              notes: 'Book tickets in advance',
+              place_time: '10:00',
+              end_time: '12:00',
+              image_url: null,
+              transport_mode: null,
+              category: { id: 1, name: 'Attraction', color: '#f59e0b' },
+              tags: [],
+              files: [
+                {
+                  id: 1,
+                  original_name: 'tower-photo.jpg',
+                  mime_type: 'image/jpeg',
+                  file_size: 102400,
+                  url: '/api/public/trips/42/files/1',
+                },
+                {
+                  id: 2,
+                  original_name: 'entry-info.pdf',
+                  mime_type: 'application/pdf',
+                  file_size: 204800,
+                  url: '/api/public/trips/42/files/2',
+                },
+              ],
+            },
+          },
+        ],
+      },
+      dayNotes: { '101': [] },
+      places: [],
+      categories: [],
+      reservations: [],
+      accommodations: [],
+    };
+
+    it('modal is absent when no activity is selected', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('activity-modal')).not.toBeInTheDocument();
+    });
+
+    it('clicking an activity row opens the modal with the place name', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('activity-modal')).toBeInTheDocument();
+      });
+
+      // Modal header shows the place name
+      const modal = screen.getByTestId('activity-modal');
+      expect(modal).toHaveTextContent('Eiffel Tower');
+    });
+
+    it('close button dismisses the modal', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('activity-modal')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /close/i }));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('activity-modal')).not.toBeInTheDocument();
+      });
+    });
+
+    it('images and document links render when place.files contains data', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('activity-modal')).toBeInTheDocument();
+      });
+
+      // Image renders as <img> inside an <a> link
+      const img = screen.getByAltText('tower-photo.jpg');
+      expect(img).toBeInTheDocument();
+      expect(img.closest('a')).toHaveAttribute('href', '/api/public/trips/42/files/1');
+      expect(img.closest('a')).toHaveAttribute('target', '_blank');
+
+      // Document link renders with filename and size
+      const docLink = screen.getByText('entry-info.pdf');
+      expect(docLink).toBeInTheDocument();
+      expect(docLink.closest('a')).toHaveAttribute('href', '/api/public/trips/42/files/2');
+      expect(docLink.closest('a')).toHaveAttribute('target', '_blank');
+
+      // File size shown
+      expect(screen.getByText('200 KB')).toBeInTheDocument();
+    });
+  });
 });
