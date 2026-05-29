@@ -437,7 +437,7 @@ describe('SharedTripPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /budget/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/NOK/)).toBeInTheDocument();
+        expect(screen.getByText(/500\.00 NOK/)).toBeInTheDocument();
       });
     });
   });

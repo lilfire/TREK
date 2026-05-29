@@ -1709,7 +1709,7 @@ describe('DayPlanSidebar', () => {
       assignments: { '10': [assignment] },
       trip: buildTrip({ id: 1 }),
     })} />)
-    expect(screen.getByText(/NOK/)).toBeInTheDocument()
+    expect(screen.getByText(/25\.00 NOK/)).toBeInTheDocument()
   })
 
   it('FE-PLANNER-DAYPLAN-098: pencil button on transport reservation calls onEditTransport', async () => {
