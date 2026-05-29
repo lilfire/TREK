@@ -48,6 +48,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'trips.reminderDay': 'nap',
   'trips.reminderDays': 'nap',
   'trips.reminderCustom': 'Egyéni',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'nappal indulás előtt',
   'trips.reminderDisabledHint': 'Az utazási emlékeztetők ki vannak kapcsolva. Kapcsold be az Admin > Beállítások > Értesítések menüben.',
   'common.update': 'Frissítés',

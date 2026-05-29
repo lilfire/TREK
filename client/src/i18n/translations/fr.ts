@@ -48,6 +48,8 @@ const fr: Record<string, string> = {
   'trips.reminderDay': 'jour',
   'trips.reminderDays': 'jours',
   'trips.reminderCustom': 'Personnalisé',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'jours avant le départ',
   'trips.reminderDisabledHint': 'Les rappels de voyage sont désactivés. Activez-les dans Admin > Paramètres > Notifications.',
   'common.update': 'Mettre à jour',

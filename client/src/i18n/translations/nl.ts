@@ -48,6 +48,8 @@ const nl: Record<string, string> = {
   'trips.reminderDay': 'dag',
   'trips.reminderDays': 'dagen',
   'trips.reminderCustom': 'Aangepast',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'dagen voor vertrek',
   'trips.reminderDisabledHint': 'Reisherinneringen zijn uitgeschakeld. Schakel ze in via Admin > Instellingen > Meldingen.',
   'common.update': 'Bijwerken',

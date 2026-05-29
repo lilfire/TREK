@@ -49,6 +49,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'trips.reminderDay': 'hari',
   'trips.reminderDays': 'hari',
   'trips.reminderCustom': 'Kustom',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'hari sebelum keberangkatan',
   'trips.reminderDisabledHint': 'Pengingat perjalanan dinonaktifkan. Aktifkan di Admin > Pengaturan > Notifikasi.',
   'common.update': 'Perbarui',
