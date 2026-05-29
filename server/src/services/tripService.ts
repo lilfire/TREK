@@ -165,6 +165,7 @@ interface CreateTripData {
   currency?: string;
   reminder_days?: number;
   day_count?: number;
+  country?: string | null;
 }
 
 export function createTrip(userId: number, data: CreateTripData, maxDays?: number) {
@@ -173,9 +174,9 @@ export function createTrip(userId: number, data: CreateTripData, maxDays?: numbe
     : 3;
 
   const result = db.prepare(`
-    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'NOK', rd);
+    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, country)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'NOK', rd, data.country ?? null);
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);
@@ -207,6 +208,7 @@ interface UpdateTripData {
   fee_mode?: 'deadline' | 'rsvp' | null;
   fee_deadline?: string | null;
   rsvp_deadline?: string | null;
+  country?: string | null;
 }
 
 export interface UpdateTripResult {
@@ -259,13 +261,14 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newFeeMode = newFee === null ? null : ('fee_mode' in data ? (data.fee_mode ?? null) : ((trip as any).fee_mode ?? null));
   const newFeeDeadline = (newFee === null || newFeeMode !== 'deadline') ? null : ('fee_deadline' in data ? (data.fee_deadline ?? null) : ((trip as any).fee_deadline ?? null));
   const newRsvpDeadline = 'rsvp_deadline' in data ? (data.rsvp_deadline ?? null) : ((trip as any).rsvp_deadline ?? null);
+  const newCountry = 'country' in data ? (data.country ?? null) : ((trip as any).country ?? null);
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
       currency=?, is_archived=?, is_public=?, cover_image=?, reminder_days=?,
-      registration_fee=?, fee_mode=?, fee_deadline=?, rsvp_deadline=?, updated_at=CURRENT_TIMESTAMP
+      registration_fee=?, fee_mode=?, fee_deadline=?, rsvp_deadline=?, country=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, newRsvpDeadline, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, newRsvpDeadline, newCountry, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);

@@ -39,6 +39,7 @@ export interface Trip {
   fee_mode?: 'deadline' | 'rsvp' | null;
   fee_deadline?: string | null;
   rsvp_deadline?: string | null;
+  country?: string | null;
   created_at?: string;
   updated_at?: string;
 }

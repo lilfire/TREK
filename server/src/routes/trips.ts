@@ -82,7 +82,7 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   if (!checkPermission('trip_create', authReq.user.role, null, authReq.user.id, false))
     return res.status(403).json({ error: 'No permission to create trips' });
 
-  const { title, description, currency, reminder_days, day_count } = req.body;
+  const { title, description, currency, reminder_days, day_count, country } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
   const toDateStr = (d: Date) => d.toISOString().slice(0, 10);
@@ -103,7 +103,7 @@ router.post('/', authenticate, (req: Request, res: Response) => {
     return res.status(400).json({ error: 'End date must be after start date' });
 
   const parsedDayCount = day_count ? Math.min(Math.max(Number(day_count) || 7, 1), 365) : undefined;
-  const { trip, tripId, reminderDays } = createTrip(authReq.user.id, { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount });
+  const { trip, tripId, reminderDays } = createTrip(authReq.user.id, { title, description, start_date, end_date, currency, reminder_days, day_count: parsedDayCount, country: country ?? null });
 
   writeAudit({ userId: authReq.user.id, action: 'trip.create', ip: getClientIp(req), details: { tripId, title, reminder_days: reminderDays === 0 ? 'none' : `${reminderDays} days` } });
   if (reminderDays > 0) {
@@ -148,7 +148,7 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Only the trip owner can change trip visibility' });
   }
   // General edit check (title, description, dates, currency, reminder_days, fee fields)
-  const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count', 'registration_fee', 'fee_mode', 'fee_deadline', 'rsvp_deadline'];
+  const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count', 'registration_fee', 'fee_mode', 'fee_deadline', 'rsvp_deadline', 'country'];
   if (editFields.some(f => req.body[f] !== undefined)) {
     if (!checkPermission('trip_edit', authReq.user.role, tripOwnerId, authReq.user.id, isMember))
       return res.status(403).json({ error: 'No permission to edit this trip' });

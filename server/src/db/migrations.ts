@@ -2291,6 +2291,10 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.prepare("UPDATE trips SET currency = 'NOK' WHERE currency = 'EUR'").run();
     },
+    // LSO-1471: Add country field to trips
+    () => {
+      db.exec('ALTER TABLE trips ADD COLUMN country TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

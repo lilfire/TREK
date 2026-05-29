@@ -34,7 +34,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createPlace, createDay, createDayAssignment, createDayNote } from '../../helpers/factories';
-import { exportICS, generateDays } from '../../../src/services/tripService';
+import { exportICS, generateDays, createTrip as svcCreateTrip, updateTrip as svcUpdateTrip } from '../../../src/services/tripService';
 
 beforeAll(() => {
   createTables(testDb);
@@ -368,5 +368,52 @@ describe('exportICS', () => {
     const { ics } = exportICS(trip.id);
 
     expect(ics).toContain('DTEND:20250602T160000');
+  });
+});
+
+// ── Country field unit tests (LSO-1471) ───────────────────────────────────────
+
+describe('createTrip — country field', () => {
+  it('TRIP-SVC-COUNTRY-001: createTrip with country persists and returns it', () => {
+    const { user } = createUser(testDb);
+
+    const { trip } = svcCreateTrip(user.id, { title: 'Norway Trip', country: 'NO' });
+
+    expect((trip as any).country).toBe('NO');
+
+    const row = testDb.prepare('SELECT country FROM trips WHERE id = ?').get((trip as any).id) as { country: string | null };
+    expect(row.country).toBe('NO');
+  });
+
+  it('TRIP-SVC-COUNTRY-002: createTrip without country defaults to null', () => {
+    const { user } = createUser(testDb);
+
+    const { trip } = svcCreateTrip(user.id, { title: 'Dateless Trip' });
+
+    expect((trip as any).country).toBeNull();
+  });
+});
+
+describe('updateTrip — country field', () => {
+  it('TRIP-SVC-COUNTRY-003: updateTrip with country updates and returns it', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'My Trip' });
+
+    const { updatedTrip } = svcUpdateTrip(trip.id, user.id, { country: 'DE' }, 'user');
+
+    expect((updatedTrip as any).country).toBe('DE');
+
+    const row = testDb.prepare('SELECT country FROM trips WHERE id = ?').get(trip.id) as { country: string | null };
+    expect(row.country).toBe('DE');
+  });
+
+  it('TRIP-SVC-COUNTRY-004: updateTrip can clear country by setting null', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Spain Trip' });
+    testDb.prepare('UPDATE trips SET country = ? WHERE id = ?').run('ES', trip.id);
+
+    const { updatedTrip } = svcUpdateTrip(trip.id, user.id, { country: null }, 'user');
+
+    expect((updatedTrip as any).country).toBeNull();
   });
 });
