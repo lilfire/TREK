@@ -25,6 +25,9 @@ export interface Trip {
   is_public: boolean
   reminder_days: number
   owner_id: number
+  registration_fee?: number | null
+  fee_mode?: 'deadline' | 'rsvp' | null
+  fee_deadline?: string | null
   created_at: string
   updated_at: string
 }
@@ -64,6 +67,7 @@ export interface Place {
   website: string | null
   phone: string | null
   created_at: string
+  budget_item_id?: number | null
 }
 
 export interface Assignment {

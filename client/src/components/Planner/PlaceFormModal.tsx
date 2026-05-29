@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
-import { mapsApi } from '../../api/client'
+import { mapsApi, budgetApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
-import { Search, Paperclip, X, AlertTriangle, Loader2 } from 'lucide-react'
+import { Search, Paperclip, X, AlertTriangle, Loader2, Info } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import type { Place, Category, Assignment } from '../../types'
@@ -23,6 +24,8 @@ interface PlaceFormData {
   notes: string
   transport_mode: string
   website: string
+  budgetGroup?: string
+  budgetAmount?: number
 }
 
 function isGoogleMapsUrl(input: string): boolean {
@@ -69,11 +72,12 @@ interface PlaceFormModalProps {
   onCategoryCreated: (category: Category) => void
   assignmentId: number | null
   dayAssignments?: Assignment[]
+  budgetAddonEnabled?: boolean
 }
 
 export default function PlaceFormModal({
   isOpen, onClose, onSave, place, prefillCoords, tripId, categories,
-  onCategoryCreated, assignmentId, dayAssignments = [],
+  onCategoryCreated, assignmentId, dayAssignments = [], budgetAddonEnabled = false,
 }: PlaceFormModalProps) {
   const [form, setForm] = useState(DEFAULT_FORM)
   const [mapsSearch, setMapsSearch] = useState('')
@@ -88,12 +92,18 @@ export default function PlaceFormModal({
   const [acHighlight, setAcHighlight] = useState(-1)
   const acDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const acAbortRef = useRef<AbortController | null>(null)
+  const [budgetGroupInput, setBudgetGroupInput] = useState('')
+  const [budgetGroupConfirmed, setBudgetGroupConfirmed] = useState(false)
+  const [budgetAmountInput, setBudgetAmountInput] = useState('')
+  const [budgetCategories, setBudgetCategories] = useState<string[]>([])
+  const [budgetGroupOpen, setBudgetGroupOpen] = useState(false)
   const toast = useToast()
   const { t, language } = useTranslation()
   const { hasMapsKey } = useAuthStore()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
+  const defaultCurrency = useSettingsStore((s) => s.settings.default_currency)
 
   useEffect(() => {
     if (place) {
@@ -110,6 +120,18 @@ export default function PlaceFormModal({
         transport_mode: place.transport_mode || 'walking',
         website: place.website || '',
       })
+      // Pre-fill budget fields from store snapshot at open time
+      if (place.budget_item_id) {
+        const { budgetItems } = useTripStore.getState()
+        const linked = budgetItems.find(bi => bi.id === place.budget_item_id)
+        setBudgetGroupInput(linked?.category || '')
+        setBudgetGroupConfirmed(!!(linked?.category))
+        setBudgetAmountInput(linked?.amount != null && linked.amount > 0 ? String(linked.amount) : '')
+      } else {
+        setBudgetGroupInput('')
+        setBudgetGroupConfirmed(false)
+        setBudgetAmountInput('')
+      }
     } else if (prefillCoords) {
       setForm({
         ...DEFAULT_FORM,
@@ -118,11 +140,26 @@ export default function PlaceFormModal({
         name: prefillCoords.name || '',
         address: prefillCoords.address || '',
       })
+      setBudgetGroupInput('')
+      setBudgetGroupConfirmed(false)
+      setBudgetAmountInput('')
     } else {
       setForm(DEFAULT_FORM)
+      setBudgetGroupInput('')
+      setBudgetGroupConfirmed(false)
+      setBudgetAmountInput('')
     }
     setPendingFiles([])
+    setBudgetGroupOpen(false)
   }, [place, prefillCoords, isOpen])
+
+  // Fetch existing budget categories when addon is enabled and modal opens
+  useEffect(() => {
+    if (!budgetAddonEnabled || !isOpen) return
+    budgetApi.categories(tripId)
+      .then((data: { categories: string[] }) => setBudgetCategories(data.categories || []))
+      .catch(() => {})
+  }, [budgetAddonEnabled, isOpen, tripId])
 
   // Derive location bias bounding box from the trip's existing places
   const places = useTripStore((s) => s.places)
@@ -339,11 +376,16 @@ export default function PlaceFormModal({
     }
     setIsSaving(true)
     try {
+      const budgetFields = budgetAddonEnabled ? {
+        budgetGroup: budgetGroupInput,
+        budgetAmount: budgetAmountInput ? parseFloat(budgetAmountInput) : 0,
+      } : {}
       await onSave({
         ...form,
         lat: form.lat ? parseFloat(form.lat) : null,
         lng: form.lng ? parseFloat(form.lng) : null,
         category_id: form.category_id || null,
+        ...budgetFields,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       })
       onClose()
@@ -601,6 +643,90 @@ export default function PlaceFormModal({
             className="form-input"
           />
         </div>
+
+        {/* Budget Group (only when Budget addon is enabled) */}
+        {budgetAddonEnabled && (
+          <div>
+            <div className="flex items-center gap-1 mb-1">
+              <label className="block text-sm font-medium text-gray-700">{t('places.budgetGroup')}</label>
+              <span title={t('places.budgetGroupTooltip')} className="cursor-help text-gray-400">
+                <Info className="w-3.5 h-3.5" aria-hidden="true" />
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={budgetGroupInput}
+                onChange={e => { setBudgetGroupInput(e.target.value); setBudgetGroupConfirmed(false); setBudgetGroupOpen(true) }}
+                onFocus={() => setBudgetGroupOpen(true)}
+                onBlur={() => setTimeout(() => setBudgetGroupOpen(false), 150)}
+                placeholder={t('places.budgetGroupPlaceholder')}
+                className="form-input w-full"
+                autoComplete="off"
+                data-testid="budget-group-input"
+              />
+              {budgetGroupOpen && (
+                <div className="absolute left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden" role="listbox" aria-label={t('places.budgetGroup')}>
+                  {(() => {
+                    const filtered = budgetCategories.filter(c =>
+                      c.toLowerCase().includes(budgetGroupInput.toLowerCase())
+                    )
+                    const exactMatch = budgetCategories.some(c => c.toLowerCase() === budgetGroupInput.toLowerCase())
+                    return (
+                      <>
+                        {budgetGroupInput && !exactMatch && (
+                          <button
+                            type="button"
+                            role="option"
+                            onMouseDown={() => { setBudgetGroupInput(budgetGroupInput); setBudgetGroupConfirmed(true); setBudgetGroupOpen(false) }}
+                            className="w-full text-left px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 border-b border-slate-100"
+                          >
+                            {t('places.budgetGroupCreate', { name: budgetGroupInput })}
+                          </button>
+                        )}
+                        {filtered.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            role="option"
+                            onMouseDown={() => { setBudgetGroupInput(cat); setBudgetGroupConfirmed(true); setBudgetGroupOpen(false) }}
+                            className="w-full text-left px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                          >
+                            {cat}
+                          </button>
+                        ))}
+                        {budgetCategories.length === 0 && !budgetGroupInput && (
+                          <div className="px-3 py-2 text-sm text-slate-400">{t('places.budgetGroupEmpty')}</div>
+                        )}
+                      </>
+                    )
+                  })()}
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">{t('places.budgetGroupHelper')}</p>
+
+            {/* Amount — only shown when a budget group is confirmed (selected/created) */}
+            {budgetGroupInput && budgetGroupConfirmed && (
+              <div className="mt-3 pl-3 border-l-2 border-slate-200">
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.budgetAmount')}</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={budgetAmountInput}
+                  onChange={e => setBudgetAmountInput(e.target.value)}
+                  placeholder="0.00"
+                  className="form-input"
+                  data-testid="budget-amount-input"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  {t('places.budgetAmountHelper', { currency: defaultCurrency })}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* File Attachments */}
         {canUploadFiles && (

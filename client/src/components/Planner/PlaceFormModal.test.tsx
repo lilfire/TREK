@@ -1,4 +1,4 @@
-// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036
+// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-042
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment } from '../../../tests/helpers/factories';
+import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment, buildBudgetItem } from '../../../tests/helpers/factories';
 import PlaceFormModal from './PlaceFormModal';
 
 // Mock CustomTimePicker so we get a simple text input instead of the portal-heavy UI
@@ -431,5 +431,101 @@ describe('PlaceFormModal', () => {
 
     expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2.3522')).toBeInTheDocument();
+  });
+
+  // ── Budget Group (LSO-1423) ───────────────────────────────────────────────────
+
+  it('FE-COMP-PLACEFORM-037: budget group field is hidden when budgetAddonEnabled is false', () => {
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={false} />);
+    expect(screen.queryByText('Budget Group')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-group-input')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-038: budget group field renders with correct label, placeholder, and helper when addon is enabled', () => {
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    expect(screen.getByText('Budget Group')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Select a group or type to create one/i)).toBeInTheDocument();
+    expect(screen.getByText(/Optional. Links this activity/i)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-039: existing categories appear in dropdown when user focuses the input', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Food', 'Transport', 'Activities'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('Food')).toBeInTheDocument();
+      expect(screen.getByText('Transport')).toBeInTheDocument();
+      expect(screen.getByText('Activities')).toBeInTheDocument();
+    });
+  });
+
+  it('FE-COMP-PLACEFORM-040: typing a new name shows "Create group" option and amount field appears on selection', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () => HttpResponse.json({ categories: [] })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    const input = await screen.findByTestId('budget-group-input');
+    await user.type(input, 'Nightlife');
+
+    await waitFor(() => {
+      expect(screen.getByText(/Create group/i)).toBeInTheDocument();
+    });
+
+    // Amount field should only appear after selecting a group
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+
+    // Click "Create group" to confirm selection
+    const createBtn = screen.getByText(/Create group/i);
+    await user.click(createBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('budget-amount-input')).toBeInTheDocument();
+    });
+  });
+
+  it('FE-COMP-PLACEFORM-041: amount field is hidden when no budget group selected, visible when one is selected', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Food'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+
+    // No amount field before group selection
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+
+    const foodBtn = await screen.findByRole('option', { name: 'Food' });
+    await user.click(foodBtn);
+
+    expect(await screen.findByTestId('budget-amount-input')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-042: pre-fills budget group and amount when editing a place with a linked budget item', async () => {
+    const budgetItem = buildBudgetItem({ id: 77, category: 'Museums', amount: 25 });
+    const place = buildPlace({ budget_item_id: 77 });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
+
+    render(<PlaceFormModal {...defaultProps} place={place} budgetAddonEnabled={true} />);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Museums')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('budget-amount-input')).toHaveValue(25);
   });
 });
