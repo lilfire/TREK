@@ -821,8 +821,6 @@ describe('RsvpForm — i18n locale rendering', () => {
   it('I18N-RSVP-008: renders form fields in German locale via translation system', () => {
     seedStore(useSettingsStore, { settings: { language: 'de' } } as any);
     render(<RsvpForm tripId="42" />);
-    // German file has English placeholders (TODO: translate)
-    // Verifies component renders without crashing and uses translation keys
     expect(screen.getByTestId('rsvp-form')).toBeInTheDocument();
     expect(screen.getByTestId('rsvp-intro')).toBeInTheDocument();
     expect(screen.getByTestId('rsvp-account-notice')).toBeInTheDocument();
@@ -834,7 +832,6 @@ describe('RsvpForm — i18n locale rendering', () => {
     render(<RsvpForm tripId="42" isMember={true} />);
     const onTheList = screen.getByTestId('rsvp-on-the-list');
     expect(onTheList).toBeInTheDocument();
-    // French file uses English placeholder — string comes from translation system
-    expect(onTheList).toHaveTextContent(/on the list/i);
+    expect(onTheList).toHaveTextContent(/tu es sur la liste/i);
   });
 });
