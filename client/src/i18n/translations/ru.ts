@@ -2390,6 +2390,9 @@ const ru: Record<string, string> = {
   'rsvp.error.tooManyAttempts': "Слишком много попыток. Подождите несколько минут и попробуйте снова.",
   'rsvp.error.serverError': "Что-то пошло не так с нашей стороны. Повторите попытку позже.",
   'rsvp.error.unknown': "Что-то пошло не так. Повторите попытку.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Присоединиться к этой поездке",

@@ -39,7 +39,7 @@ export function getPublicTripsList(): PublicTripSummary[] {
  */
 export function getPublicTripData(tripId: string | number): Record<string, any> | null {
   const trip = db.prepare(
-    'SELECT id, title, description, start_date, end_date, cover_image, currency, registration_fee, fee_mode, fee_deadline FROM trips WHERE id = ? AND is_public = 1'
+    'SELECT id, title, description, start_date, end_date, cover_image, currency, registration_fee, fee_mode, fee_deadline, rsvp_deadline FROM trips WHERE id = ? AND is_public = 1'
   ).get(tripId) as any;
   if (!trip) return null;
 

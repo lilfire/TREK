@@ -2394,6 +2394,9 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.error.tooManyAttempts': "Příliš mnoho pokusů. Počkejte prosím několik minut.",
   'rsvp.error.serverError': "Na naší straně došlo k chybě. Zkuste to znovu za chvíli.",
   'rsvp.error.unknown': "Došlo k chybě. Zkuste to prosím znovu.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Přidat se k této cestě",

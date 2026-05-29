@@ -55,9 +55,16 @@ router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, (req: Request, res: Resp
   if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
 
   const trip = db.prepare(
-    'SELECT id, user_id, title FROM trips WHERE id = ? AND is_public = 1',
-  ).get(tripId) as { id: number; user_id: number; title: string } | undefined;
+    'SELECT id, user_id, title, rsvp_deadline FROM trips WHERE id = ? AND is_public = 1',
+  ).get(tripId) as { id: number; user_id: number; title: string; rsvp_deadline: string | null } | undefined;
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (trip.rsvp_deadline) {
+    const today = new Date().toISOString().split('T')[0];
+    if (today > trip.rsvp_deadline) {
+      return res.status(400).json({ error: 'rsvp.error.registrationClosed' });
+    }
+  }
 
   const authReq = req as OptionalAuthRequest;
 

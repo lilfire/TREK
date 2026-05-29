@@ -44,6 +44,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [feeAmount, setFeeAmount] = useState('')
   const [feeMode, setFeeMode] = useState<'deadline' | 'rsvp' | ''>('')
   const [feeDeadline, setFeeDeadline] = useState('')
+  const [rsvpDeadline, setRsvpDeadline] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [coverPreview, setCoverPreview] = useState(null)
@@ -71,6 +72,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setFeeAmount((trip as any).registration_fee != null ? String((trip as any).registration_fee) : '')
       setFeeMode((trip as any).fee_mode || '')
       setFeeDeadline((trip as any).fee_deadline || '')
+      setRsvpDeadline((trip as any).rsvp_deadline || '')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
@@ -79,6 +81,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setFeeAmount('')
       setFeeMode('')
       setFeeDeadline('')
+      setRsvpDeadline('')
     }
     setPendingCoverFile(null)
     setSelectedMembers([])
@@ -128,6 +131,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         registration_fee: parsedFee,
         fee_mode: parsedFee && parsedFee > 0 ? (feeMode || null) : null,
         fee_deadline: parsedFee && parsedFee > 0 && feeMode === 'deadline' ? (feeDeadline || null) : null,
+        rsvp_deadline: rsvpDeadline || null,
       }
       const result = await onSave({
         title: formData.title.trim(),
@@ -589,6 +593,26 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 </div>
               )}
             </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-slate-600 mb-1">RSVP deadline <span className="font-normal text-slate-400">(optional)</span></label>
+          <input
+            data-testid="rsvp-deadline-input"
+            type="date"
+            value={rsvpDeadline}
+            onChange={e => setRsvpDeadline(e.target.value)}
+            className={inputCls}
+          />
+          {rsvpDeadline && (
+            <button
+              type="button"
+              onClick={() => setRsvpDeadline('')}
+              className="mt-1 text-xs text-slate-400 hover:text-slate-600 underline"
+            >
+              Clear deadline
+            </button>
           )}
         </div>
 

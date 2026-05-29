@@ -2283,6 +2283,10 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec(`CREATE INDEX IF NOT EXISTS idx_rsvp_payments_rsvp ON trip_rsvp_payments(rsvp_id)`);
     },
+    // LSO-1443: RSVP registration deadline
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN rsvp_deadline TEXT`);
+    },
   ];
 
   if (currentVersion < migrations.length) {

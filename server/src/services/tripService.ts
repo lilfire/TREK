@@ -206,6 +206,7 @@ interface UpdateTripData {
   registration_fee?: number | null;
   fee_mode?: 'deadline' | 'rsvp' | null;
   fee_deadline?: string | null;
+  rsvp_deadline?: string | null;
 }
 
 export interface UpdateTripResult {
@@ -234,6 +235,8 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
     throw new ValidationError("fee_mode must be 'deadline' or 'rsvp'");
   if (data.fee_deadline !== undefined && data.fee_deadline !== null && !/^\d{4}-\d{2}-\d{2}$/.test(data.fee_deadline))
     throw new ValidationError('fee_deadline must be an ISO-8601 date string (YYYY-MM-DD)');
+  if (data.rsvp_deadline !== undefined && data.rsvp_deadline !== null && !/^\d{4}-\d{2}-\d{2}$/.test(data.rsvp_deadline))
+    throw new ValidationError('rsvp_deadline must be an ISO-8601 date string (YYYY-MM-DD)');
 
   const newTitle = title || trip.title;
   const newDesc = description !== undefined ? description : trip.description;
@@ -255,13 +258,14 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newFee = effectiveFee ?? null;
   const newFeeMode = newFee === null ? null : ('fee_mode' in data ? (data.fee_mode ?? null) : ((trip as any).fee_mode ?? null));
   const newFeeDeadline = (newFee === null || newFeeMode !== 'deadline') ? null : ('fee_deadline' in data ? (data.fee_deadline ?? null) : ((trip as any).fee_deadline ?? null));
+  const newRsvpDeadline = 'rsvp_deadline' in data ? (data.rsvp_deadline ?? null) : ((trip as any).rsvp_deadline ?? null);
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
       currency=?, is_archived=?, is_public=?, cover_image=?, reminder_days=?,
-      registration_fee=?, fee_mode=?, fee_deadline=?, updated_at=CURRENT_TIMESTAMP
+      registration_fee=?, fee_mode=?, fee_deadline=?, rsvp_deadline=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, newRsvpDeadline, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);

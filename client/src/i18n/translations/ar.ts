@@ -2187,6 +2187,9 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.error.tooManyAttempts': "محاولات كثيرة جداً. يرجى الانتظار بضع دقائق ثم المحاولة مرة أخرى.",
   'rsvp.error.serverError': "حدث خطأ من جانبنا. يرجى المحاولة مرة أخرى قريباً.",
   'rsvp.error.unknown': "حدث خطأ. يرجى المحاولة مرة أخرى.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "انضم إلى هذه الرحلة",

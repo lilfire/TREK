@@ -2391,6 +2391,9 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.error.tooManyAttempts': "Troppi tentativi. Attendi qualche minuto prima di riprovare.",
   'rsvp.error.serverError': "Si è verificato un errore dal nostro lato. Riprova tra poco.",
   'rsvp.error.unknown': "Qualcosa è andato storto. Riprova.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Unisciti a questo viaggio",
