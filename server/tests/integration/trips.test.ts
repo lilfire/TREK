@@ -1183,3 +1183,70 @@ describe('Migration: is_public column on trips table', () => {
     expect(row.is_public).toBe(0);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Country field (LSO-1471)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Country field', () => {
+  it('TRIP-COUNTRY-001 — POST /api/trips with country round-trips in GET /api/trips/:id', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .post('/api/trips')
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Norway Explorer', country: 'NO' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.trip.country).toBe('NO');
+
+    const getRes = await request(app)
+      .get(`/api/trips/${res.body.trip.id}`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.trip.country).toBe('NO');
+  });
+
+  it('TRIP-COUNTRY-002 — PUT /api/trips/:id with country updates and returns the value', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'My Trip' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ country: 'DE' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.country).toBe('DE');
+
+    const getRes = await request(app)
+      .get(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.trip.country).toBe('DE');
+  });
+
+  it('TRIP-COUNTRY-003 — existing trips have country = null (no backfill)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Old Trip' });
+
+    const row = testDb.prepare('SELECT country FROM trips WHERE id = ?').get(trip.id) as { country: string | null };
+    expect(row.country).toBeNull();
+  });
+
+  it('TRIP-COUNTRY-004 — PUT /api/trips/:id can clear country by setting it to null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Spain Trip' });
+    testDb.prepare('UPDATE trips SET country = ? WHERE id = ?').run('ES', trip.id);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ country: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.country).toBeNull();
+  });
+});

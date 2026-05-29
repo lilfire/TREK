@@ -48,6 +48,8 @@ const zh: Record<string, string> = {
   'trips.reminderDay': '天',
   'trips.reminderDays': '天',
   'trips.reminderCustom': '自定义',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': '天前提醒',
   'trips.reminderDisabledHint': '旅行提醒已禁用。请在管理 > 设置 > 通知中启用。',
   'common.update': '更新',

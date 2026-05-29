@@ -48,6 +48,8 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'trips.reminderDay': 'giorno',
   'trips.reminderDays': 'giorni',
   'trips.reminderCustom': 'Personalizzato',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'giorni prima della partenza',
   'trips.reminderDisabledHint': 'I promemoria dei viaggi sono disabilitati. Abilitali in Admin > Impostazioni > Notifiche.',
   'common.update': 'Aggiorna',

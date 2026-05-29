@@ -51,6 +51,8 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'trips.memberRemoveError': 'Entfernen fehlgeschlagen',
   'trips.memberAdded': '{username} hinzugefügt',
   'trips.memberAddError': 'Hinzufügen fehlgeschlagen',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'Tage vor Abreise',
   'trips.reminderDisabledHint': 'Reiseerinnerungen sind deaktiviert. Aktivieren Sie sie unter Admin > Einstellungen > Benachrichtigungen.',
   'common.update': 'Aktualisieren',

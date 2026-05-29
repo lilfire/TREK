@@ -48,6 +48,8 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'trips.memberRemoveError': 'Falha ao remover',
   'trips.memberAdded': '{username} adicionado',
   'trips.memberAddError': 'Falha ao adicionar',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'dias antes da partida',
   'trips.reminderDisabledHint': 'Os lembretes de viagem estão desativados. Ative-os em Admin > Configurações > Notificações.',
   'common.update': 'Atualizar',

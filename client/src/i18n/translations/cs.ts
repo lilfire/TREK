@@ -48,6 +48,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'trips.reminderDay': 'den',
   'trips.reminderDays': 'dní',
   'trips.reminderCustom': 'Vlastní',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'dní před odjezdem',
   'trips.reminderDisabledHint': 'Připomínky výletů jsou zakázány. Povolte je v Správa > Nastavení > Oznámení.',
   'common.update': 'Aktualizovat',

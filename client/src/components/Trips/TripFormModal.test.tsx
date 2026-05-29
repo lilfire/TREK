@@ -340,6 +340,42 @@ describe('TripFormModal', () => {
   });
 });
 
+// ── Country & Currency fields ─────────────────────────────────────────────────
+
+describe('Country and Currency fields', () => {
+  it('FE-COMP-TRIPFORM-034: renders country text input and currency select', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.getByTestId('country-input')).toBeInTheDocument();
+    expect(screen.getByTestId('currency-select')).toBeInTheDocument();
+    expect(screen.getByText('Country')).toBeInTheDocument();
+    expect(screen.getByText('Currency')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-035: form submission includes country and currency in payload', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Norway Trip');
+    await user.type(screen.getByTestId('country-input'), 'Norway');
+    await user.selectOptions(screen.getByTestId('currency-select'), 'EUR');
+    const submitBtns = screen.getAllByText('Create New Trip');
+    const submitBtn = submitBtns.find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      country: 'Norway',
+      currency: 'EUR',
+    }));
+  });
+
+  it('FE-COMP-TRIPFORM-036: pre-fills country and currency when editing an existing trip', () => {
+    const trip = buildTrip({ id: 1, country: 'Sweden', currency: 'SEK' });
+    render(<TripFormModal {...defaultProps} trip={trip} />);
+    expect((screen.getByTestId('country-input') as HTMLInputElement).value).toBe('Sweden');
+    expect((screen.getByTestId('currency-select') as HTMLSelectElement).value).toBe('SEK');
+  });
+});
+
 // ── Registration Fee Section tests ────────────────────────────────────────────
 
 describe('Registration Fee section', () => {

@@ -48,6 +48,8 @@ const ru: Record<string, string> = {
   'trips.reminderDay': 'день',
   'trips.reminderDays': 'дней',
   'trips.reminderCustom': 'Другое',
+  'trips.country': 'Country',
+  'trips.currency': 'Currency',
   'trips.reminderDaysBefore': 'дней до отъезда',
   'trips.reminderDisabledHint': 'Напоминания о поездках отключены. Включите их в Админ > Настройки > Уведомления.',
   'common.update': 'Обновить',
