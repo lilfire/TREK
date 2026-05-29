@@ -848,6 +848,89 @@ describe('OIDC settings', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PayPal settings
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('PayPal settings', () => {
+  it('ADMIN-050 — GET /admin/paypal-settings returns shape with no raw secret', async () => {
+    const { user: admin } = createAdmin(testDb);
+
+    const res = await request(app)
+      .get('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id));
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('clientId');
+    expect(res.body).toHaveProperty('secretIsSet');
+    expect(res.body).toHaveProperty('mode');
+    expect(typeof res.body.secretIsSet).toBe('boolean');
+    expect(res.body).not.toHaveProperty('secret');
+    expect(['sandbox', 'live']).toContain(res.body.mode);
+  });
+
+  it('ADMIN-051 — PUT /admin/paypal-settings persists clientId and mode; GET reflects update', async () => {
+    const { user: admin } = createAdmin(testDb);
+
+    const putRes = await request(app)
+      .put('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id))
+      .send({ clientId: 'AaBbCcDdTest', secret: 'supersecret', mode: 'sandbox' });
+    expect(putRes.status).toBe(200);
+    expect(putRes.body.success).toBe(true);
+
+    const getRes = await request(app)
+      .get('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id));
+    expect(getRes.status).toBe(200);
+    expect(getRes.body.clientId).toBe('AaBbCcDdTest');
+    expect(getRes.body.secretIsSet).toBe(true);
+    expect(getRes.body.mode).toBe('sandbox');
+    expect(getRes.body).not.toHaveProperty('secret');
+  });
+
+  it('ADMIN-052 — PUT /admin/paypal-settings rejects invalid mode', async () => {
+    const { user: admin } = createAdmin(testDb);
+
+    const res = await request(app)
+      .put('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id))
+      .send({ mode: 'invalid-mode' });
+    expect(res.status).toBe(400);
+    expect(res.body).toHaveProperty('error');
+  });
+
+  it('ADMIN-053 — GET /admin/paypal-settings requires admin role', async () => {
+    const { user } = createUser(testDb);
+
+    const res = await request(app)
+      .get('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(403);
+  });
+
+  it('ADMIN-054 — omitting secret on PUT does not clear existing secret', async () => {
+    const { user: admin } = createAdmin(testDb);
+
+    // First set a secret
+    await request(app)
+      .put('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id))
+      .send({ clientId: 'TestClient', secret: 'mysecret', mode: 'sandbox' });
+
+    // Update mode only, no secret field
+    await request(app)
+      .put('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id))
+      .send({ mode: 'live' });
+
+    const getRes = await request(app)
+      .get('/api/admin/paypal-settings')
+      .set('Cookie', authCookie(admin.id));
+    expect(getRes.body.secretIsSet).toBe(true);
+    expect(getRes.body.mode).toBe('live');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Demo baseline
 // ─────────────────────────────────────────────────────────────────────────────
 

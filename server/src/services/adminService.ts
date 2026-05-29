@@ -760,6 +760,31 @@ export function revokeOAuthSession(id: string) {
   return {};
 }
 
+// ── PayPal Settings ────────────────────────────────────────────────────────
+
+export function getPaypalSettings() {
+  const get = (key: string) => (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value || '';
+  const clientId = get('paypal_client_id') || process.env.PAYPAL_CLIENT_ID || '';
+  const secret = decrypt_api_key(get('paypal_secret')) || (process.env.PAYPAL_SECRET ? 'set-via-env' : '');
+  const mode = get('paypal_mode') || process.env.PAYPAL_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'sandbox');
+  return {
+    clientId,
+    secretIsSet: !!secret,
+    mode: mode === 'live' ? 'live' : 'sandbox',
+  };
+}
+
+export function updatePaypalSettings(data: { clientId?: string; secret?: string; mode?: string }): { error?: string; status?: number; success?: boolean } {
+  if (data.mode !== undefined && !['sandbox', 'live'].includes(data.mode)) {
+    return { error: 'mode must be sandbox or live', status: 400 };
+  }
+  const set = (key: string, val: string) => db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)").run(key, val || '');
+  if (data.clientId !== undefined) set('paypal_client_id', data.clientId);
+  if (data.secret !== undefined && data.secret !== '') set('paypal_secret', maybe_encrypt_api_key(data.secret) ?? '');
+  if (data.mode !== undefined) set('paypal_mode', data.mode);
+  return { success: true };
+}
+
 // ── JWT Rotation ───────────────────────────────────────────────────────────
 
 export function rotateJwtSecret(): { error?: string; status?: number } {
