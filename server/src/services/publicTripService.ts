@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { loadTagsByPlaceIds } from './queryHelpers';
+import { getPaypalClientId } from './paypalService';
 
 export interface PublicTripSummary {
   id: number;
@@ -38,9 +39,12 @@ export function getPublicTripsList(): PublicTripSummary[] {
  */
 export function getPublicTripData(tripId: string | number): Record<string, any> | null {
   const trip = db.prepare(
-    'SELECT id, title, description, start_date, end_date, cover_image, currency FROM trips WHERE id = ? AND is_public = 1'
-  ).get(tripId);
+    'SELECT id, title, description, start_date, end_date, cover_image, currency, registration_fee, fee_mode, fee_deadline FROM trips WHERE id = ? AND is_public = 1'
+  ).get(tripId) as any;
   if (!trip) return null;
+
+  const paypalClientId = getPaypalClientId();
+  if (paypalClientId) (trip as any).paypalClientId = paypalClientId;
 
   const days = db.prepare(
     'SELECT * FROM days WHERE trip_id = ? ORDER BY day_number ASC'

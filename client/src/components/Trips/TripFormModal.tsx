@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe } from 'lucide-react'
+import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe, DollarSign } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
@@ -41,6 +41,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [customReminder, setCustomReminder] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
   const [togglingPublic, setTogglingPublic] = useState(false)
+  const [feeAmount, setFeeAmount] = useState('')
+  const [feeMode, setFeeMode] = useState<'deadline' | 'rsvp' | ''>('')
+  const [feeDeadline, setFeeDeadline] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [coverPreview, setCoverPreview] = useState(null)
@@ -65,11 +68,17 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
       setIsPublic(Boolean((trip as any).is_public))
+      setFeeAmount((trip as any).registration_fee != null ? String((trip as any).registration_fee) : '')
+      setFeeMode((trip as any).fee_mode || '')
+      setFeeDeadline((trip as any).fee_deadline || '')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
       setCoverPreview(null)
       setIsPublic(false)
+      setFeeAmount('')
+      setFeeMode('')
+      setFeeDeadline('')
     }
     setPendingCoverFile(null)
     setSelectedMembers([])
@@ -100,8 +109,26 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     if (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date)) {
       setError(t('dashboard.endDateError')); return
     }
+    const parsedFee = feeAmount.trim() ? parseFloat(feeAmount) : null
+    if (parsedFee !== null && (isNaN(parsedFee) || parsedFee < 0)) {
+      setError('Registration fee must be a non-negative number'); return
+    }
+    if (parsedFee && parsedFee > 0 && !feeMode) {
+      setError('Please select a fee type'); return
+    }
+    if (parsedFee && parsedFee > 0 && feeMode === 'deadline' && !feeDeadline) {
+      setError('Please select a payment deadline'); return
+    }
+    if (parsedFee && parsedFee > 0 && feeMode === 'deadline' && feeDeadline && new Date(feeDeadline) < new Date(new Date().toDateString())) {
+      setError('Payment deadline must not be in the past'); return
+    }
     setIsLoading(true)
     try {
+      const feePayload: Record<string, number | string | null> = {
+        registration_fee: parsedFee,
+        fee_mode: parsedFee && parsedFee > 0 ? (feeMode || null) : null,
+        fee_deadline: parsedFee && parsedFee > 0 && feeMode === 'deadline' ? (feeDeadline || null) : null,
+      }
       const result = await onSave({
         title: formData.title.trim(),
         description: formData.description.trim() || null,
@@ -109,6 +136,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
+        ...feePayload,
       })
       // Add selected members for newly created trips
       if (selectedMembers.length > 0 && result?.trip?.id) {
@@ -489,6 +517,80 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             </button>
           </div>
         )}
+
+        {/* Registration Fee */}
+        <div data-testid="fee-section">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <DollarSign className="inline w-4 h-4 mr-1" />Registration Fee
+          </label>
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              data-testid="fee-amount-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={feeAmount}
+              onChange={e => {
+                setFeeAmount(e.target.value)
+                if (!e.target.value || parseFloat(e.target.value) === 0) {
+                  setFeeMode('')
+                  setFeeDeadline('')
+                }
+              }}
+              placeholder={`Amount (${(trip as any)?.currency || 'EUR'})`}
+              className={inputCls + ' flex-1'}
+            />
+            <span className="text-sm text-slate-500 shrink-0">{(trip as any)?.currency || 'EUR'}</span>
+          </div>
+
+          {feeAmount && parseFloat(feeAmount) > 0 && (
+            <div className="space-y-2 mt-2" data-testid="fee-mode-section">
+              <p className="text-xs text-slate-500">Fee type</p>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    data-testid="fee-mode-deadline"
+                    type="radio"
+                    name="fee_mode"
+                    value="deadline"
+                    checked={feeMode === 'deadline'}
+                    onChange={() => setFeeMode('deadline')}
+                    className="accent-slate-900"
+                  />
+                  <span className="text-sm text-slate-700">Inform registrants of a payment deadline</span>
+                </label>
+              </div>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    data-testid="fee-mode-rsvp"
+                    type="radio"
+                    name="fee_mode"
+                    value="rsvp"
+                    checked={feeMode === 'rsvp'}
+                    onChange={() => { setFeeMode('rsvp'); setFeeDeadline('') }}
+                    className="accent-slate-900"
+                  />
+                  <span className="text-sm text-slate-700">Collect payment at registration (PayPal)</span>
+                </label>
+              </div>
+
+              {feeMode === 'deadline' && (
+                <div data-testid="fee-deadline-section">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Payment deadline</label>
+                  <input
+                    data-testid="fee-deadline-input"
+                    type="date"
+                    value={feeDeadline}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setFeeDeadline(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
       </form>
     </Modal>

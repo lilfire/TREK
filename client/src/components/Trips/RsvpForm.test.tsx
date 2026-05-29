@@ -1,4 +1,4 @@
-// FE-COMP-RSVP-001 to FE-COMP-RSVP-017
+// FE-COMP-RSVP-001 to FE-COMP-RSVP-017 + FEE-RSVP-001 to FEE-RSVP-010
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -550,5 +550,194 @@ describe('RsvpForm', () => {
 
       expect(mockNavigate).not.toHaveBeenCalled();
     });
+  });
+});
+
+// ── Fee case tests ────────────────────────────────────────────────────────────
+
+// Mock @paypal/react-paypal-js for component tests
+vi.mock('@paypal/react-paypal-js', () => {
+  const MockPayPalButtons = ({ onError, onCancel, disabled }: {
+    disabled?: boolean;
+    onError?: () => void;
+    onCancel?: () => void;
+    createOrder?: () => Promise<string>;
+    onApprove?: (data: unknown, actions: unknown) => Promise<void>;
+  }) => (
+    <div data-testid="paypal-buttons">
+      <button
+        data-testid="paypal-btn-cancel"
+        type="button"
+        onClick={() => onCancel?.()}
+        disabled={disabled}
+      >PayPal Cancel</button>
+      <button
+        data-testid="paypal-btn-error"
+        type="button"
+        onClick={() => onError?.()}
+        disabled={disabled}
+      >PayPal Error</button>
+    </div>
+  );
+
+  return {
+    PayPalScriptProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    PayPalButtons: MockPayPalButtons,
+  };
+});
+
+describe('RsvpForm — Case B: fee with deadline', () => {
+  it('FEE-RSVP-001: renders fee deadline notice when fee_mode=deadline', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="deadline"
+        feeDeadline="2027-08-15"
+        currency="EUR"
+      />
+    );
+    expect(screen.getByTestId('fee-deadline-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-deadline-notice')).toHaveTextContent('50 EUR');
+    expect(screen.getByTestId('fee-deadline-notice')).toHaveTextContent('Payment instructions will be provided');
+  });
+
+  it('FEE-RSVP-002: shows formatted deadline date', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="deadline"
+        feeDeadline="2027-08-15"
+        currency="USD"
+      />
+    );
+    const notice = screen.getByTestId('fee-deadline-notice');
+    expect(notice).toHaveTextContent('2027');
+  });
+
+  it('FEE-RSVP-003: form submits normally for deadline fee (no PayPal)', async () => {
+    const user = userEvent.setup();
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="deadline"
+        feeDeadline="2027-08-15"
+        currency="EUR"
+      />
+    );
+    await user.type(screen.getByLabelText(/your name/i), 'Alice');
+    await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
+    await user.click(screen.getByRole('button', { name: /confirm my spot/i }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/dashboard'));
+  });
+
+  it('FEE-RSVP-004: does not show PayPal buttons for deadline fee', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="deadline"
+        feeDeadline="2027-08-15"
+        paypalClientId="test-client-id"
+      />
+    );
+    expect(screen.queryByTestId('paypal-buttons')).not.toBeInTheDocument();
+  });
+});
+
+describe('RsvpForm — Case C: fee at registration (PayPal)', () => {
+  it('FEE-RSVP-005: renders PayPal buttons when fee_mode=rsvp with paypalClientId', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="rsvp"
+        currency="EUR"
+        paypalClientId="test-client-id"
+      />
+    );
+    expect(screen.getByTestId('paypal-buttons')).toBeInTheDocument();
+    expect(screen.getByTestId('paypal-fee-notice')).toBeInTheDocument();
+    expect(screen.getByTestId('paypal-fee-notice')).toHaveTextContent('50 EUR');
+  });
+
+  it('FEE-RSVP-006: shows error on PayPal cancellation', async () => {
+    const user = userEvent.setup();
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="rsvp"
+        currency="EUR"
+        paypalClientId="test-client-id"
+      />
+    );
+    // Fill required fields so PayPal buttons are enabled
+    await user.type(screen.getByLabelText(/your name/i), 'Alice');
+    await user.type(screen.getByLabelText(/email address/i), 'alice@example.com');
+    await user.click(screen.getByTestId('paypal-btn-cancel'));
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/payment was not completed/i);
+    });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('FEE-RSVP-007: shows error on PayPal error callback', async () => {
+    const user = userEvent.setup();
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="rsvp"
+        currency="EUR"
+        paypalClientId="test-client-id"
+      />
+    );
+    // Fill required fields so PayPal buttons are enabled
+    await user.type(screen.getByLabelText(/your name/i), 'Bob');
+    await user.type(screen.getByLabelText(/email address/i), 'bob@example.com');
+    await user.click(screen.getByTestId('paypal-btn-error'));
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-error')).toHaveTextContent(/payment was not completed/i);
+    });
+  });
+
+  it('FEE-RSVP-008: does not render PayPal when paypalClientId is null', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={50}
+        feeMode="rsvp"
+        currency="EUR"
+        paypalClientId={null}
+      />
+    );
+    expect(screen.queryByTestId('paypal-buttons')).not.toBeInTheDocument();
+    // Falls back to standard form (no fee)
+    expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
+  });
+
+  it('FEE-RSVP-009: shows fee notice with amount and currency', () => {
+    render(
+      <RsvpForm
+        tripId="42"
+        registrationFee={99.99}
+        feeMode="rsvp"
+        currency="USD"
+        paypalClientId="test-client-id"
+      />
+    );
+    expect(screen.getByTestId('paypal-fee-notice')).toHaveTextContent('99.99 USD');
+  });
+});
+
+describe('RsvpForm — Case A: no fee', () => {
+  it('FEE-RSVP-010: renders standard form when no fee', () => {
+    render(<RsvpForm tripId="42" registrationFee={null} feeMode={null} />);
+    expect(screen.queryByTestId('fee-deadline-notice')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('paypal-buttons')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirm my spot/i })).toBeInTheDocument();
   });
 });

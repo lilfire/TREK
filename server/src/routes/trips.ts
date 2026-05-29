@@ -147,8 +147,8 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
     if (authReq.user.id !== tripOwnerId)
       return res.status(403).json({ error: 'Only the trip owner can change trip visibility' });
   }
-  // General edit check (title, description, dates, currency, reminder_days)
-  const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count'];
+  // General edit check (title, description, dates, currency, reminder_days, fee fields)
+  const editFields = ['title', 'description', 'start_date', 'end_date', 'currency', 'reminder_days', 'day_count', 'registration_fee', 'fee_mode', 'fee_deadline'];
   if (editFields.some(f => req.body[f] !== undefined)) {
     if (!checkPermission('trip_edit', authReq.user.role, tripOwnerId, authReq.user.id, isMember))
       return res.status(403).json({ error: 'No permission to edit this trip' });

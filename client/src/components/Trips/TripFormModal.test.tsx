@@ -1,4 +1,4 @@
-// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-028
+// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-033 + FEE-001 to FEE-009
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -337,5 +337,95 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} trip={ownerTrip as any} />);
     const toggle = screen.getByRole('switch', { name: 'List this trip on the public page' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+});
+
+// ── Registration Fee Section tests ────────────────────────────────────────────
+
+describe('Registration Fee section', () => {
+  it('FEE-001: renders fee section with amount input', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.getByTestId('fee-section')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-amount-input')).toBeInTheDocument();
+  });
+
+  it('FEE-002: fee mode options hidden when fee amount is empty', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.queryByTestId('fee-mode-section')).not.toBeInTheDocument();
+  });
+
+  it('FEE-003: fee mode options appear when fee amount > 0', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    expect(screen.getByTestId('fee-mode-section')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-mode-deadline')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-mode-rsvp')).toBeInTheDocument();
+  });
+
+  it('FEE-004: deadline date picker appears only when deadline mode is selected', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '30');
+    expect(screen.queryByTestId('fee-deadline-section')).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('fee-mode-deadline'));
+    expect(screen.getByTestId('fee-deadline-section')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-deadline-input')).toBeInTheDocument();
+  });
+
+  it('FEE-005: deadline date picker hidden when rsvp mode selected', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '30');
+    await user.click(screen.getByTestId('fee-mode-deadline'));
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+    expect(screen.queryByTestId('fee-deadline-section')).not.toBeInTheDocument();
+  });
+
+  it('FEE-006: shows validation error when fee > 0 but no fee mode selected', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Test Trip');
+    await user.type(screen.getByTestId('fee-amount-input'), '25');
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'));
+    await user.click(submitBtn!.closest('button')!);
+    await waitFor(() => expect(screen.getByText(/please select a fee type/i)).toBeInTheDocument());
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FEE-007: includes fee fields in onSave payload', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Trip With Fee');
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'));
+    await user.click(submitBtn!.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      registration_fee: 50,
+      fee_mode: 'rsvp',
+      fee_deadline: null,
+    }));
+  });
+
+  it('FEE-008: loads existing fee data from trip prop', () => {
+    const trip = { ...buildTrip({ id: 5 }), user_id: 1, registration_fee: 99, fee_mode: 'deadline', fee_deadline: '2027-12-31' };
+    render(<TripFormModal {...defaultProps} trip={trip as any} />);
+    expect((screen.getByTestId('fee-amount-input') as HTMLInputElement).value).toBe('99');
+    expect((screen.getByTestId('fee-mode-deadline') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByTestId('fee-deadline-input') as HTMLInputElement).value).toBe('2027-12-31');
+  });
+
+  it('FEE-009: clears fee mode and deadline when fee amount is cleared', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+    expect(screen.getByTestId('fee-mode-section')).toBeInTheDocument();
+    await user.clear(screen.getByTestId('fee-amount-input'));
+    expect(screen.queryByTestId('fee-mode-section')).not.toBeInTheDocument();
   });
 });

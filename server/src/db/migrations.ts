@@ -2259,6 +2259,30 @@ function runMigrations(db: Database.Database): void {
       db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_trip ON trip_rsvps(trip_id)`);
       db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_user ON trip_rsvps(user_id)`);
     },
+    // LSO-1428: trip registration fee columns
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN registration_fee REAL`);
+      db.exec(`ALTER TABLE trips ADD COLUMN fee_mode TEXT`);
+      db.exec(`ALTER TABLE trips ADD COLUMN fee_deadline TEXT`);
+    },
+    // LSO-1428: payment records for trip RSVP fees
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS trip_rsvp_payments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          rsvp_id INTEGER NOT NULL REFERENCES trip_rsvps(id) ON DELETE CASCADE,
+          provider TEXT NOT NULL DEFAULT 'paypal',
+          amount REAL NOT NULL,
+          currency TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          provider_order_id TEXT,
+          provider_capture_id TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_rsvp_payments_rsvp ON trip_rsvp_payments(rsvp_id)`);
+    },
   ];
 
   if (currentVersion < migrations.length) {
