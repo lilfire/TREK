@@ -1,10 +1,12 @@
 /**
  * Integration tests for GET /api/public/trips/:id (LSO-1293).
- * Covers PTRIP-001 to PTRIP-006.
+ * Covers PTRIP-001 to PTRIP-006 and PFILE-001 to PFILE-005.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
+import path from 'path';
+import fs from 'fs';
 
 const { testDb, dbMock } = vi.hoisted(() => {
   const Database = require('better-sqlite3');
@@ -55,9 +57,12 @@ import { rsvpAttempts } from '../../src/routes/publicTrips';
 
 const app: Application = createApp();
 
+const uploadsDir = path.join(__dirname, '../../uploads/files');
+
 beforeAll(() => {
   createTables(testDb);
   runMigrations(testDb);
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 });
 
 beforeEach(() => {
@@ -70,6 +75,12 @@ beforeEach(() => {
 
 afterAll(() => {
   testDb.close();
+  const testFiles = fs.existsSync(uploadsDir)
+    ? fs.readdirSync(uploadsDir).filter(f => f.startsWith('ptrip-test-'))
+    : [];
+  for (const f of testFiles) {
+    try { fs.unlinkSync(path.join(uploadsDir, f)); } catch { /* ignore */ }
+  }
 });
 
 describe('GET /api/public/trips', () => {
@@ -505,5 +516,97 @@ describe('POST /api/public/trips/:id/rsvp', () => {
     expect(res.status).toBe(400);
     expect(typeof res.body.error).toBe('string');
     expect(res.body.error.length).toBeGreaterThan(0);
+  });
+});
+
+describe('GET /api/public/trips/:tripId/files/:fileId', () => {
+  function createTestFile(filename: string, content = 'test file content'): void {
+    fs.writeFileSync(path.join(uploadsDir, filename), content);
+  }
+
+  function insertTripFile(tripId: number, filename: string, originalName = 'document.pdf', mimeType = 'application/pdf'): number {
+    const r = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(tripId, filename, originalName, 100, mimeType);
+    return r.lastInsertRowid as number;
+  }
+
+  it('PFILE-001 — returns 200 and streams file with correct Content-Type for public trip', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const filename = 'ptrip-test-001.pdf';
+    createTestFile(filename, '%PDF-1.4 test content');
+    const fileId = insertTripFile(trip.id, filename, 'my-doc.pdf', 'application/pdf');
+
+    const res = await request(app)
+      .get(`/api/public/trips/${trip.id}/files/${fileId}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/application\/pdf/);
+    expect(res.headers['content-disposition']).toContain('my-doc.pdf');
+  });
+
+  it('PFILE-002 — returns 404 when trip is not public (is_public = 0)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const filename = 'ptrip-test-002.pdf';
+    createTestFile(filename);
+    const fileId = insertTripFile(trip.id, filename);
+
+    const res = await request(app)
+      .get(`/api/public/trips/${trip.id}/files/${fileId}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('PFILE-003 — returns 404 when file does not belong to the trip', async () => {
+    const { user } = createUser(testDb);
+    const tripA = createTrip(testDb, user.id);
+    const tripB = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(tripA.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(tripB.id);
+
+    const filename = 'ptrip-test-003.pdf';
+    createTestFile(filename);
+    const fileId = insertTripFile(tripB.id, filename);
+
+    const res = await request(app)
+      .get(`/api/public/trips/${tripA.id}/files/${fileId}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('PFILE-004 — returns 404 when file has deleted_at set', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const filename = 'ptrip-test-004.pdf';
+    createTestFile(filename);
+    const r = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, mime_type, deleted_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(trip.id, filename, 'deleted.pdf', 'application/pdf', '2026-01-01T00:00:00Z');
+    const fileId = r.lastInsertRowid as number;
+
+    const res = await request(app)
+      .get(`/api/public/trips/${trip.id}/files/${fileId}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
+  });
+
+  it('PFILE-005 — returns 404 for non-existent trip', async () => {
+    const res = await request(app)
+      .get('/api/public/trips/999999/files/1');
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBeDefined();
   });
 });
