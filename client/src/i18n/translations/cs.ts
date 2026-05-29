@@ -2386,6 +2386,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.paymentSuccess': "🎉 Jste registrováni! Platba {amount} {currency} potvrzena.",
   'rsvp.paypalFeeNotice': "Registrační poplatek: {amount} {currency}. Dokončete platbu níže pro potvrzení místa.",
   'rsvp.paymentNotCompleted': "Platba nebyla dokončena. Vaše registrace nebyla uložena.",
+  'rsvp.paymentUnavailable': "Online platba je dočasně nedostupná. Pro registraci prosím kontaktujte organizátora výletu.",
   'rsvp.toastJoined': "🎉 Jste přihlášeni! Zobrazte celý itinerář na nástěnce.",
   'rsvp.toastRegistered': "🎉 Jste přihlášeni! Vítejte v TREK — zkontrolujte svou poštu.",
   'rsvp.error.duplicateRsvp': "Jste již na seznamu pro tuto cestu. Zkontrolujte svou doručenou poštu.",

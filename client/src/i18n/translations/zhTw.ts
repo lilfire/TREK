@@ -2383,6 +2383,7 @@ const zhTw: Record<string, string> = {
   'rsvp.paymentSuccess': "🎉 報名成功！已確認付款 {amount} {currency}。",
   'rsvp.paypalFeeNotice': "報名費：{amount} {currency}。請在下方完成付款以確認名額。",
   'rsvp.paymentNotCompleted': "付款未完成。您的報名未儲存。",
+  'rsvp.paymentUnavailable': "線上付款暫時無法使用。請聯繫行程主辦人進行報名。",
   'rsvp.toastJoined': "🎉 您已加入！請查看控制台了解完整行程。",
   'rsvp.toastRegistered': "🎉 您已加入！歡迎來到 TREK — 請查收確認郵件。",
   'rsvp.error.duplicateRsvp': "您已在此行程名單上。請查收確認郵件。",

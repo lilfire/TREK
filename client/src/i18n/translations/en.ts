@@ -2458,6 +2458,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.paymentSuccess': "🎉 You're registered! Payment of {amount} {currency} confirmed.",
   'rsvp.paypalFeeNotice': 'Registration fee: {amount} {currency}. Complete payment below to confirm your spot.',
   'rsvp.paymentNotCompleted': 'Payment was not completed. Your registration has not been saved.',
+  'rsvp.paymentUnavailable': 'Online payment is temporarily unavailable. Please contact the trip organiser to register.',
   'rsvp.toastJoined': "🎉 You're in! Check your dashboard to view the full itinerary.",
   'rsvp.toastRegistered': "🎉 You're in! Welcome to TREK — check your inbox for a confirmation email.",
   'rsvp.error.duplicateRsvp': "You're already on the list for this trip. Check your inbox for confirmation details.",

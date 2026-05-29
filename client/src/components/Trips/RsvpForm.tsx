@@ -383,6 +383,18 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
     )
   }
 
+  // Case C-fallback: fee_mode is 'rsvp' but PayPal is not configured
+  if (isRsvpFee && !paypalClientId) {
+    return (
+      <div
+        data-testid="rsvp-payment-unavailable"
+        className="p-3 rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 text-sm text-yellow-800 dark:text-yellow-200"
+      >
+        {t('rsvp.paymentUnavailable')}
+      </div>
+    )
+  }
+
   // Case A: no fee — standard form
   return (
     <form data-testid="rsvp-form" onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
