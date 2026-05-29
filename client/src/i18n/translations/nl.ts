@@ -2390,6 +2390,9 @@ const nl: Record<string, string> = {
   'rsvp.error.tooManyAttempts': "Te veel pogingen. Wacht een paar minuten en probeer het opnieuw.",
   'rsvp.error.serverError': "Er is iets misgegaan aan onze kant. Probeer het later opnieuw.",
   'rsvp.error.unknown': "Er is iets misgegaan. Probeer het opnieuw.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Sluit je aan bij deze reis",

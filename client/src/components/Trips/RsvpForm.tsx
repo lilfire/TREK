@@ -15,6 +15,7 @@ interface Props {
   feeDeadline?: string | null
   currency?: string
   paypalClientId?: string | null
+  rsvpDeadline?: string | null
 }
 
 interface RsvpError {
@@ -42,6 +43,9 @@ export function parseRsvpError(t: TFunction, err: unknown): RsvpError {
     if (status === 429) {
       return { message: t('rsvp.error.tooManyAttempts'), hasLoginLink: false }
     }
+    if (status === 400 && errorCode === 'rsvp.error.registrationClosed') {
+      return { message: t('rsvp.error.registrationClosed'), hasLoginLink: false }
+    }
     if (status && status >= 500) {
       return { message: t('rsvp.error.serverError'), hasLoginLink: false }
     }
@@ -61,7 +65,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'NOK', paypalClientId }: Props) {
+export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'NOK', paypalClientId, rsvpDeadline }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
   const { t } = useTranslation()
@@ -79,6 +83,10 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
   const isDeadlineFee = hasFee && feeMode === 'deadline'
   const isRsvpFee = hasFee && feeMode === 'rsvp'
   const formFieldsValid = name.trim().length > 0 && email.trim().length > 0
+
+  const today = new Date().toISOString().split('T')[0]
+  const rsvpClosed = rsvpDeadline != null && today > rsvpDeadline
+  const rsvpOpenWithDeadline = rsvpDeadline != null && today <= rsvpDeadline
 
   async function handleJoin() {
     setError(null)
@@ -138,6 +146,14 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
     )
   }
 
+  if (rsvpClosed) {
+    return (
+      <p data-testid="rsvp-registration-closed" className="text-sm text-zinc-500 dark:text-zinc-400">
+        {t('rsvp.registrationClosed')}
+      </p>
+    )
+  }
+
   if (isAuthenticated && !isMember) {
     if (joinDone) {
       return (
@@ -171,8 +187,15 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
     )
   }
 
+  const deadlineNotice = rsvpOpenWithDeadline ? (
+    <p data-testid="rsvp-deadline-notice" className="text-sm text-zinc-600 dark:text-zinc-400">
+      {t('rsvp.deadlineNotice', { date: formatDate(rsvpDeadline!) })}
+    </p>
+  ) : null
+
   const formFields = (
     <>
+      {deadlineNotice}
       <p data-testid="rsvp-intro" className="text-sm text-zinc-500 dark:text-zinc-400">
         {t('rsvp.intro')}{' '}
         <Link to="/login" className="underline text-zinc-700 dark:text-zinc-300">

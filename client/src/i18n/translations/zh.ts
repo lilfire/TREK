@@ -2390,6 +2390,9 @@ const zh: Record<string, string> = {
   'rsvp.error.tooManyAttempts': "尝试次数过多，请稍后再试。",
   'rsvp.error.serverError': "我们这边出现了问题，请稍后重试。",
   'rsvp.error.unknown': "出现错误，请重试。",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "加入此行程",

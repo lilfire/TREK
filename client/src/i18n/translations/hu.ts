@@ -2391,6 +2391,9 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.error.tooManyAttempts': "Túl sok kísérlet. Kérjük, várj néhány percet, majd próbáld újra.",
   'rsvp.error.serverError': "Hiba történt a mi oldalunkon. Kérjük, próbálj újra hamarosan.",
   'rsvp.error.unknown': "Valami hiba történt. Kérjük, próbáld újra.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Csatlakozz ehhez az utazáshoz",

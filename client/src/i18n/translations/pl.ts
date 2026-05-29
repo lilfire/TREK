@@ -2383,6 +2383,9 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.error.tooManyAttempts': "Zbyt wiele prób. Poczekaj kilka minut i spróbuj ponownie.",
   'rsvp.error.serverError': "Coś poszło nie tak po naszej stronie. Spróbuj ponownie za chwilę.",
   'rsvp.error.unknown': "Coś poszło nie tak. Spróbuj ponownie.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Dołącz do tej wycieczki",

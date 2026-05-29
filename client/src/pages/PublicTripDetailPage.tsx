@@ -292,7 +292,11 @@ export default function PublicTripDetailPage() {
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
           <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-1">{t('publicTrip.rsvp.heading')}</h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">{t('publicTrip.rsvp.subheading')}</p>
-          <RsvpForm tripId={id!} isMember={data?.trip?.user_is_member === true} />
+          <RsvpForm
+            tripId={id!}
+            isMember={data?.trip?.user_is_member === true}
+            rsvpDeadline={data?.trip?.rsvp_deadline ?? null}
+          />
         </section>
 
         {/* Footer */}

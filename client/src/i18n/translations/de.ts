@@ -2400,6 +2400,9 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'rsvp.error.tooManyAttempts': "Zu viele Versuche. Bitte warte einige Minuten und versuche es erneut.",
   'rsvp.error.serverError': "Auf unserer Seite ist etwas schiefgelaufen. Bitte versuche es später erneut.",
   'rsvp.error.unknown': "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
+  'rsvp.error.registrationClosed': 'Registration for this trip is closed.',
+  'rsvp.registrationClosed': 'Registration is closed.',
+  'rsvp.deadlineNotice': 'Registration closes on {date}.',
 
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Dieser Reise beitreten",
