@@ -2287,6 +2287,10 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.exec(`ALTER TABLE trips ADD COLUMN rsvp_deadline TEXT`);
     },
+    // LSO-1452: Backfill existing trips that still have currency='EUR' to 'NOK'
+    () => {
+      db.prepare("UPDATE trips SET currency = 'NOK' WHERE currency = 'EUR'").run();
+    },
   ];
 
   if (currentVersion < migrations.length) {
