@@ -96,6 +96,55 @@ router.get('/audit-log', (req: Request, res: Response) => {
   res.json(svc.getAuditLog(req.query as { limit?: string; offset?: string }));
 });
 
+// ── PayPal Settings ────────────────────────────────────────────────────────
+
+router.get('/paypal-settings', (_req: Request, res: Response) => {
+  res.json(svc.getPaypalSettings());
+});
+
+router.put('/paypal-settings', (req: Request, res: Response) => {
+  const result = svc.updatePaypalSettings(req.body);
+  if (result.error) return res.status(result.status || 400).json({ error: result.error });
+  const authReq = req as AuthRequest;
+  writeAudit({
+    userId: authReq.user.id,
+    action: 'admin.paypal_settings_update',
+    ip: getClientIp(req),
+    details: { clientId_set: !!req.body.clientId, secret_set: !!req.body.secret, mode: req.body.mode },
+  });
+  res.json({ success: true });
+});
+
+router.post('/paypal-settings/test', async (_req: Request, res: Response) => {
+  try {
+    const { getPaypalClientId } = await import('../services/paypalService');
+    const { decrypt_api_key } = await import('../services/apiKeyCrypto');
+    const { db } = await import('../db/database');
+    const clientId = getPaypalClientId();
+    const storedSecret = (db.prepare("SELECT value FROM app_settings WHERE key = ?").get('paypal_secret') as { value: string } | undefined)?.value || '';
+    const secret = decrypt_api_key(storedSecret) || process.env.PAYPAL_SECRET || '';
+    if (!clientId || !secret) {
+      return res.json({ ok: false, error: 'PayPal credentials not configured' });
+    }
+    const storedMode = (db.prepare("SELECT value FROM app_settings WHERE key = ?").get('paypal_mode') as { value: string } | undefined)?.value || '';
+    const mode = storedMode || process.env.PAYPAL_MODE || (process.env.NODE_ENV === 'production' ? 'live' : 'sandbox');
+    const base = mode === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+    const credentials = Buffer.from(`${clientId}:${secret}`).toString('base64');
+    const tokenRes = await fetch(`${base}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: { 'Authorization': `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=client_credentials',
+    });
+    if (!tokenRes.ok) {
+      const text = await tokenRes.text();
+      return res.json({ ok: false, error: `PayPal auth failed: ${tokenRes.status} ${text.slice(0, 200)}` });
+    }
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.json({ ok: false, error: err.message });
+  }
+});
+
 // ── OIDC Settings ──────────────────────────────────────────────────────────
 
 router.get('/oidc', (_req: Request, res: Response) => {
