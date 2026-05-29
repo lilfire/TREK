@@ -232,3 +232,110 @@ describe('Migration 69 — normalized notification_channel_preferences', () => {
     db.close();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LSO-1452: EUR→NOK currency backfill migration
+// ─────────────────────────────────────────────────────────────────────────────
+
+function setupTripsDb() {
+  const db = new Database(':memory:');
+  db.exec('PRAGMA journal_mode = WAL');
+  db.exec('PRAGMA foreign_keys = ON');
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user'
+    );
+
+    CREATE TABLE IF NOT EXISTS trips (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      currency TEXT DEFAULT 'NOK'
+    );
+  `);
+
+  db.prepare('INSERT INTO users (username, password) VALUES (?, ?)').run('testuser', 'hash');
+  return db;
+}
+
+function runEurToNokMigration(db: ReturnType<typeof Database>): void {
+  db.prepare("UPDATE trips SET currency = 'NOK' WHERE currency = 'EUR'").run();
+}
+
+describe('LSO-1452 — EUR→NOK currency backfill migration', () => {
+  it('MIGR-EUR-001 — trips with EUR currency are updated to NOK', () => {
+    const db = setupTripsDb();
+    const userId = (db.prepare('SELECT id FROM users LIMIT 1').get() as { id: number }).id;
+
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'Euro Trip', 'EUR');
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'Another EUR Trip', 'EUR');
+
+    runEurToNokMigration(db);
+
+    const rows = db.prepare('SELECT currency FROM trips').all() as { currency: string }[];
+    expect(rows).toHaveLength(2);
+    for (const row of rows) {
+      expect(row.currency).toBe('NOK');
+    }
+
+    db.close();
+  });
+
+  it('MIGR-EUR-002 — trips with non-EUR currencies are not changed', () => {
+    const db = setupTripsDb();
+    const userId = (db.prepare('SELECT id FROM users LIMIT 1').get() as { id: number }).id;
+
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'USD Trip', 'USD');
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'GBP Trip', 'GBP');
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'NOK Trip', 'NOK');
+
+    runEurToNokMigration(db);
+
+    const usd = db.prepare("SELECT currency FROM trips WHERE title = 'USD Trip'").get() as { currency: string };
+    const gbp = db.prepare("SELECT currency FROM trips WHERE title = 'GBP Trip'").get() as { currency: string };
+    const nok = db.prepare("SELECT currency FROM trips WHERE title = 'NOK Trip'").get() as { currency: string };
+
+    expect(usd.currency).toBe('USD');
+    expect(gbp.currency).toBe('GBP');
+    expect(nok.currency).toBe('NOK');
+
+    db.close();
+  });
+
+  it('MIGR-EUR-003 — migration is idempotent (running twice produces same result)', () => {
+    const db = setupTripsDb();
+    const userId = (db.prepare('SELECT id FROM users LIMIT 1').get() as { id: number }).id;
+
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'Euro Trip', 'EUR');
+
+    runEurToNokMigration(db);
+    runEurToNokMigration(db);
+
+    const row = db.prepare('SELECT currency FROM trips LIMIT 1').get() as { currency: string };
+    expect(row.currency).toBe('NOK');
+
+    db.close();
+  });
+
+  it('MIGR-EUR-004 — mixed currencies: only EUR rows updated', () => {
+    const db = setupTripsDb();
+    const userId = (db.prepare('SELECT id FROM users LIMIT 1').get() as { id: number }).id;
+
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'EUR Trip', 'EUR');
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'USD Trip', 'USD');
+    db.prepare('INSERT INTO trips (user_id, title, currency) VALUES (?, ?, ?)').run(userId, 'NOK Trip', 'NOK');
+
+    runEurToNokMigration(db);
+
+    const rows = db.prepare("SELECT title, currency FROM trips ORDER BY id").all() as { title: string; currency: string }[];
+    expect(rows[0]).toMatchObject({ title: 'EUR Trip', currency: 'NOK' });
+    expect(rows[1]).toMatchObject({ title: 'USD Trip', currency: 'USD' });
+    expect(rows[2]).toMatchObject({ title: 'NOK Trip', currency: 'NOK' });
+
+    db.close();
+  });
+});

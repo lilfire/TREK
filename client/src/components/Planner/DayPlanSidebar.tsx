@@ -299,7 +299,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     }
   }, [selectedAssignmentId, selectedPlaceId])
 
-  const currency = trip?.currency || 'EUR'
+  const currency = trip?.currency || 'NOK'
 
   // Drag-Daten aus dataTransfer, Ref oder window lesen (dataTransfer geht bei Re-Render verloren)
   const getDragData = (e) => {
