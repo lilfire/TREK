@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { MapPin, Clock, FileText } from 'lucide-react'
+import { MapPin, Clock, FileText, ChevronRight, ExternalLink, Phone, X } from 'lucide-react'
 import { publicTripsApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
@@ -14,6 +14,7 @@ export default function PublicTripDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set())
   const [showLangPicker, setShowLangPicker] = useState(false)
+  const [selectedActivity, setSelectedActivity] = useState<any>(null)
 
   useEffect(() => {
     if (!id) return
@@ -251,7 +252,12 @@ export default function PublicTripDetailPage() {
                       const place = a.place
                       if (!place) return null
                       return (
-                        <div key={`a-${a.id}`} className="flex items-center gap-3">
+                        <button
+                          key={`a-${a.id}`}
+                          type="button"
+                          onClick={() => setSelectedActivity(a)}
+                          className="flex items-center gap-3 w-full text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                        >
                           <div
                             className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                             style={{ background: place.category?.color || '#6366f1' }}
@@ -278,7 +284,8 @@ export default function PublicTripDetailPage() {
                               {place.end_time ? ` – ${place.end_time}` : ''}
                             </span>
                           )}
-                        </div>
+                          <ChevronRight size={12} className="ml-auto flex-shrink-0 text-zinc-300" />
+                        </button>
                       )
                     })}
                   </div>
@@ -312,6 +319,171 @@ export default function PublicTripDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Activity detail modal / bottom-sheet */}
+      {selectedActivity && (() => {
+        const place = selectedActivity.place
+        const files: any[] = place.files || []
+        const images = files.filter(f => (f.mime_type || '').startsWith('image/'))
+        const docs = files.filter(f => !(f.mime_type || '').startsWith('image/'))
+
+        return (
+          <div
+            data-testid="activity-modal"
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+            onClick={() => setSelectedActivity(null)}
+          >
+            <div
+              className="bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[85vh] overflow-y-auto"
+              style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-start gap-3 p-5 border-b border-zinc-100 dark:border-zinc-800">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: place.category?.color || '#6366f1' }}
+                >
+                  {place.image_url
+                    ? <img src={place.image_url} alt="" className="w-full h-full object-cover rounded-xl" />
+                    : <MapPin size={14} color="white" />
+                  }
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-white leading-tight">
+                    {place.name}
+                  </h3>
+                  {place.category && (
+                    <span className="text-xs text-zinc-400">{place.category.name}</span>
+                  )}
+                </div>
+                <button
+                  aria-label="Close"
+                  onClick={() => setSelectedActivity(null)}
+                  className="flex-shrink-0 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-5 flex flex-col gap-4">
+                {/* Image gallery */}
+                {images.length > 0 && (
+                  <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                    {images.map((f: any) => (
+                      <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer">
+                        <img
+                          src={f.url}
+                          alt={f.original_name}
+                          className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                        />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {/* Description */}
+                {place.description && (
+                  <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
+                    {place.description}
+                  </p>
+                )}
+
+                {/* Notes */}
+                {place.notes && (
+                  <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm text-zinc-600 dark:text-zinc-300">
+                    {place.notes}
+                  </div>
+                )}
+
+                {/* Info rows */}
+                <div className="flex flex-col gap-2.5">
+                  {place.address && (
+                    <div className="flex items-start gap-2.5 text-sm">
+                      <MapPin size={14} className="flex-shrink-0 mt-0.5 text-zinc-400" />
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.address)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
+                      >
+                        {place.address}
+                      </a>
+                    </div>
+                  )}
+
+                  {(place.place_time || place.end_time) && (
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <Clock size={14} className="flex-shrink-0 text-zinc-400" />
+                      <span className="text-zinc-600 dark:text-zinc-300">
+                        {place.place_time}{place.end_time ? ` – ${place.end_time}` : ''}
+                      </span>
+                    </div>
+                  )}
+
+                  {place.website && (
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <ExternalLink size={14} className="flex-shrink-0 text-zinc-400" />
+                      <a
+                        href={place.website}
+                        target="_blank" rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline truncate"
+                      >
+                        {place.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  )}
+
+                  {place.phone && (
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <Phone size={14} className="flex-shrink-0 text-zinc-400" />
+                      <a href={`tel:${place.phone}`} className="text-zinc-600 dark:text-zinc-300 hover:text-zinc-900">
+                        {place.phone}
+                      </a>
+                    </div>
+                  )}
+
+                  {(place.price != null && place.price > 0) && (
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <span className="text-zinc-400 text-xs font-mono w-3.5 text-center flex-shrink-0">$</span>
+                      <span className="text-zinc-600 dark:text-zinc-300">
+                        {Number(place.price).toLocaleString()} {place.currency || trip.currency || 'NOK'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Documents */}
+                {docs.length > 0 && (
+                  <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Files</p>
+                    <div className="flex flex-col gap-1.5">
+                      {docs.map((f: any) => (
+                        <a
+                          key={f.id}
+                          href={f.url}
+                          target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white py-1"
+                        >
+                          <FileText size={13} className="flex-shrink-0 text-zinc-400" />
+                          <span className="truncate">{f.original_name}</span>
+                          {f.file_size && (
+                            <span className="ml-auto text-xs text-zinc-400 flex-shrink-0">
+                              {f.file_size < 1024 * 1024
+                                ? `${Math.round(f.file_size / 1024)} KB`
+                                : `${(f.file_size / (1024 * 1024)).toFixed(1)} MB`}
+                            </span>
+                          )}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
