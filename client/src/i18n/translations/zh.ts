@@ -2401,6 +2401,7 @@ const zh: Record<string, string> = {
   'publicTrip.rsvp.heading': "加入此行程",
   'publicTrip.rsvp.subheading': "请在下方填写您的信息，我们将为您预留名额。",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default zh

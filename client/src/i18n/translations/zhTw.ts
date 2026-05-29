@@ -2402,6 +2402,7 @@ const zhTw: Record<string, string> = {
   'publicTrip.rsvp.heading': "加入此行程",
   'publicTrip.rsvp.subheading': "請在下方填寫您的資訊，我們將為您預留名額。",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default zhTw

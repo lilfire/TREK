@@ -2402,6 +2402,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Csatlakozz ehhez az utazáshoz",
   'publicTrip.rsvp.subheading': "Add meg az adataidat, és fenntartjuk a helyed.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default hu

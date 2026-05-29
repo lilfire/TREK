@@ -2405,6 +2405,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Přidat se k této cestě",
   'publicTrip.rsvp.subheading': "Vyplňte své údaje níže a zarezervujeme vám místo.",
 
+  'places.budgetSelectEntry': 'Select an entry',
 }
 
 export default cs

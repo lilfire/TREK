@@ -2291,6 +2291,14 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.prepare("UPDATE trips SET currency = 'NOK' WHERE currency = 'EUR'").run();
     },
+    // LSO-1461: Add budget_item_id to places for linking a place to a specific budget entry
+    () => {
+      try {
+        db.exec('ALTER TABLE places ADD COLUMN budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
     // LSO-1471: Add country field to trips
     () => {
       db.exec('ALTER TABLE trips ADD COLUMN country TEXT');

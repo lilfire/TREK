@@ -468,7 +468,7 @@ describe('PlaceFormModal', () => {
     });
   });
 
-  it('FE-COMP-PLACEFORM-040: typing a new name shows "Create group" option and amount field appears on selection', async () => {
+  it('FE-COMP-PLACEFORM-040: typing a new name shows "Create group" option and item selector does NOT appear for new group with no items', async () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/trips/1/budget/categories', () => HttpResponse.json({ categories: [] })),
@@ -482,20 +482,24 @@ describe('PlaceFormModal', () => {
       expect(screen.getByText(/Create group/i)).toBeInTheDocument();
     });
 
-    // Amount field should only appear after selecting a group
+    // No amount input should be present
     expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
 
     // Click "Create group" to confirm selection
     const createBtn = screen.getByText(/Create group/i);
     await user.click(createBtn);
 
+    // Still no amount input (new UI uses item selector, but no items exist for this new group)
     await waitFor(() => {
-      expect(screen.getByTestId('budget-amount-input')).toBeInTheDocument();
+      expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
     });
   });
 
-  it('FE-COMP-PLACEFORM-041: amount field is hidden when no budget group selected, visible when one is selected', async () => {
+  it('FE-COMP-PLACEFORM-041: budget item list renders (not Amount input) when group has items', async () => {
     const user = userEvent.setup();
+    const budgetItem1 = buildBudgetItem({ id: 10, category: 'Food', name: 'Lunch', amount: 50, currency: 'NOK' });
+    const budgetItem2 = buildBudgetItem({ id: 11, category: 'Food', name: 'Dinner', amount: 120, currency: 'NOK' });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem1, budgetItem2] });
     server.use(
       http.get('/api/trips/1/budget/categories', () =>
         HttpResponse.json({ categories: ['Food'] }),
@@ -504,7 +508,7 @@ describe('PlaceFormModal', () => {
 
     render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
 
-    // No amount field before group selection
+    // No amount input before group selection
     expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
 
     const input = await screen.findByTestId('budget-group-input');
@@ -513,19 +517,112 @@ describe('PlaceFormModal', () => {
     const foodBtn = await screen.findByRole('option', { name: 'Food' });
     await user.click(foodBtn);
 
-    expect(await screen.findByTestId('budget-amount-input')).toBeInTheDocument();
+    // Item buttons appear, no amount input
+    await waitFor(() => {
+      expect(screen.getByTestId('budget-item-option-10')).toBeInTheDocument();
+      expect(screen.getByTestId('budget-item-option-11')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-PLACEFORM-042: pre-fills budget group and amount when editing a place with a linked budget item', async () => {
-    const budgetItem = buildBudgetItem({ id: 77, category: 'Museums', amount: 25 });
+  it('FE-COMP-PLACEFORM-041b: select and deselect a budget item', async () => {
+    const user = userEvent.setup();
+    const budgetItem = buildBudgetItem({ id: 20, category: 'Activities', name: 'Museum', amount: 200, currency: 'NOK' });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Activities'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+    const actBtn = await screen.findByRole('option', { name: 'Activities' });
+    await user.click(actBtn);
+
+    const itemBtn = await screen.findByTestId('budget-item-option-20');
+
+    // Select the item
+    await user.click(itemBtn);
+    // Clear button should appear
+    expect(await screen.findByRole('button', { name: /clear/i })).toBeInTheDocument();
+
+    // Click clear button to deselect
+    await user.click(screen.getByRole('button', { name: /clear/i }));
+    expect(screen.queryByRole('button', { name: /clear/i })).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-041c: empty category shows no item selector', async () => {
+    const user = userEvent.setup();
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [] });
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Empty'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+    const emptyBtn = await screen.findByRole('option', { name: 'Empty' });
+    await user.click(emptyBtn);
+
+    // No item options rendered, no amount input
+    await waitFor(() => {
+      expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Select an entry/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-042: pre-fills budget group and pre-selects item when editing a place with a linked budget_item_id', async () => {
+    const budgetItem = buildBudgetItem({ id: 77, category: 'Museums', name: 'Entry ticket', amount: 25, currency: 'NOK' });
     const place = buildPlace({ budget_item_id: 77 });
     seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Museums'] }),
+      ),
+    );
 
     render(<PlaceFormModal {...defaultProps} place={place} budgetAddonEnabled={true} />);
 
     await waitFor(() => {
       expect(screen.getByDisplayValue('Museums')).toBeInTheDocument();
     });
-    expect(screen.getByTestId('budget-amount-input')).toHaveValue(25);
+    // Item selector should show with item pre-selected
+    expect(screen.getByTestId('budget-item-option-77')).toBeInTheDocument();
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-042b: handleSubmit passes budget_item_id when item selected, null when none', async () => {
+    const user = userEvent.setup();
+    const budgetItem = buildBudgetItem({ id: 5, category: 'Food', name: 'Lunch', amount: 80, currency: 'NOK' });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Food'] }),
+      ),
+    );
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
+
+    // Select budget group
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+    const foodBtn = await screen.findByRole('option', { name: 'Food' });
+    await user.click(foodBtn);
+
+    // Select budget item
+    const itemBtn = await screen.findByTestId('budget-item-option-5');
+    await user.click(itemBtn);
+
+    // Fill name and submit
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Lunch spot');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_item_id: 5 }));
   });
 });

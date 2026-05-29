@@ -24,8 +24,7 @@ interface PlaceFormData {
   notes: string
   transport_mode: string
   website: string
-  budgetGroup?: string
-  budgetAmount?: number
+  budget_item_id?: number | null
 }
 
 function isGoogleMapsUrl(input: string): boolean {
@@ -94,7 +93,7 @@ export default function PlaceFormModal({
   const acAbortRef = useRef<AbortController | null>(null)
   const [budgetGroupInput, setBudgetGroupInput] = useState('')
   const [budgetGroupConfirmed, setBudgetGroupConfirmed] = useState(false)
-  const [budgetAmountInput, setBudgetAmountInput] = useState('')
+  const [selectedBudgetItemId, setSelectedBudgetItemId] = useState<number | null>(null)
   const [budgetCategories, setBudgetCategories] = useState<string[]>([])
   const [budgetGroupOpen, setBudgetGroupOpen] = useState(false)
   const toast = useToast()
@@ -126,11 +125,11 @@ export default function PlaceFormModal({
         const linked = budgetItems.find(bi => bi.id === place.budget_item_id)
         setBudgetGroupInput(linked?.category || '')
         setBudgetGroupConfirmed(!!(linked?.category))
-        setBudgetAmountInput(linked?.amount != null && linked.amount > 0 ? String(linked.amount) : '')
+        setSelectedBudgetItemId(place.budget_item_id)
       } else {
         setBudgetGroupInput('')
         setBudgetGroupConfirmed(false)
-        setBudgetAmountInput('')
+        setSelectedBudgetItemId(null)
       }
     } else if (prefillCoords) {
       setForm({
@@ -142,12 +141,12 @@ export default function PlaceFormModal({
       })
       setBudgetGroupInput('')
       setBudgetGroupConfirmed(false)
-      setBudgetAmountInput('')
+      setSelectedBudgetItemId(null)
     } else {
       setForm(DEFAULT_FORM)
       setBudgetGroupInput('')
       setBudgetGroupConfirmed(false)
-      setBudgetAmountInput('')
+      setSelectedBudgetItemId(null)
     }
     setPendingFiles([])
     setBudgetGroupOpen(false)
@@ -377,8 +376,7 @@ export default function PlaceFormModal({
     setIsSaving(true)
     try {
       const budgetFields = budgetAddonEnabled ? {
-        budgetGroup: budgetGroupInput,
-        budgetAmount: budgetAmountInput ? parseFloat(budgetAmountInput) : 0,
+        budget_item_id: selectedBudgetItemId ?? null,
       } : {}
       await onSave({
         ...form,
@@ -657,7 +655,7 @@ export default function PlaceFormModal({
               <input
                 type="text"
                 value={budgetGroupInput}
-                onChange={e => { setBudgetGroupInput(e.target.value); setBudgetGroupConfirmed(false); setBudgetGroupOpen(true) }}
+                onChange={e => { setBudgetGroupInput(e.target.value); setBudgetGroupConfirmed(false); setSelectedBudgetItemId(null); setBudgetGroupOpen(true) }}
                 onFocus={() => setBudgetGroupOpen(true)}
                 onBlur={() => setTimeout(() => setBudgetGroupOpen(false), 150)}
                 placeholder={t('places.budgetGroupPlaceholder')}
@@ -706,25 +704,48 @@ export default function PlaceFormModal({
             </div>
             <p className="text-xs text-slate-500 mt-1">{t('places.budgetGroupHelper')}</p>
 
-            {/* Amount — only shown when a budget group is confirmed (selected/created) */}
-            {budgetGroupInput && budgetGroupConfirmed && (
-              <div className="mt-3 pl-3 border-l-2 border-slate-200">
-                <label className="block text-sm font-medium text-gray-700 mb-1">{t('places.budgetAmount')}</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={budgetAmountInput}
-                  onChange={e => setBudgetAmountInput(e.target.value)}
-                  placeholder="0.00"
-                  className="form-input"
-                  data-testid="budget-amount-input"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  {t('places.budgetAmountHelper', { currency: defaultCurrency })}
-                </p>
-              </div>
-            )}
+            {/* Budget item selector — shown when a group is confirmed and has items */}
+            {budgetGroupInput && budgetGroupConfirmed && (() => {
+              const storeItems = useTripStore.getState().budgetItems
+              const categoryItems = storeItems.filter(bi => bi.category === budgetGroupInput)
+              if (categoryItems.length === 0) return null
+              return (
+                <div className="mt-3 pl-3 border-l-2 border-slate-200">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {t('places.budgetSelectEntry')}
+                  </label>
+                  <div className="space-y-1">
+                    {categoryItems.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedBudgetItemId(prev => prev === item.id ? null : item.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                          selectedBudgetItemId === item.id
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        }`}
+                        data-testid={`budget-item-option-${item.id}`}
+                      >
+                        <span className="font-medium">{item.name}</span>
+                        <span className="ml-2 opacity-75">
+                          {item.amount != null ? item.amount.toLocaleString() : '—'} {item.currency || defaultCurrency}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  {selectedBudgetItemId && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBudgetItemId(null)}
+                      className="mt-1 text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      {t('common.clear')}
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         )}
 

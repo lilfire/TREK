@@ -55,7 +55,7 @@ import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
-import { createUser, createAdmin, createTrip, createPlace, addTripMember } from '../helpers/factories';
+import { createUser, createAdmin, createTrip, createPlace, addTripMember, createBudgetItem } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import * as placeService from '../../src/services/placeService';
@@ -1015,5 +1015,75 @@ describe('Delete place — not found', () => {
       .delete(`/api/trips/${trip.id}/places/99999`)
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// budget_item_id linkage (LSO-1461)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('budget_item_id — create and update', () => {
+  it('PLACE-024 — POST creates place with budget_item_id persisted', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const budgetItem = createBudgetItem(testDb, trip.id, { name: 'Entrance', category: 'Museums', total_price: 50 });
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/places`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Museum', budget_item_id: budgetItem.id });
+
+    expect(res.status).toBe(201);
+    expect(res.body.place.budget_item_id).toBe(budgetItem.id);
+  });
+
+  it('PLACE-025 — PUT updates budget_item_id to a new value', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const budgetItem1 = createBudgetItem(testDb, trip.id, { name: 'Item A', category: 'Food', total_price: 100 });
+    const budgetItem2 = createBudgetItem(testDb, trip.id, { name: 'Item B', category: 'Food', total_price: 200 });
+    const place = createPlace(testDb, trip.id, { name: 'Restaurant' });
+
+    // Link to first budget item
+    const res1 = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: place.name, budget_item_id: budgetItem1.id });
+    expect(res1.status).toBe(200);
+    expect(res1.body.place.budget_item_id).toBe(budgetItem1.id);
+
+    // Switch to second budget item
+    const res2 = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: place.name, budget_item_id: budgetItem2.id });
+    expect(res2.status).toBe(200);
+    expect(res2.body.place.budget_item_id).toBe(budgetItem2.id);
+  });
+
+  it('PLACE-026 — PUT clears budget_item_id when set to null', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const budgetItem = createBudgetItem(testDb, trip.id, { name: 'Entrance', category: 'Activities', total_price: 75 });
+    const place = createPlace(testDb, trip.id, { name: 'Park' });
+
+    // Link
+    await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: place.name, budget_item_id: budgetItem.id });
+
+    // Unlink
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: place.name, budget_item_id: null });
+    expect(res.status).toBe(200);
+    expect(res.body.place.budget_item_id).toBeNull();
+  });
+
+  it('PLACE-027 — migration guard: budget_item_id column already exists does not throw', () => {
+    // The column was added in beforeAll via runMigrations; running it again must not throw
+    expect(() => runMigrations(testDb)).not.toThrow();
   });
 });

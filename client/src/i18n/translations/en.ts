@@ -1138,6 +1138,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'places.budgetGroupCreate': "Create group '{name}'",
   'places.budgetAmount': 'Amount',
   'places.budgetAmountHelper': 'Cost in {currency}. You can update this later from the Budget page.',
+  'places.budgetSelectEntry': 'Select an entry',
   // Place Inspector
   'inspector.opened': 'Open',
   'inspector.closed': 'Closed',
