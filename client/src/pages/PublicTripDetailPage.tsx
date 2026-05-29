@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { MapPin, Clock, FileText } from 'lucide-react'
 import { publicTripsApi } from '../api/client'
-import { useTranslation } from '../i18n'
+import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
+import { useSettingsStore } from '../store/settingsStore'
 import RsvpForm from '../components/Trips/RsvpForm'
 
 export default function PublicTripDetailPage() {
@@ -12,6 +13,7 @@ export default function PublicTripDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set())
+  const [showLangPicker, setShowLangPicker] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -75,7 +77,7 @@ export default function PublicTripDetailPage() {
       {/* Hero header */}
       <div
         className="relative text-white text-center"
-        style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px', overflow: 'hidden' }}
+        style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px' }}
       >
         {trip.cover_image && (
           <>
@@ -97,6 +99,48 @@ export default function PublicTripDetailPage() {
         )}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
+
+        {/* Language picker - top right */}
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+          <button
+            data-testid="lang-picker-btn"
+            onClick={() => setShowLangPicker(v => !v)}
+            style={{
+              padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
+              background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
+              color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            }}
+          >
+            {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+          </button>
+          {showLangPicker && (
+            <div
+              data-testid="lang-picker-dropdown"
+              style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white',
+                borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150,
+              }}
+            >
+              {SUPPORTED_LANGUAGES.map(lang => (
+                <button
+                  key={lang.value}
+                  onClick={() => {
+                    useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
+                    setShowLangPicker(false)
+                  }}
+                  style={{
+                    display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none',
+                    textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="relative">
           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', marginBottom: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
