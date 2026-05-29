@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores } from '../../tests/helpers/store';
+import { useSettingsStore } from '../store/settingsStore';
 import PublicTripDetailPage from './PublicTripDetailPage';
 
 function renderPublicTrip(id: string) {
@@ -344,6 +345,91 @@ describe('PublicTripDetailPage', () => {
       });
 
       expect(screen.queryByTestId('cover-image')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PUB-TRIP-010: Language picker in hero header', () => {
+    it('renders a language picker button showing the current language label', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      const langBtn = screen.getByTestId('lang-picker-btn');
+      expect(langBtn).toBeInTheDocument();
+      expect(langBtn).toHaveTextContent('English');
+    });
+
+    it('opens the language dropdown when the button is clicked', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('lang-picker-btn'));
+
+      expect(screen.getByTestId('lang-picker-dropdown')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Deutsch' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Español' })).toBeInTheDocument();
+    });
+
+    it('closes the dropdown after a language option is selected', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('lang-picker-btn'));
+      expect(screen.getByTestId('lang-picker-dropdown')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Deutsch' }));
+
+      expect(screen.queryByTestId('lang-picker-dropdown')).not.toBeInTheDocument();
+    });
+
+    it('updates the settings store language when a language option is selected', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('lang-picker-btn'));
+      fireEvent.click(screen.getByRole('button', { name: 'Français' }));
+
+      expect(useSettingsStore.getState().settings.language).toBe('fr');
+    });
+
+    it('shows all supported languages in the dropdown', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByTestId('lang-picker-btn'));
+
+      const dropdown = screen.getByTestId('lang-picker-dropdown');
+      const langButtons = dropdown.querySelectorAll('button');
+      expect(langButtons.length).toBe(15);
+    });
+
+    it('closes dropdown on second click of the picker button', async () => {
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+      });
+
+      const langBtn = screen.getByTestId('lang-picker-btn');
+      fireEvent.click(langBtn);
+      expect(screen.getByTestId('lang-picker-dropdown')).toBeInTheDocument();
+
+      fireEvent.click(langBtn);
+      expect(screen.queryByTestId('lang-picker-dropdown')).not.toBeInTheDocument();
     });
   });
 });
