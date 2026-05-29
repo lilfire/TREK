@@ -203,6 +203,9 @@ interface UpdateTripData {
   cover_image?: string;
   reminder_days?: number;
   day_count?: number;
+  registration_fee?: number | null;
+  fee_mode?: 'deadline' | 'rsvp' | null;
+  fee_deadline?: string | null;
 }
 
 export interface UpdateTripResult {
@@ -224,6 +227,14 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   if (start_date && end_date && new Date(end_date) < new Date(start_date))
     throw new ValidationError('End date must be after start date');
 
+  // Fee field validation
+  if (data.registration_fee !== undefined && data.registration_fee !== null && (typeof data.registration_fee !== 'number' || data.registration_fee < 0))
+    throw new ValidationError('registration_fee must be a non-negative number');
+  if (data.fee_mode !== undefined && data.fee_mode !== null && !['deadline', 'rsvp'].includes(data.fee_mode))
+    throw new ValidationError("fee_mode must be 'deadline' or 'rsvp'");
+  if (data.fee_deadline !== undefined && data.fee_deadline !== null && !/^\d{4}-\d{2}-\d{2}$/.test(data.fee_deadline))
+    throw new ValidationError('fee_deadline must be an ISO-8601 date string (YYYY-MM-DD)');
+
   const newTitle = title || trip.title;
   const newDesc = description !== undefined ? description : trip.description;
   const newStart = start_date !== undefined ? start_date : trip.start_date;
@@ -237,11 +248,20 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
     ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
     : oldReminder;
 
+  // If fee cleared, also clear mode and deadline
+  const hasFeeUpdate = 'registration_fee' in data;
+  const rawFee = hasFeeUpdate ? data.registration_fee : (trip as any).registration_fee;
+  const effectiveFee = (rawFee === null || rawFee === 0) ? null : rawFee;
+  const newFee = effectiveFee ?? null;
+  const newFeeMode = newFee === null ? null : ('fee_mode' in data ? (data.fee_mode ?? null) : ((trip as any).fee_mode ?? null));
+  const newFeeDeadline = (newFee === null || newFeeMode !== 'deadline') ? null : ('fee_deadline' in data ? (data.fee_deadline ?? null) : ((trip as any).fee_deadline ?? null));
+
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
-      currency=?, is_archived=?, is_public=?, cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP
+      currency=?, is_archived=?, is_public=?, cover_image=?, reminder_days=?,
+      registration_fee=?, fee_mode=?, fee_deadline=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);

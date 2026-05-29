@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js'
 import { publicTripsApi, apiClient } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useToast } from '../shared/Toast'
@@ -8,6 +9,11 @@ import { useToast } from '../shared/Toast'
 interface Props {
   tripId: number | string
   isMember?: boolean
+  registrationFee?: number | null
+  feeMode?: 'deadline' | 'rsvp' | null
+  feeDeadline?: string | null
+  currency?: string
+  paypalClientId?: string | null
 }
 
 interface RsvpError {
@@ -44,7 +50,15 @@ function parseRsvpError(err: unknown): RsvpError {
   return { message: "Something went wrong. Please try again.", hasLoginLink: false }
 }
 
-export default function RsvpForm({ tripId, isMember }: Props) {
+function formatDate(dateStr: string): string {
+  try {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return dateStr
+  }
+}
+
+export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'EUR', paypalClientId }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
@@ -55,6 +69,12 @@ export default function RsvpForm({ tripId, isMember }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<RsvpError | null>(null)
   const [joinDone, setJoinDone] = useState(false)
+  const [paymentSuccess, setPaymentSuccess] = useState(false)
+
+  const hasFee = typeof registrationFee === 'number' && registrationFee > 0
+  const isDeadlineFee = hasFee && feeMode === 'deadline'
+  const isRsvpFee = hasFee && feeMode === 'rsvp'
+  const formFieldsValid = name.trim().length > 0 && email.trim().length > 0
 
   async function handleJoin() {
     setError(null)
@@ -147,8 +167,8 @@ export default function RsvpForm({ tripId, isMember }: Props) {
     )
   }
 
-  return (
-    <form data-testid="rsvp-form" onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+  const formFields = (
+    <>
       <p data-testid="rsvp-intro" className="text-sm text-zinc-500 dark:text-zinc-400">
         We&apos;ll create a TREK account for you so you can access the full itinerary.{' '}
         <Link to="/login" className="underline text-zinc-700 dark:text-zinc-300">
@@ -206,6 +226,140 @@ export default function RsvpForm({ tripId, isMember }: Props) {
           className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white resize-none disabled:opacity-50"
         />
       </div>
+    </>
+  )
+
+  // Case B: fee with deadline — show info notice, submit normally
+  if (isDeadlineFee) {
+    return (
+      <form data-testid="rsvp-form" onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+        {formFields}
+
+        <div data-testid="fee-deadline-notice" className="p-3 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 text-sm text-blue-800 dark:text-blue-200">
+          <p className="font-semibold">
+            Registration fee: {registrationFee} {currency}
+          </p>
+          {feeDeadline && (
+            <p className="mt-0.5">
+              Payment deadline: {formatDate(feeDeadline)}.
+            </p>
+          )}
+          <p className="mt-0.5 text-xs opacity-75">
+            Payment instructions will be provided by the trip organiser after you register.
+          </p>
+        </div>
+
+        {error && (
+          <p data-testid="rsvp-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {error.message}
+            {error.hasLoginLink && (
+              <>
+                {' '}
+                <Link to="/login" className="underline font-medium">
+                  Log in here
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-sm font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+        >
+          {submitting && <Loader2 size={14} className="animate-spin" />}
+          {submitting ? 'Confirming...' : 'Confirm my spot'}
+        </button>
+      </form>
+    )
+  }
+
+  // Case C: fee at registration — PayPal payment required
+  if (isRsvpFee && paypalClientId) {
+    if (paymentSuccess) {
+      return (
+        <div data-testid="rsvp-payment-success" className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 text-sm text-green-800 dark:text-green-200">
+          🎉 You&apos;re registered! Payment of {registrationFee} {currency} confirmed.
+        </div>
+      )
+    }
+
+    return (
+      <div data-testid="rsvp-form" className="flex flex-col gap-4">
+        {formFields}
+
+        {error && (
+          <p data-testid="rsvp-error" role="alert" className="text-sm text-red-600 dark:text-red-400">
+            {error.message}
+            {error.hasLoginLink && (
+              <>
+                {' '}
+                <Link to="/login" className="underline font-medium">
+                  Log in here
+                </Link>
+              </>
+            )}
+          </p>
+        )}
+
+        <div data-testid="paypal-fee-notice" className="text-sm text-zinc-600 dark:text-zinc-400">
+          Registration fee: <strong>{registrationFee} {currency}</strong>. Complete payment below to confirm your spot.
+        </div>
+
+        <div data-testid="paypal-button-wrapper" className={!formFieldsValid ? 'opacity-50 pointer-events-none' : ''}>
+          <PayPalScriptProvider options={{ clientId: paypalClientId, currency: currency.toUpperCase() }}>
+            <PayPalButtons
+              disabled={!formFieldsValid || submitting}
+              forceReRender={[name, email]}
+              createOrder={async () => {
+                const result = await publicTripsApi.createPaymentOrder(tripId, {
+                  amount: registrationFee!,
+                  currency: currency.toUpperCase(),
+                })
+                return result.orderId
+              }}
+              onApprove={async (_data, actions) => {
+                setSubmitting(true)
+                setError(null)
+                try {
+                  const rsvpData = await publicTripsApi.rsvp(tripId, {
+                    name: name.trim(),
+                    email: email.trim(),
+                    message: message.trim() || undefined,
+                  })
+                  apiClient.defaults.headers.common['Authorization'] = `Bearer ${rsvpData.authToken}`
+
+                  await publicTripsApi.capturePayment(tripId, {
+                    orderId: actions.orderID ?? (_data as any).orderID,
+                    rsvpId: rsvpData.rsvpId,
+                  })
+
+                  await useAuthStore.getState().loadUser()
+                  setPaymentSuccess(true)
+                } catch (err: unknown) {
+                  setError(parseRsvpError(err))
+                } finally {
+                  setSubmitting(false)
+                }
+              }}
+              onError={() => {
+                setError({ message: 'Payment was not completed. Your registration has not been saved.', hasLoginLink: false })
+              }}
+              onCancel={() => {
+                setError({ message: 'Payment was not completed. Your registration has not been saved.', hasLoginLink: false })
+              }}
+            />
+          </PayPalScriptProvider>
+        </div>
+      </div>
+    )
+  }
+
+  // Case A: no fee — standard form
+  return (
+    <form data-testid="rsvp-form" onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+      {formFields}
 
       {error && (
         <p data-testid="rsvp-error" role="alert" className="text-sm text-red-600 dark:text-red-400">

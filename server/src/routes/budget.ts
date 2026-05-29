@@ -30,6 +30,19 @@ router.get('/', authenticate, (req: Request, res: Response) => {
   res.json({ items: listBudgetItems(tripId) });
 });
 
+router.get('/categories', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  if (!verifyTripAccess(Number(tripId), authReq.user.id))
+    return res.status(404).json({ error: 'Trip not found' });
+
+  const rows = db.prepare(
+    'SELECT DISTINCT category FROM budget_items WHERE trip_id = ? AND category IS NOT NULL ORDER BY category ASC'
+  ).all(tripId) as { category: string }[];
+  res.json({ categories: rows.map(r => r.category) });
+});
+
 router.get('/summary/per-person', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId } = req.params;

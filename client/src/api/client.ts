@@ -462,6 +462,7 @@ export const budgetApi = {
   settlement: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/settlement`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories }).then(r => r.data),
+  categories: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/categories`).then(r => r.data),
 }
 
 export const filesApi = {

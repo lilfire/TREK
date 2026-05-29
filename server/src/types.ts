@@ -35,6 +35,9 @@ export interface Trip {
   is_archived: number;
   is_public: number;
   reminder_days: number;
+  registration_fee?: number | null;
+  fee_mode?: 'deadline' | 'rsvp' | null;
+  fee_deadline?: string | null;
   created_at?: string;
   updated_at?: string;
 }

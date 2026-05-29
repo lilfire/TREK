@@ -17,4 +17,8 @@ export const publicTripsApi = {
     apiClient.post(`/public/trips/${id}/rsvp`, data).then(r => r.data),
   rsvpAuthenticated: (id: number | string): Promise<{ alreadyMember?: boolean }> =>
     apiClient.post(`/public/trips/${id}/rsvp`, {}).then(r => r.data),
+  createPaymentOrder: (id: number | string, data: { amount: number; currency: string }): Promise<{ orderId: string }> =>
+    apiClient.post(`/public/trips/${id}/rsvp/payment-order`, data).then(r => r.data),
+  capturePayment: (id: number | string, data: { orderId: string; rsvpId: number }): Promise<{ success: boolean; captureId: string }> =>
+    apiClient.post(`/public/trips/${id}/rsvp/payment-capture`, data).then(r => r.data),
 }

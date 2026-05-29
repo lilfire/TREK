@@ -6,6 +6,7 @@ import { addMember } from '../services/tripService';
 import { sendRsvpConfirmationEmail } from '../services/rsvpEmailService';
 import { logError } from '../services/auditLog';
 import { optionalAuth } from '../middleware/auth';
+import { createPaypalOrder, capturePaypalOrder, recordPayment, updatePaymentStatus, getPaypalClientId } from '../services/paypalService';
 import type { OptionalAuthRequest } from '../types';
 
 const router = express.Router();
@@ -133,6 +134,70 @@ router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, (req: Request, res: Resp
 
   sendRsvpConfirmationEmail(storedEmail, trimmedName, trip.title, trip.id, userId)
     .catch((err) => logError(`RSVP confirmation email failed: ${err}`));
+});
+
+// ── PayPal: create order ──────────────────────────────────────────────────
+
+router.post('/:id/rsvp/payment-order', rsvpRateLimiter, async (req: Request, res: Response) => {
+  const tripId = Number(req.params.id);
+  if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
+
+  const trip = db.prepare(
+    'SELECT id, registration_fee, fee_mode, currency FROM trips WHERE id = ? AND is_public = 1',
+  ).get(tripId) as { id: number; registration_fee: number | null; fee_mode: string | null; currency: string } | undefined;
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+  if (!trip.registration_fee || trip.fee_mode !== 'rsvp') {
+    return res.status(400).json({ error: 'This trip does not require a PayPal payment' });
+  }
+  if (!getPaypalClientId()) {
+    return res.status(503).json({ error: 'PayPal is not configured' });
+  }
+
+  const { amount, currency } = req.body;
+  if (typeof amount !== 'number' || amount <= 0) return res.status(400).json({ error: 'amount must be a positive number' });
+  if (typeof currency !== 'string' || !currency.trim()) return res.status(400).json({ error: 'currency is required' });
+
+  try {
+    const orderId = await createPaypalOrder(amount, currency.trim().toUpperCase());
+    res.json({ orderId });
+  } catch (err: unknown) {
+    logError(`PayPal create order error: ${err}`);
+    res.status(502).json({ error: 'Failed to create PayPal order' });
+  }
+});
+
+// ── PayPal: capture order ─────────────────────────────────────────────────
+
+router.post('/:id/rsvp/payment-capture', rsvpRateLimiter, async (req: Request, res: Response) => {
+  const tripId = Number(req.params.id);
+  if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
+
+  const trip = db.prepare(
+    'SELECT id, registration_fee, currency FROM trips WHERE id = ? AND is_public = 1',
+  ).get(tripId) as { id: number; registration_fee: number | null; currency: string } | undefined;
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  const { orderId, rsvpId } = req.body;
+  if (!orderId || typeof orderId !== 'string') return res.status(400).json({ error: 'orderId is required' });
+  if (!rsvpId || !Number.isFinite(Number(rsvpId))) return res.status(400).json({ error: 'rsvpId is required' });
+
+  const rsvp = db.prepare('SELECT id FROM trip_rsvps WHERE id = ? AND trip_id = ?').get(Number(rsvpId), tripId);
+  if (!rsvp) return res.status(404).json({ error: 'RSVP not found' });
+
+  const amount = trip.registration_fee ?? 0;
+  const currency = trip.currency;
+
+  const paymentId = recordPayment({ rsvpId: Number(rsvpId), amount, currency, status: 'pending', providerOrderId: orderId });
+
+  try {
+    const captureId = await capturePaypalOrder(orderId);
+    updatePaymentStatus(paymentId, 'completed', captureId);
+    res.json({ success: true, captureId });
+  } catch (err: unknown) {
+    updatePaymentStatus(paymentId, 'failed');
+    logError(`PayPal capture error: ${err}`);
+    res.status(502).json({ error: 'Payment capture failed. Please try again.' });
+  }
 });
 
 export default router;
