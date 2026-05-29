@@ -55,7 +55,7 @@ Dates: ${trip?.start_date || '?'} to ${trip?.end_date || '?'}
 Members: ${members?.length || 0} (${members?.map((m: any) => m.name || m.email).join(', ') || 'none'})
 Days: ${days?.length || 0}
 Packing: ${packingStats.packed}/${packingStats.total} items packed
-Budget: ${budgetTotal} ${trip?.currency || 'EUR'} total
+Budget: ${budgetTotal} ${trip?.currency || 'NOK'} total
 Reservations: ${reservations?.length || 0}
 Collab Notes: ${collabNotes?.length || 0}
 ${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.length || 0} places${d.title ? ` - ${d.title}` : ''}`).join('\n') || 'No days yet'}`;
@@ -121,7 +121,7 @@ ${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.l
       if (!trip) {
         return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found.' } }] };
       }
-      const currency = (trip.currency as string | null) || 'EUR';
+      const currency = (trip.currency as string | null) || 'NOK';
 
       const placePool = db.prepare('SELECT id, name FROM places WHERE trip_id = ?').all(tripId) as { id: number; name: string }[];
       const placeExists = placePool.some(p => p.name?.toLowerCase() === placeName.toLowerCase());
@@ -191,7 +191,7 @@ ${categoryStep}
         return { messages: [{ role: 'user', content: { type: 'text', text: 'Trip not found.' } }] };
       }
       const { trip, budget } = summary;
-      const currency = trip?.currency || 'EUR';
+      const currency = trip?.currency || 'NOK';
       const byCategory = (budget || []).reduce((acc: Record<string, number>, item: any) => {
         const cat = item.category || 'Uncategorized';
         acc[cat] = (acc[cat] || 0) + (item.total_price || 0);

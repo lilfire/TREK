@@ -568,7 +568,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   const [editingCat, setEditingCat] = useState(null) // { name, value }
   const [settlement, setSettlement] = useState<{ balances: any[]; flows: any[] } | null>(null)
   const [settlementOpen, setSettlementOpen] = useState(false)
-  const currency = trip?.currency || 'EUR'
+  const currency = trip?.currency || 'NOK'
   const canEdit = can('budget_edit', trip)
 
   const fmt = (v, cur) => fmtNum(v, locale, cur)

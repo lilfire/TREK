@@ -27,7 +27,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     default_lng: 2.3522,
     default_zoom: 10,
     dark_mode: false,
-    default_currency: 'USD',
+    default_currency: 'NOK',
     language: localStorage.getItem('app_language') || 'en',
     temperature_unit: 'fahrenheit',
     time_format: '12h',

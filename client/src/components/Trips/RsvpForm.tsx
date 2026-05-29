@@ -61,7 +61,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'EUR', paypalClientId }: Props) {
+export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'NOK', paypalClientId }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
   const { t } = useTranslation()
