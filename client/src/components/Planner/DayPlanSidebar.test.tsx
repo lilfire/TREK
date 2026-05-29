@@ -1699,6 +1699,19 @@ describe('DayPlanSidebar', () => {
     expect(onEditTransport).not.toHaveBeenCalled()
   })
 
+  it('FE-PLANNER-DAYPLAN-099: budget footer falls back to NOK when trip.currency is undefined', () => {
+    const place = buildPlace({ name: 'Eiffel Tower', price: '25.00' })
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
+    const assignment = buildAssignment({ id: 99, day_id: 10, order_index: 0, place })
+    render(<DayPlanSidebar {...makeDefaultProps({
+      days: [day],
+      places: [place],
+      assignments: { '10': [assignment] },
+      trip: buildTrip({ id: 1, currency: undefined as any }),
+    })} />)
+    expect(screen.getByText(/NOK/)).toBeInTheDocument()
+  })
+
   it('FE-PLANNER-DAYPLAN-098: pencil button on transport reservation calls onEditTransport', async () => {
     const user = userEvent.setup()
     const place = buildPlace({ id: 1, name: 'Geneva Airport' })

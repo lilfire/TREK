@@ -405,4 +405,40 @@ describe('SharedTripPage', () => {
       });
     });
   });
+
+  describe('FE-PAGE-SHARED-017: Budget total falls back to NOK when trip.currency is not set', () => {
+    it('shows NOK as currency when trip.currency is undefined', async () => {
+      server.use(
+        http.get('/api/shared/:token', ({ params }) => {
+          if (params.token !== 'nok-fallback-token') return;
+          return HttpResponse.json({
+            trip: { id: 1, title: 'NOK Fallback Trip', start_date: '2026-07-01', end_date: '2026-07-05' },
+            days: [],
+            assignments: {},
+            dayNotes: {},
+            places: [],
+            reservations: [],
+            accommodations: [],
+            packing: [],
+            budget: [{ id: 1, name: 'Hotel', total_price: '500', category: 'Accommodation' }],
+            categories: [],
+            permissions: { share_bookings: false, share_packing: false, share_budget: true, share_collab: false },
+            collab: [],
+          });
+        }),
+      );
+
+      renderSharedTrip('nok-fallback-token');
+
+      await waitFor(() => {
+        expect(screen.getByText('NOK Fallback Trip')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /budget/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/NOK/)).toBeInTheDocument();
+      });
+    });
+  });
 });
