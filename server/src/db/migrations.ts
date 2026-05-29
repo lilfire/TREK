@@ -2299,10 +2299,6 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('duplicate column name')) throw err;
       }
     },
-    // LSO-1471: Add country field to trips
-    () => {
-      db.exec('ALTER TABLE trips ADD COLUMN country TEXT');
-    },
   ];
 
   if (currentVersion < migrations.length) {
