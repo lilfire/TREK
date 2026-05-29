@@ -101,6 +101,7 @@ export default function PlaceFormModal({
   const { hasMapsKey } = useAuthStore()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
+  const budgetItems = useTripStore((s) => s.budgetItems)
   const canUploadFiles = can('file_upload', tripObj)
   const defaultCurrency = useSettingsStore((s) => s.settings.default_currency)
 
@@ -121,7 +122,6 @@ export default function PlaceFormModal({
       })
       // Pre-fill budget fields from store snapshot at open time
       if (place.budget_item_id) {
-        const { budgetItems } = useTripStore.getState()
         const linked = budgetItems.find(bi => bi.id === place.budget_item_id)
         setBudgetGroupInput(linked?.category || '')
         setBudgetGroupConfirmed(!!(linked?.category))
@@ -706,8 +706,7 @@ export default function PlaceFormModal({
 
             {/* Budget item selector — shown when a group is confirmed and has items */}
             {budgetGroupInput && budgetGroupConfirmed && (() => {
-              const storeItems = useTripStore.getState().budgetItems
-              const categoryItems = storeItems.filter(bi => bi.category === budgetGroupInput)
+              const categoryItems = budgetItems.filter(bi => bi.category === budgetGroupInput)
               if (categoryItems.length === 0) return null
               return (
                 <div className="mt-3 pl-3 border-l-2 border-slate-200">
