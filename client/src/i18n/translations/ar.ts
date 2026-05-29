@@ -2153,6 +2153,47 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'transport.modalTitle.edit': 'تعديل وسيلة النقل',
   'transport.title': 'المواصلات',
   'transport.addManual': 'نقل يدوي',
+  // RSVP form
+  // TODO: translate
+  'rsvp.onTheList': "You're on the list.",
+  'rsvp.viewDashboard': 'View the trip in your dashboard →',
+  'rsvp.joining': 'Joining...',
+  'rsvp.joinTrip': 'Join Trip',
+  'rsvp.intro': "We'll create a TREK account for you so you can access the full itinerary.",
+  'rsvp.alreadyHaveAccount': 'Already have an account? Log in',
+  'rsvp.nameLabel': 'Your name',
+  'rsvp.namePlaceholder': 'Your name',
+  'rsvp.emailLabel': 'Email address',
+  'rsvp.emailPlaceholder': 'your@email.com',
+  'rsvp.accountNotice': 'A TREK account will be created using this email address.',
+  'rsvp.messageLabel': 'Message',
+  'rsvp.messageOptional': '(optional)',
+  'rsvp.messagePlaceholder': "Anything you'd like the organiser to know...",
+  'rsvp.feeLabel': 'Registration fee: {amount} {currency}',
+  'rsvp.feeDeadline': 'Payment deadline: {date}.',
+  'rsvp.feeInstructions': 'Payment instructions will be provided by the trip organiser after you register.',
+  'rsvp.logInHere': 'Log in here',
+  'rsvp.confirming': 'Confirming...',
+  'rsvp.confirmMySpot': 'Confirm my spot',
+  'rsvp.nameRequired': 'Name is required.',
+  'rsvp.emailRequired': 'Email is required.',
+  'rsvp.paymentSuccess': "🎉 You're registered! Payment of {amount} {currency} confirmed.",
+  'rsvp.paypalFeeNotice': 'Registration fee: {amount} {currency}. Complete payment below to confirm your spot.',
+  'rsvp.paymentNotCompleted': 'Payment was not completed. Your registration has not been saved.',
+  'rsvp.toastJoined': "🎉 You're in! Check your dashboard to view the full itinerary.",
+  'rsvp.toastRegistered': "🎉 You're in! Welcome to TREK — check your inbox for a confirmation email.",
+  'rsvp.error.duplicateRsvp': "You're already on the list for this trip. Check your inbox for confirmation details.",
+  'rsvp.error.emailConflict': 'This email is linked to a TREK account. Please log in to RSVP.',
+  'rsvp.error.notFound': 'This trip is no longer accepting RSVPs.',
+  'rsvp.error.tooManyAttempts': 'Too many attempts. Please wait a few minutes before trying again.',
+  'rsvp.error.serverError': 'Something went wrong on our end. Please try again shortly.',
+  'rsvp.error.unknown': 'Something went wrong. Please try again.',
+
+  // Public trip page — RSVP section
+  // TODO: translate
+  'publicTrip.rsvp.heading': 'Join this trip',
+  'publicTrip.rsvp.subheading': "Add your details below and we'll reserve your spot.",
+
 }
 
 export default ar
