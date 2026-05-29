@@ -231,6 +231,13 @@ export default function AdminPage(): React.ReactElement {
   const [oidcConfig, setOidcConfig] = useState<OidcConfig>({ issuer: '', client_id: '', client_secret: '', client_secret_set: false, display_name: '', discovery_url: '' })
   const [savingOidc, setSavingOidc] = useState<boolean>(false)
 
+  // PayPal settings
+  const [paypalSettings, setPaypalSettings] = useState<{ clientId: string; secretIsSet: boolean; mode: string }>({ clientId: '', secretIsSet: false, mode: 'sandbox' })
+  const [paypalForm, setPaypalForm] = useState<{ clientId: string; secret: string; mode: string }>({ clientId: '', secret: '', mode: 'sandbox' })
+  const [savingPaypal, setSavingPaypal] = useState<boolean>(false)
+  const [paypalTestResult, setPaypalTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+  const [testingPaypal, setTestingPaypal] = useState<boolean>(false)
+
   // Auth toggles
   const [passwordLogin, setPasswordLogin] = useState<boolean>(true)
   const [passwordRegistration, setPasswordRegistration] = useState<boolean>(true)
@@ -283,6 +290,10 @@ export default function AdminPage(): React.ReactElement {
     loadAppConfig()
     loadApiKeys()
     adminApi.getOidc().then(setOidcConfig).catch(() => {})
+    adminApi.getPaypalSettings().then((d: { clientId: string; secretIsSet: boolean; mode: string }) => {
+      setPaypalSettings(d)
+      setPaypalForm(f => ({ ...f, clientId: d.clientId, mode: d.mode }))
+    }).catch(() => {})
     adminApi.checkVersion().then(data => {
       if (data.update_available) setUpdateInfo(data)
     }).catch(() => {})
@@ -1217,6 +1228,112 @@ export default function AdminPage(): React.ReactElement {
                   </button>
                 </div>
               </div>
+              {/* PayPal Settings */}
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <div>
+                    <h2 className="font-semibold text-slate-900">PayPal</h2>
+                    <p className="text-xs text-slate-400 mt-1">Configure PayPal credentials for trip registration fee payments.</p>
+                  </div>
+                  <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${paypalSettings.secretIsSet && paypalSettings.clientId ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {paypalSettings.secretIsSet && paypalSettings.clientId ? 'Configured' : 'Not configured'}
+                  </span>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Client ID</label>
+                    <input
+                      type="text"
+                      value={paypalForm.clientId}
+                      onChange={e => setPaypalForm(f => ({ ...f, clientId: e.target.value }))}
+                      placeholder="AaBbCcDd..."
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Secret {paypalSettings.secretIsSet && <span className="text-slate-400 font-normal">(currently set — leave blank to keep)</span>}
+                    </label>
+                    <input
+                      type="password"
+                      value={paypalForm.secret}
+                      onChange={e => setPaypalForm(f => ({ ...f, secret: e.target.value }))}
+                      placeholder={paypalSettings.secretIsSet ? '••••••••' : 'Enter PayPal secret'}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Mode</label>
+                    <div className="flex gap-4">
+                      {(['sandbox', 'live'] as const).map(m => (
+                        <label key={m} className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="paypal-mode"
+                            value={m}
+                            checked={paypalForm.mode === m}
+                            onChange={() => setPaypalForm(f => ({ ...f, mode: m }))}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm text-slate-700 capitalize">{m}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        setSavingPaypal(true)
+                        try {
+                          const payload: Record<string, unknown> = { clientId: paypalForm.clientId, mode: paypalForm.mode }
+                          if (paypalForm.secret) payload.secret = paypalForm.secret
+                          await adminApi.updatePaypalSettings(payload)
+                          const updated = await adminApi.getPaypalSettings()
+                          setPaypalSettings(updated)
+                          setPaypalForm(f => ({ ...f, secret: '' }))
+                          setPaypalTestResult(null)
+                          toast.success('PayPal settings saved')
+                        } catch (err: unknown) {
+                          toast.error(getApiErrorMessage(err, t('common.error')))
+                        } finally {
+                          setSavingPaypal(false)
+                        }
+                      }}
+                      disabled={savingPaypal}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
+                    >
+                      {savingPaypal ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                      {t('common.save')}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setTestingPaypal(true)
+                        setPaypalTestResult(null)
+                        try {
+                          const result = await adminApi.testPaypalConnection()
+                          setPaypalTestResult(result)
+                        } catch {
+                          setPaypalTestResult({ ok: false, error: 'Request failed' })
+                        } finally {
+                          setTestingPaypal(false)
+                        }
+                      }}
+                      disabled={testingPaypal || (!paypalSettings.secretIsSet && !paypalForm.secret)}
+                      className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {testingPaypal ? <div className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-600 rounded-full animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                      Test Connection
+                    </button>
+                  </div>
+                  {paypalTestResult && (
+                    <div className={`flex items-center gap-2 text-sm mt-1 ${paypalTestResult.ok ? 'text-green-600' : 'text-red-600'}`}>
+                      {paypalTestResult.ok ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                      {paypalTestResult.ok ? 'Connection successful' : paypalTestResult.error || 'Connection failed'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Danger Zone */}
               <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-red-100 bg-red-50">

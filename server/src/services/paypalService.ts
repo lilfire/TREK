@@ -1,19 +1,32 @@
 import { db } from '../db/database';
+import { decrypt_api_key } from './apiKeyCrypto';
 
 const PAYPAL_SANDBOX_BASE = 'https://api-m.sandbox.paypal.com';
 const PAYPAL_LIVE_BASE = 'https://api-m.paypal.com';
 
+function getStoredSetting(key: string): string {
+  return (db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value || '';
+}
+
 function getPaypalBase(): string {
+  const mode = getStoredSetting('paypal_mode') || process.env.PAYPAL_MODE;
+  if (mode === 'live') return PAYPAL_LIVE_BASE;
+  if (mode === 'sandbox') return PAYPAL_SANDBOX_BASE;
   return process.env.NODE_ENV === 'production' ? PAYPAL_LIVE_BASE : PAYPAL_SANDBOX_BASE;
 }
 
 export function getPaypalClientId(): string | null {
-  return process.env.PAYPAL_CLIENT_ID || null;
+  return getStoredSetting('paypal_client_id') || process.env.PAYPAL_CLIENT_ID || null;
+}
+
+function getPaypalSecret(): string | null {
+  const stored = decrypt_api_key(getStoredSetting('paypal_secret'));
+  return stored || process.env.PAYPAL_SECRET || null;
 }
 
 async function getAccessToken(): Promise<string> {
-  const clientId = process.env.PAYPAL_CLIENT_ID;
-  const secret = process.env.PAYPAL_SECRET;
+  const clientId = getPaypalClientId();
+  const secret = getPaypalSecret();
   if (!clientId || !secret) throw new Error('PayPal credentials not configured');
 
   const credentials = Buffer.from(`${clientId}:${secret}`).toString('base64');
