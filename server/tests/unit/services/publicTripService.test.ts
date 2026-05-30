@@ -131,7 +131,7 @@ describe('getPublicTripData — place fields', () => {
     expect(p.files[0].file_size).toBe(12345);
     expect(p.files[0].mime_type).toBe('application/pdf');
     expect(p.files[0].description).toBe('Museum ticket');
-    expect(p.files[0].url).toBe(`/api/public/trips/${trip.id}/files/${fileId}`);
+    expect(p.files[0].starred).toBe(false);
   });
 
   it('PTRSVC-004 — soft-deleted files are excluded from files array', () => {
