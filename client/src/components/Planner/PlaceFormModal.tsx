@@ -5,7 +5,6 @@ import { mapsApi, budgetApi } from '../../api/client'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
-import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { Search, Paperclip, X, AlertTriangle, Loader2, Info } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -24,7 +23,7 @@ interface PlaceFormData {
   notes: string
   transport_mode: string
   website: string
-  budget_item_id?: number | null
+  budget_category?: string | null
 }
 
 function isGoogleMapsUrl(input: string): boolean {
@@ -93,7 +92,6 @@ export default function PlaceFormModal({
   const acAbortRef = useRef<AbortController | null>(null)
   const [budgetGroupInput, setBudgetGroupInput] = useState('')
   const [budgetGroupConfirmed, setBudgetGroupConfirmed] = useState(false)
-  const [selectedBudgetItemId, setSelectedBudgetItemId] = useState<number | null>(null)
   const [budgetCategories, setBudgetCategories] = useState<string[]>([])
   const [budgetGroupOpen, setBudgetGroupOpen] = useState(false)
   const toast = useToast()
@@ -101,9 +99,7 @@ export default function PlaceFormModal({
   const { hasMapsKey } = useAuthStore()
   const can = useCanDo()
   const tripObj = useTripStore((s) => s.trip)
-  const budgetItems = useTripStore((s) => s.budgetItems)
   const canUploadFiles = can('file_upload', tripObj)
-  const defaultCurrency = useSettingsStore((s) => s.settings.default_currency)
 
   useEffect(() => {
     if (place) {
@@ -120,16 +116,13 @@ export default function PlaceFormModal({
         transport_mode: place.transport_mode || 'walking',
         website: place.website || '',
       })
-      // Pre-fill budget fields from store snapshot at open time
-      if (place.budget_item_id) {
-        const linked = budgetItems.find(bi => bi.id === place.budget_item_id)
-        setBudgetGroupInput(linked?.category || '')
-        setBudgetGroupConfirmed(!!(linked?.category))
-        setSelectedBudgetItemId(place.budget_item_id)
+      // Pre-fill budget fields from place data
+      if (place.budget_category) {
+        setBudgetGroupInput(place.budget_category)
+        setBudgetGroupConfirmed(true)
       } else {
         setBudgetGroupInput('')
         setBudgetGroupConfirmed(false)
-        setSelectedBudgetItemId(null)
       }
     } else if (prefillCoords) {
       setForm({
@@ -141,12 +134,10 @@ export default function PlaceFormModal({
       })
       setBudgetGroupInput('')
       setBudgetGroupConfirmed(false)
-      setSelectedBudgetItemId(null)
     } else {
       setForm(DEFAULT_FORM)
       setBudgetGroupInput('')
       setBudgetGroupConfirmed(false)
-      setSelectedBudgetItemId(null)
     }
     setPendingFiles([])
     setBudgetGroupOpen(false)
@@ -376,7 +367,7 @@ export default function PlaceFormModal({
     setIsSaving(true)
     try {
       const budgetFields = budgetAddonEnabled ? {
-        budget_item_id: selectedBudgetItemId ?? null,
+        budget_category: budgetGroupConfirmed && budgetGroupInput.trim() ? budgetGroupInput.trim() : null,
       } : {}
       await onSave({
         ...form,
@@ -655,7 +646,7 @@ export default function PlaceFormModal({
               <input
                 type="text"
                 value={budgetGroupInput}
-                onChange={e => { setBudgetGroupInput(e.target.value); setBudgetGroupConfirmed(false); setSelectedBudgetItemId(null); setBudgetGroupOpen(true) }}
+                onChange={e => { setBudgetGroupInput(e.target.value); setBudgetGroupConfirmed(false); setBudgetGroupOpen(true) }}
                 onFocus={() => setBudgetGroupOpen(true)}
                 onBlur={() => setTimeout(() => setBudgetGroupOpen(false), 150)}
                 placeholder={t('places.budgetGroupPlaceholder')}
@@ -703,48 +694,6 @@ export default function PlaceFormModal({
               )}
             </div>
             <p className="text-xs text-slate-500 mt-1">{t('places.budgetGroupHelper')}</p>
-
-            {/* Budget item selector — shown when a group is confirmed and has items */}
-            {budgetGroupInput && budgetGroupConfirmed && (() => {
-              const categoryItems = budgetItems.filter(bi => bi.category === budgetGroupInput)
-              if (categoryItems.length === 0) return null
-              return (
-                <div className="mt-3 pl-3 border-l-2 border-slate-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('places.budgetSelectEntry')}
-                  </label>
-                  <div className="space-y-1">
-                    {categoryItems.map(item => (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => setSelectedBudgetItemId(prev => prev === item.id ? null : item.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
-                          selectedBudgetItemId === item.id
-                            ? 'border-slate-900 bg-slate-900 text-white'
-                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-                        }`}
-                        data-testid={`budget-item-option-${item.id}`}
-                      >
-                        <span className="font-medium">{item.name}</span>
-                        <span className="ml-2 opacity-75">
-                          {item.amount != null ? item.amount.toLocaleString() : '—'} {item.currency || defaultCurrency}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  {selectedBudgetItemId && (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBudgetItemId(null)}
-                      className="mt-1 text-xs text-slate-400 hover:text-slate-600"
-                    >
-                      {t('common.clear')}
-                    </button>
-                  )}
-                </div>
-              )
-            })()}
           </div>
         )}
 
