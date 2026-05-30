@@ -71,6 +71,7 @@ export interface Place {
   phone: string | null
   created_at: string
   budget_item_id?: number | null
+  budget_category?: string | null
 }
 
 export interface Assignment {

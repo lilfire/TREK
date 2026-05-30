@@ -495,7 +495,7 @@ describe('PlaceFormModal', () => {
     });
   });
 
-  it('FE-COMP-PLACEFORM-041: budget item list renders (not Amount input) when group has items', async () => {
+  it('FE-COMP-PLACEFORM-041: no sub-picker renders when a budget group is selected (even with items present)', async () => {
     const user = userEvent.setup();
     const budgetItem1 = buildBudgetItem({ id: 10, category: 'Food', name: 'Lunch', amount: 50, currency: 'NOK' });
     const budgetItem2 = buildBudgetItem({ id: 11, category: 'Food', name: 'Dinner', amount: 120, currency: 'NOK' });
@@ -508,77 +508,64 @@ describe('PlaceFormModal', () => {
 
     render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
 
-    // No amount input before group selection
-    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
-
     const input = await screen.findByTestId('budget-group-input');
     await user.click(input);
-
     const foodBtn = await screen.findByRole('option', { name: 'Food' });
     await user.click(foodBtn);
 
-    // Item buttons appear, no amount input
+    // No sub-picker item buttons should render
     await waitFor(() => {
-      expect(screen.getByTestId('budget-item-option-10')).toBeInTheDocument();
-      expect(screen.getByTestId('budget-item-option-11')).toBeInTheDocument();
+      expect(screen.queryByTestId('budget-item-option-10')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('budget-item-option-11')).not.toBeInTheDocument();
     });
+    expect(screen.queryByText(/Select an entry/i)).not.toBeInTheDocument();
     expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-PLACEFORM-041b: select and deselect a budget item', async () => {
+  it('FE-COMP-PLACEFORM-041b: budget group selection sends budget_category (not budget_item_id) to onSave', async () => {
     const user = userEvent.setup();
-    const budgetItem = buildBudgetItem({ id: 20, category: 'Activities', name: 'Museum', amount: 200, currency: 'NOK' });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
     server.use(
       http.get('/api/trips/1/budget/categories', () =>
-        HttpResponse.json({ categories: ['Activities'] }),
+        HttpResponse.json({ categories: ['Food'] }),
       ),
     );
+    const onSave = vi.fn().mockResolvedValue(undefined);
 
-    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
+
     const input = await screen.findByTestId('budget-group-input');
     await user.click(input);
-    const actBtn = await screen.findByRole('option', { name: 'Activities' });
-    await user.click(actBtn);
+    const foodBtn = await screen.findByRole('option', { name: 'Food' });
+    await user.click(foodBtn);
 
-    const itemBtn = await screen.findByTestId('budget-item-option-20');
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Restaurant');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
 
-    // Select the item
-    await user.click(itemBtn);
-    // Clear button should appear
-    expect(await screen.findByRole('button', { name: /clear/i })).toBeInTheDocument();
-
-    // Click clear button to deselect
-    await user.click(screen.getByRole('button', { name: /clear/i }));
-    expect(screen.queryByRole('button', { name: /clear/i })).not.toBeInTheDocument();
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_category: 'Food' }));
+    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ budget_item_id: expect.anything() }));
   });
 
-  it('FE-COMP-PLACEFORM-041c: empty category shows no item selector', async () => {
+  it('FE-COMP-PLACEFORM-041c: budget_category is null when no group is confirmed', async () => {
     const user = userEvent.setup();
-    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [] });
     server.use(
       http.get('/api/trips/1/budget/categories', () =>
-        HttpResponse.json({ categories: ['Empty'] }),
+        HttpResponse.json({ categories: [] }),
       ),
     );
+    const onSave = vi.fn().mockResolvedValue(undefined);
 
-    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
-    const input = await screen.findByTestId('budget-group-input');
-    await user.click(input);
-    const emptyBtn = await screen.findByRole('option', { name: 'Empty' });
-    await user.click(emptyBtn);
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
 
-    // No item options rendered, no amount input
-    await waitFor(() => {
-      expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
-    });
-    expect(screen.queryByText(/Select an entry/i)).not.toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Somewhere');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_category: null }));
   });
 
-  it('FE-COMP-PLACEFORM-042: pre-fills budget group and pre-selects item when editing a place with a linked budget_item_id', async () => {
-    const budgetItem = buildBudgetItem({ id: 77, category: 'Museums', name: 'Entry ticket', amount: 25, currency: 'NOK' });
-    const place = buildPlace({ budget_item_id: 77 });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
+  it('FE-COMP-PLACEFORM-042: pre-fills budget group when editing a place with budget_category', async () => {
+    const place = buildPlace({ budget_category: 'Museums' });
     server.use(
       http.get('/api/trips/1/budget/categories', () =>
         HttpResponse.json({ categories: ['Museums'] }),
@@ -590,39 +577,29 @@ describe('PlaceFormModal', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('Museums')).toBeInTheDocument();
     });
-    // Item selector should show with item pre-selected
-    expect(screen.getByTestId('budget-item-option-77')).toBeInTheDocument();
     expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Select an entry/i)).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-PLACEFORM-042b: handleSubmit passes budget_item_id when item selected, null when none', async () => {
+  it('FE-COMP-PLACEFORM-042b: budget_category is null when group input is typed but not confirmed', async () => {
     const user = userEvent.setup();
-    const budgetItem = buildBudgetItem({ id: 5, category: 'Food', name: 'Lunch', amount: 80, currency: 'NOK' });
-    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem] });
     server.use(
       http.get('/api/trips/1/budget/categories', () =>
-        HttpResponse.json({ categories: ['Food'] }),
+        HttpResponse.json({ categories: [] }),
       ),
     );
     const onSave = vi.fn().mockResolvedValue(undefined);
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
 
-    // Select budget group
+    // Type in the budget group input without selecting/confirming
     const input = await screen.findByTestId('budget-group-input');
-    await user.click(input);
-    const foodBtn = await screen.findByRole('option', { name: 'Food' });
-    await user.click(foodBtn);
+    await user.type(input, 'Unconfirmed');
 
-    // Select budget item
-    const itemBtn = await screen.findByTestId('budget-item-option-5');
-    await user.click(itemBtn);
-
-    // Fill name and submit
-    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Lunch spot');
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Somewhere');
     await user.click(screen.getByRole('button', { name: /^Add$/i }));
 
     await waitFor(() => expect(onSave).toHaveBeenCalled());
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_item_id: 5 }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_category: null }));
   });
 });
