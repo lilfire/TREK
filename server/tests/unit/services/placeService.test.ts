@@ -44,7 +44,7 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createPlace, createCategory, createTag } from '../../helpers/factories';
+import { createUser, createTrip, createPlace, createCategory, createTag, createBudgetItem } from '../../helpers/factories';
 import path from 'path';
 import fs from 'fs';
 import { listPlaces, createPlace as svcCreatePlace, getPlace, updatePlace, deletePlace, importGpx, importKmlPlaces, importGoogleList, searchPlaceImage } from '../../../src/services/placeService';
@@ -497,6 +497,67 @@ describe('importGpx deduplication', () => {
 
     const total = (listPlaces(String(trip.id), {}) as any[]).length;
     expect(total).toBe(first.count + 1);
+  });
+});
+
+// ── budget_category propagation ───────────────────────────────────────────────
+
+describe('budget_category propagation', () => {
+  it('PLACE-SVC-037 — createPlace with budget_category and price updates matching budget_items', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createBudgetItem(testDb, trip.id, { name: 'Activity 1', category: 'Activities', total_price: 0 });
+    createBudgetItem(testDb, trip.id, { name: 'Activity 2', category: 'Activities', total_price: 0 });
+    createBudgetItem(testDb, trip.id, { name: 'Food item', category: 'Food', total_price: 50 });
+
+    svcCreatePlace(String(trip.id), { name: 'Zoo', budget_category: 'Activities', price: 30 });
+
+    const actItems = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Activities'"
+    ).all(trip.id) as { total_price: number }[];
+    expect(actItems).toHaveLength(2);
+    actItems.forEach(item => expect(item.total_price).toBe(30));
+
+    const foodItem = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Food'"
+    ).get(trip.id) as { total_price: number };
+    expect(foodItem.total_price).toBe(50);
+  });
+
+  it('PLACE-SVC-038 — createPlace without price does not update budget_items', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createBudgetItem(testDb, trip.id, { name: 'Entry', category: 'Museums', total_price: 99 });
+
+    svcCreatePlace(String(trip.id), { name: 'Museum', budget_category: 'Museums' });
+
+    const item = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Museums'"
+    ).get(trip.id) as { total_price: number };
+    expect(item.total_price).toBe(99);
+  });
+
+  it('PLACE-SVC-039 — updatePlace with budget_category and price updates matching budget_items', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Concert Hall' }) as any;
+    createBudgetItem(testDb, trip.id, { name: 'Ticket', category: 'Entertainment', total_price: 0 });
+
+    updatePlace(String(trip.id), String(place.id), { budget_category: 'Entertainment', price: 75 });
+
+    const item = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Entertainment'"
+    ).get(trip.id) as { total_price: number };
+    expect(item.total_price).toBe(75);
+  });
+
+  it('PLACE-SVC-040 — createPlace with budget_category but no matching items is a no-op', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    expect(() => {
+      svcCreatePlace(String(trip.id), { name: 'Museum', budget_category: 'Nonexistent', price: 20 });
+    }).not.toThrow();
   });
 });
 

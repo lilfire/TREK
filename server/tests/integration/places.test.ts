@@ -1019,71 +1019,110 @@ describe('Delete place — not found', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// budget_item_id linkage (LSO-1461)
+// budget_category linkage (LSO-1502)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('budget_item_id — create and update', () => {
-  it('PLACE-024 — POST creates place with budget_item_id persisted', async () => {
+describe('budget_category — create and update', () => {
+  it('PLACE-024 — POST creates place with budget_category persisted', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const budgetItem = createBudgetItem(testDb, trip.id, { name: 'Entrance', category: 'Museums', total_price: 50 });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places`)
       .set('Cookie', authCookie(user.id))
-      .send({ name: 'Museum', budget_item_id: budgetItem.id });
+      .send({ name: 'Museum', budget_category: 'Activities' });
 
     expect(res.status).toBe(201);
-    expect(res.body.place.budget_item_id).toBe(budgetItem.id);
+    expect(res.body.place.budget_category).toBe('Activities');
   });
 
-  it('PLACE-025 — PUT updates budget_item_id to a new value', async () => {
+  it('PLACE-025 — PUT updates budget_category to a new value', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const budgetItem1 = createBudgetItem(testDb, trip.id, { name: 'Item A', category: 'Food', total_price: 100 });
-    const budgetItem2 = createBudgetItem(testDb, trip.id, { name: 'Item B', category: 'Food', total_price: 200 });
     const place = createPlace(testDb, trip.id, { name: 'Restaurant' });
 
-    // Link to first budget item
     const res1 = await request(app)
       .put(`/api/trips/${trip.id}/places/${place.id}`)
       .set('Cookie', authCookie(user.id))
-      .send({ name: place.name, budget_item_id: budgetItem1.id });
+      .send({ name: place.name, budget_category: 'Food' });
     expect(res1.status).toBe(200);
-    expect(res1.body.place.budget_item_id).toBe(budgetItem1.id);
+    expect(res1.body.place.budget_category).toBe('Food');
 
-    // Switch to second budget item
     const res2 = await request(app)
       .put(`/api/trips/${trip.id}/places/${place.id}`)
       .set('Cookie', authCookie(user.id))
-      .send({ name: place.name, budget_item_id: budgetItem2.id });
+      .send({ name: place.name, budget_category: 'Activities' });
     expect(res2.status).toBe(200);
-    expect(res2.body.place.budget_item_id).toBe(budgetItem2.id);
+    expect(res2.body.place.budget_category).toBe('Activities');
   });
 
-  it('PLACE-026 — PUT clears budget_item_id when set to null', async () => {
+  it('PLACE-026 — PUT clears budget_category when set to null', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    const budgetItem = createBudgetItem(testDb, trip.id, { name: 'Entrance', category: 'Activities', total_price: 75 });
     const place = createPlace(testDb, trip.id, { name: 'Park' });
 
-    // Link
     await request(app)
       .put(`/api/trips/${trip.id}/places/${place.id}`)
       .set('Cookie', authCookie(user.id))
-      .send({ name: place.name, budget_item_id: budgetItem.id });
+      .send({ name: place.name, budget_category: 'Activities' });
 
-    // Unlink
     const res = await request(app)
       .put(`/api/trips/${trip.id}/places/${place.id}`)
       .set('Cookie', authCookie(user.id))
-      .send({ name: place.name, budget_item_id: null });
+      .send({ name: place.name, budget_category: null });
     expect(res.status).toBe(200);
-    expect(res.body.place.budget_item_id).toBeNull();
+    expect(res.body.place.budget_category).toBeNull();
   });
 
-  it('PLACE-027 — migration guard: budget_item_id column already exists does not throw', () => {
-    // The column was added in beforeAll via runMigrations; running it again must not throw
+  it('PLACE-027 — POST with budget_category and price updates matching budget_items', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createBudgetItem(testDb, trip.id, { name: 'Entry 1', category: 'Activities', total_price: 0 });
+    createBudgetItem(testDb, trip.id, { name: 'Entry 2', category: 'Activities', total_price: 0 });
+    createBudgetItem(testDb, trip.id, { name: 'Food item', category: 'Food', total_price: 99 });
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/places`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Zoo', budget_category: 'Activities', price: 25 });
+
+    expect(res.status).toBe(201);
+    expect(res.body.place.budget_category).toBe('Activities');
+
+    const activityItems = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Activities'"
+    ).all(trip.id) as { total_price: number }[];
+    expect(activityItems).toHaveLength(2);
+    activityItems.forEach(item => expect(item.total_price).toBe(25));
+
+    // Food item must remain unchanged
+    const foodItem = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Food'"
+    ).get(trip.id) as { total_price: number };
+    expect(foodItem.total_price).toBe(99);
+  });
+
+  it('PLACE-028 — PUT with budget_category and price updates matching budget_items', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const place = createPlace(testDb, trip.id, { name: 'Theatre' });
+    createBudgetItem(testDb, trip.id, { name: 'Show ticket', category: 'Entertainment', total_price: 0 });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/places/${place.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ budget_category: 'Entertainment', price: 60 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.place.budget_category).toBe('Entertainment');
+
+    const item = testDb.prepare(
+      "SELECT total_price FROM budget_items WHERE trip_id = ? AND category = 'Entertainment'"
+    ).get(trip.id) as { total_price: number };
+    expect(item.total_price).toBe(60);
+  });
+
+  it('PLACE-029 — migration guard: running migrations again does not throw', () => {
     expect(() => runMigrations(testDb)).not.toThrow();
   });
 });

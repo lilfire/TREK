@@ -2302,6 +2302,23 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE trips ADD COLUMN country TEXT'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    // LSO-1502: Add budget_category to places, backfill from budget_item_id, drop budget_item_id
+    () => {
+      try {
+        db.exec('ALTER TABLE places ADD COLUMN budget_category TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      const cols = db.prepare('PRAGMA table_info(places)').all() as { name: string }[];
+      if (cols.some(c => c.name === 'budget_item_id')) {
+        db.exec(`
+          UPDATE places
+          SET budget_category = (SELECT bi.category FROM budget_items bi WHERE bi.id = places.budget_item_id)
+          WHERE places.budget_item_id IS NOT NULL
+        `);
+        db.exec('ALTER TABLE places DROP COLUMN budget_item_id');
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
