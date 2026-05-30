@@ -142,6 +142,7 @@ interface CreateTripData {
   reminder_days?: number;
   day_count?: number;
   country?: string | null;
+  fee_currency?: string | null;
 }
 
 export function createTrip(userId: number, data: CreateTripData, maxDays?: number) {
@@ -149,10 +150,13 @@ export function createTrip(userId: number, data: CreateTripData, maxDays?: numbe
     ? (Number(data.reminder_days) >= 0 && Number(data.reminder_days) <= 30 ? Number(data.reminder_days) : 3)
     : 3;
 
+  if (data.fee_currency !== undefined && data.fee_currency !== null && !/^[A-Z]{3}$/.test(data.fee_currency))
+    throw new ValidationError('fee_currency must be a 3-letter uppercase ISO 4217 currency code');
+
   const result = db.prepare(`
-    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, country)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'NOK', rd, data.country ?? null);
+    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, country, fee_currency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'NOK', rd, data.country ?? null, data.fee_currency ?? null);
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);
@@ -184,6 +188,7 @@ interface UpdateTripData {
   fee_mode?: 'deadline' | 'rsvp' | null;
   fee_deadline?: string | null;
   rsvp_deadline?: string | null;
+  fee_currency?: string | null;
   country?: string | null;
 }
 
@@ -214,6 +219,8 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
     throw new ValidationError('fee_deadline must be an ISO-8601 date string (YYYY-MM-DD)');
   if (data.rsvp_deadline !== undefined && data.rsvp_deadline !== null && !/^\d{4}-\d{2}-\d{2}$/.test(data.rsvp_deadline))
     throw new ValidationError('rsvp_deadline must be an ISO-8601 date string (YYYY-MM-DD)');
+  if (data.fee_currency !== undefined && data.fee_currency !== null && !/^[A-Z]{3}$/.test(data.fee_currency))
+    throw new ValidationError('fee_currency must be a 3-letter uppercase ISO 4217 currency code');
 
   const newTitle = title || trip.title;
   const newDesc = description !== undefined ? description : trip.description;
@@ -235,14 +242,15 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newFeeMode = newFee === null ? null : ('fee_mode' in data ? (data.fee_mode ?? null) : ((trip as any).fee_mode ?? null));
   const newFeeDeadline = (newFee === null || newFeeMode !== 'deadline') ? null : ('fee_deadline' in data ? (data.fee_deadline ?? null) : ((trip as any).fee_deadline ?? null));
   const newRsvpDeadline = 'rsvp_deadline' in data ? (data.rsvp_deadline ?? null) : ((trip as any).rsvp_deadline ?? null);
+  const newFeeCurrency = newFee === null ? null : ('fee_currency' in data ? (data.fee_currency ?? null) : ((trip as any).fee_currency ?? null));
   const newCountry = 'country' in data ? (data.country ?? null) : ((trip as any).country ?? null);
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
       currency=?, is_archived=?, is_public=?, cover_image=?, reminder_days=?,
-      registration_fee=?, fee_mode=?, fee_deadline=?, rsvp_deadline=?, country=?, updated_at=CURRENT_TIMESTAMP
+      registration_fee=?, fee_mode=?, fee_deadline=?, rsvp_deadline=?, fee_currency=?, country=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, newRsvpDeadline, newCountry, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newPublic, newCover, newReminder, newFee, newFeeMode, newFeeDeadline, newRsvpDeadline, newFeeCurrency, newCountry, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
