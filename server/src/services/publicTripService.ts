@@ -169,6 +169,28 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
 
   const categories = db.prepare('SELECT * FROM categories').all();
 
+  const budgetItemRows = db.prepare(`
+    SELECT id, name, category, total_price, note, persons, days, sort_order
+    FROM budget_items
+    WHERE trip_id = ?
+    ORDER BY sort_order ASC, created_at ASC
+  `).all(tripId) as any[];
+
+  const budgetItems = budgetItemRows.map((row: any) => ({
+    id: row.id,
+    title: row.name,
+    category: row.category,
+    amount: row.total_price,
+    note: row.note,
+    persons: row.persons,
+    days: row.days,
+  }));
+
+  const budgetSummary = {
+    totalBudget: budgetItemRows.reduce((sum: number, row: any) => sum + (row.total_price || 0), 0),
+    currency: trip.currency,
+  };
+
   return {
     trip,
     days,
@@ -178,5 +200,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     categories,
     reservations,
     accommodations,
+    budgetItems,
+    budgetSummary,
   };
 }
