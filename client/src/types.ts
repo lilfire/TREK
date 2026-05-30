@@ -30,6 +30,7 @@ export interface Trip {
   fee_deadline?: string | null
   rsvp_deadline?: string | null
   currency?: string
+  fee_currency?: string | null
   country?: string | null
   created_at: string
   updated_at: string

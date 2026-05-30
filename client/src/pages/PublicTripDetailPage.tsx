@@ -342,7 +342,7 @@ export default function PublicTripDetailPage() {
             registrationFee={data?.trip?.registration_fee ?? null}
             feeMode={data?.trip?.fee_mode ?? null}
             feeDeadline={data?.trip?.fee_deadline ?? null}
-            currency={data?.trip?.currency ?? 'NOK'}
+            currency={data?.trip?.fee_currency ?? data?.trip?.currency ?? 'NOK'}
             paypalClientId={data?.trip?.paypalClientId ?? null}
           />
         </section>

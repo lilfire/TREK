@@ -1110,3 +1110,73 @@ describe('FE-PUB-TRIP-014: Description and notes truncation in popup', () => {
     expect(modal).toHaveTextContent('Only notes here.');
   });
 });
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-015: fee_currency passthrough to RsvpForm
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-015: fee_currency passed to RsvpForm', () => {
+  it('prefers fee_currency over currency when both are set', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: {
+            id: 1,
+            title: 'Fee Currency Trip',
+            start_date: null,
+            end_date: null,
+            cover_image: null,
+            currency: 'NOK',
+            fee_currency: 'USD',
+            registration_fee: 200,
+            fee_mode: 'deadline',
+            fee_deadline: '2027-06-01',
+            rsvp_deadline: null,
+          },
+          days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    // The fee-deadline-notice should show the fee amount with USD (fee_currency), not NOK
+    expect(screen.getByTestId('fee-deadline-notice')).toHaveTextContent('200 USD');
+    expect(screen.getByTestId('fee-deadline-notice')).not.toHaveTextContent('NOK');
+  });
+
+  it('falls back to currency when fee_currency is absent', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: {
+            id: 1,
+            title: 'No Fee Currency Trip',
+            start_date: null,
+            end_date: null,
+            cover_image: null,
+            currency: 'EUR',
+            fee_currency: null,
+            registration_fee: 100,
+            fee_mode: 'deadline',
+            fee_deadline: '2027-06-01',
+            rsvp_deadline: null,
+          },
+          days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('fee-deadline-notice')).toHaveTextContent('100 EUR');
+  });
+});

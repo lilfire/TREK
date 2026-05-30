@@ -486,3 +486,93 @@ describe('Registration Fee section', () => {
     expect(screen.queryByTestId('fee-mode-section')).not.toBeInTheDocument();
   });
 });
+
+// ── Fee Currency dropdown (FEE-CUR-001 to FEE-CUR-005) ───────────────────────
+
+describe('Fee Currency dropdown', () => {
+  it('FEE-CUR-001: renders fee currency dropdown next to amount input', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.getByTestId('fee-currency-select')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-amount-input')).toBeInTheDocument();
+    // Both should be in the same row (flex container)
+    const amountInput = screen.getByTestId('fee-amount-input');
+    const currencySelect = screen.getByTestId('fee-currency-select');
+    expect(amountInput.closest('.flex')).toBe(currencySelect.closest('.flex'));
+  });
+
+  it('FEE-CUR-002: defaults to trip.fee_currency when set', () => {
+    const trip = { ...buildTrip({ id: 1 }), user_id: 1, fee_currency: 'USD', currency: 'EUR' };
+    render(<TripFormModal {...defaultProps} trip={trip as any} />);
+    const trigger = within(screen.getByTestId('fee-currency-select')).getByRole('button');
+    expect(trigger.textContent).toContain('USD');
+  });
+
+  it('FEE-CUR-003: falls back to trip.currency when fee_currency is null', () => {
+    const trip = { ...buildTrip({ id: 1 }), user_id: 1, fee_currency: null, currency: 'SEK' };
+    render(<TripFormModal {...defaultProps} trip={trip as any} />);
+    const trigger = within(screen.getByTestId('fee-currency-select')).getByRole('button');
+    expect(trigger.textContent).toContain('SEK');
+  });
+
+  it('FEE-CUR-004: defaults to NOK when no fee_currency and no currency', () => {
+    render(<TripFormModal {...defaultProps} trip={null} />);
+    const trigger = within(screen.getByTestId('fee-currency-select')).getByRole('button');
+    expect(trigger.textContent).toContain('NOK');
+  });
+
+  it('FEE-CUR-005: selecting a currency updates the placeholder text', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} trip={null} />);
+    // Open the fee currency dropdown
+    const currencyContainer = screen.getByTestId('fee-currency-select');
+    await user.click(within(currencyContainer).getByRole('button'));
+    const search = await screen.findByPlaceholderText('...');
+    await user.type(search, 'EUR');
+    const eurOption = await screen.findByRole('button', { name: /^EUR/ });
+    await user.click(eurOption);
+    // Placeholder of amount input should now reflect EUR
+    const amountInput = screen.getByTestId('fee-amount-input') as HTMLInputElement;
+    expect(amountInput.placeholder).toContain('EUR');
+  });
+
+  it('FEE-CUR-006: submit includes fee_currency in payload when fee > 0', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Trip With Fee');
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+
+    // Select USD as fee currency
+    const currencyContainer = screen.getByTestId('fee-currency-select');
+    await user.click(within(currencyContainer).getByRole('button'));
+    const search = await screen.findByPlaceholderText('...');
+    await user.type(search, 'USD');
+    const usdOption = await screen.findByRole('button', { name: /^USD/ });
+    await user.click(usdOption);
+
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      registration_fee: 50,
+      fee_currency: 'USD',
+    }));
+  });
+
+  it('FEE-CUR-007: fee_currency is null in payload when fee is 0', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'No Fee Trip');
+    // Leave fee amount empty (parsedFee = null)
+    const submitBtns = screen.getAllByText('Create New Trip');
+    const submitBtn = submitBtns.find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      registration_fee: null,
+      fee_currency: null,
+    }));
+  });
+});
