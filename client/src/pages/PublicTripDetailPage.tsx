@@ -27,6 +27,21 @@ function formatFileSize(bytes: number | null | undefined): string | null {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours === 0) return `${mins}min`
+  if (mins === 0) return `${hours}hr`
+  return `${hours}hr ${mins}min`
+}
+
+export function truncateText(text: string, maxLen = 120): string {
+  if (text.length <= maxLen) return text
+  const slice = text.slice(0, maxLen)
+  const lastSpace = slice.lastIndexOf(' ')
+  return (lastSpace > 0 ? slice.slice(0, lastSpace) : slice) + '…'
+}
+
 export default function PublicTripDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { t, locale } = useTranslation()
@@ -390,14 +405,14 @@ export default function PublicTripDetailPage() {
                 {/* Description */}
                 {place.description && (
                   <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
-                    {place.description}
+                    {truncateText(place.description)}
                   </p>
                 )}
 
                 {/* Notes */}
                 {place.notes && (
                   <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-sm text-zinc-600 dark:text-zinc-300">
-                    {place.notes}
+                    {truncateText(place.notes)}
                   </div>
                 )}
 
@@ -420,7 +435,12 @@ export default function PublicTripDetailPage() {
                     <div className="flex items-center gap-2.5 text-sm">
                       <Clock size={14} className="flex-shrink-0 text-zinc-400" />
                       <span className="text-zinc-600 dark:text-zinc-300">
-                        {place.place_time}{place.end_time ? ` – ${place.end_time}` : ''}
+                        {place.place_time}
+                        {place.end_time
+                          ? ` – ${place.end_time}`
+                          : place.duration_minutes
+                            ? ` (${formatDuration(place.duration_minutes)})`
+                            : ''}
                       </span>
                     </div>
                   )}

@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores } from '../../tests/helpers/store';
 import { useSettingsStore } from '../store/settingsStore';
-import PublicTripDetailPage from './PublicTripDetailPage';
+import PublicTripDetailPage, { formatDuration, truncateText } from './PublicTripDetailPage';
 
 vi.mock('@paypal/react-paypal-js', () => ({
   PayPalScriptProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
@@ -831,5 +831,282 @@ describe('PublicTripDetailPage', () => {
       expect(modal).toHaveTextContent('CSV');   // text/csv → CSV (4-char slice)
       expect(modal).toHaveTextContent('FILE');  // empty mime → FILE fallback
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Helper builders for popup-specific tests
+// ---------------------------------------------------------------------------
+
+function buildTripWithPlace(placeOverrides: Record<string, unknown>) {
+  return {
+    trip: {
+      id: 42,
+      title: 'Test Trip',
+      start_date: '2026-07-01',
+      end_date: '2026-07-03',
+      cover_image: null,
+      currency: 'EUR',
+    },
+    days: [{ id: 101, trip_id: 42, day_number: 1, date: '2026-07-01', title: 'Day 1' }],
+    assignments: {
+      '101': [
+        {
+          id: 201,
+          day_id: 101,
+          order_index: 0,
+          notes: null,
+          place: {
+            id: 301,
+            name: 'Test Place',
+            description: null,
+            notes: null,
+            lat: 48.8584,
+            lng: 2.2945,
+            address: null,
+            category_id: null,
+            place_time: null,
+            end_time: null,
+            duration_minutes: null,
+            price: null,
+            currency: null,
+            website: null,
+            phone: null,
+            image_url: null,
+            transport_mode: null,
+            category: null,
+            tags: [],
+            files: [],
+            ...placeOverrides,
+          },
+        },
+      ],
+    },
+    dayNotes: { '101': [] },
+    places: [],
+    categories: [],
+    reservations: [],
+    accommodations: [],
+  };
+}
+
+async function openModal() {
+  renderPublicTrip('42');
+  await waitFor(() => expect(screen.getByText('Test Place')).toBeInTheDocument());
+  fireEvent.click(screen.getAllByText('Test Place')[0]);
+  await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+}
+
+// ---------------------------------------------------------------------------
+// Unit tests for pure helpers
+// ---------------------------------------------------------------------------
+
+describe('formatDuration', () => {
+  it('formats whole hours without a minutes suffix', () => {
+    expect(formatDuration(120)).toBe('2hr');
+  });
+
+  it('formats minutes-only without an hours prefix', () => {
+    expect(formatDuration(45)).toBe('45min');
+  });
+
+  it('formats mixed hours and minutes', () => {
+    expect(formatDuration(90)).toBe('1hr 30min');
+  });
+
+  it('does not produce a 0hr prefix for sub-60-minute durations', () => {
+    expect(formatDuration(30)).not.toContain('0hr');
+  });
+
+  it('handles exactly 60 minutes as 1hr', () => {
+    expect(formatDuration(60)).toBe('1hr');
+  });
+});
+
+describe('truncateText', () => {
+  it('returns text unchanged when it is within the limit', () => {
+    const short = 'short text';
+    expect(truncateText(short)).toBe(short);
+  });
+
+  it('returns text unchanged when it is exactly at the limit', () => {
+    const exact = 'a'.repeat(120);
+    expect(truncateText(exact)).toBe(exact);
+  });
+
+  it('truncates at a word boundary and appends ellipsis', () => {
+    const text = ('word ').repeat(25); // 125 chars
+    const result = truncateText(text);
+    expect(result.endsWith('…')).toBe(true);
+    expect(result.length).toBeLessThanOrEqual(121);
+    // Should not cut mid-word
+    expect(result.slice(0, -1).trim().split(' ').every(w => w === 'word')).toBe(true);
+  });
+
+  it('truncates mid-character when there are no spaces before the limit', () => {
+    const noSpaces = 'x'.repeat(130);
+    expect(truncateText(noSpaces)).toBe('x'.repeat(120) + '…');
+  });
+
+  it('respects a custom maxLen argument', () => {
+    expect(truncateText('hello world', 5)).toBe('hello…');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-013: Time row variants
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-013: Time row duration_minutes rendering', () => {
+  it('shows start–end range when both place_time and end_time are set', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ place_time: '10:00', end_time: '12:00' })),
+      ),
+    );
+
+    await openModal();
+
+    expect(screen.getByTestId('activity-modal')).toHaveTextContent('10:00 – 12:00');
+  });
+
+  it('shows start (duration) when place_time set and duration_minutes set but no end_time', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ place_time: '14:00', duration_minutes: 90 })),
+      ),
+    );
+
+    await openModal();
+
+    expect(screen.getByTestId('activity-modal')).toHaveTextContent('14:00 (1hr 30min)');
+  });
+
+  it('shows start (whole-hour duration) correctly', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ place_time: '09:00', duration_minutes: 120 })),
+      ),
+    );
+
+    await openModal();
+
+    expect(screen.getByTestId('activity-modal')).toHaveTextContent('09:00 (2hr)');
+  });
+
+  it('shows start (minutes-only duration) correctly', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ place_time: '08:30', duration_minutes: 45 })),
+      ),
+    );
+
+    await openModal();
+
+    expect(screen.getByTestId('activity-modal')).toHaveTextContent('08:30 (45min)');
+  });
+
+  it('shows only place_time when no end_time and no duration_minutes', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ place_time: '11:00' })),
+      ),
+    );
+
+    await openModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal).toHaveTextContent('11:00');
+    expect(modal.textContent).not.toContain('–');
+    expect(modal.textContent).not.toContain('(');
+  });
+
+  it('omits the time row entirely when no time data is present', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({})),
+      ),
+    );
+
+    await openModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal.querySelector('svg')).toBeDefined();
+    expect(modal.textContent).not.toMatch(/\d{2}:\d{2}/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-014: Description and notes truncation
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-014: Description and notes truncation in popup', () => {
+  it('renders short description without ellipsis', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ description: 'A short description.' })),
+      ),
+    );
+
+    await openModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal).toHaveTextContent('A short description.');
+    expect(modal.textContent).not.toContain('…');
+  });
+
+  it('truncates description longer than 120 chars with ellipsis', async () => {
+    const long = 'This is a long word sentence that repeats itself several times to go over the limit of one hundred and twenty characters total.';
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ description: long })),
+      ),
+    );
+
+    await openModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal.textContent).toContain('…');
+    expect(modal.textContent).not.toContain(long);
+  });
+
+  it('renders short notes without ellipsis', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ notes: 'Short note.' })),
+      ),
+    );
+
+    await openModal();
+
+    expect(screen.getByTestId('activity-modal')).toHaveTextContent('Short note.');
+  });
+
+  it('truncates notes longer than 120 chars with ellipsis', async () => {
+    const long = 'Note text that is deliberately written to be longer than one hundred and twenty characters so that truncation will kick in here.';
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ notes: long })),
+      ),
+    );
+
+    await openModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal.textContent).toContain('…');
+    expect(modal.textContent).not.toContain(long);
+  });
+
+  it('omits description section entirely when description is absent', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ notes: 'Only notes here.' })),
+      ),
+    );
+
+    await openModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal).toHaveTextContent('Only notes here.');
   });
 });
