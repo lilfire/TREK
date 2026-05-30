@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
-import { MapPin, Clock, FileText, ChevronRight } from 'lucide-react'
+import { MapPin, Clock, FileText, ChevronRight, Paperclip } from 'lucide-react'
 import { publicTripsApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
@@ -299,6 +299,15 @@ export default function PublicTripDetailPage() {
                               <Clock size={10} />
                               {place.place_time}
                               {place.end_time ? ` – ${place.end_time}` : ''}
+                            </span>
+                          )}
+                          {place.files?.length > 0 && (
+                            <span
+                              data-testid="file-count-badge"
+                              className="text-xs text-zinc-400 flex items-center gap-1 flex-shrink-0"
+                            >
+                              <Paperclip size={10} />
+                              {place.files.length}
                             </span>
                           )}
                           <ChevronRight size={12} className="ml-auto flex-shrink-0 text-zinc-300" />
