@@ -76,6 +76,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [togglingPublic, setTogglingPublic] = useState(false)
   const [country, setCountry] = useState(trip?.country || '')
   const [currency, setCurrency] = useState(trip?.currency || 'NOK')
+  const [feeCurrency, setFeeCurrency] = useState(trip?.fee_currency ?? trip?.currency ?? 'NOK')
   const [feeAmount, setFeeAmount] = useState('')
   const [feeMode, setFeeMode] = useState<'deadline' | 'rsvp' | ''>('')
   const [feeDeadline, setFeeDeadline] = useState('')
@@ -110,6 +111,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setRsvpDeadline((trip as any).rsvp_deadline || '')
       setCountry(trip.country || '')
       setCurrency(trip.currency || 'NOK')
+      setFeeCurrency(trip.fee_currency ?? trip.currency ?? 'NOK')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
@@ -121,6 +123,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setRsvpDeadline('')
       setCountry('')
       setCurrency('NOK')
+      setFeeCurrency('NOK')
     }
     setPendingCoverFile(null)
     setSelectedMembers([])
@@ -171,6 +174,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         fee_mode: parsedFee && parsedFee > 0 ? (feeMode || null) : null,
         fee_deadline: parsedFee && parsedFee > 0 && feeMode === 'deadline' ? (feeDeadline || null) : null,
         rsvp_deadline: rsvpDeadline || null,
+        fee_currency: parsedFee && parsedFee > 0 ? feeCurrency : null,
       }
       const result = await onSave({
         title: formData.title.trim(),
@@ -613,10 +617,18 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   setFeeDeadline('')
                 }
               }}
-              placeholder={`Amount (${currency})`}
+              placeholder={`Amount (${feeCurrency})`}
               className={inputCls + ' flex-1'}
             />
-            <span className="text-sm text-slate-500 shrink-0">{currency}</span>
+            <div data-testid="fee-currency-select" style={{ width: 120, flexShrink: 0 }}>
+              <CustomSelect
+                value={feeCurrency}
+                onChange={setFeeCurrency}
+                options={currencyOptions}
+                searchable
+                size="sm"
+              />
+            </div>
           </div>
 
           {feeAmount && parseFloat(feeAmount) > 0 && (
