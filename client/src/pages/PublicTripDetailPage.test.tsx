@@ -600,6 +600,11 @@ describe('PublicTripDetailPage', () => {
       categories: [],
       reservations: [],
       accommodations: [],
+      budgetItems: [
+        { id: 'b1', title: 'Flights', category: 'Transport', amount: 250, note: '', persons: 1, days: 1 },
+        { id: 'b2', title: 'Hotel', category: 'Accommodation', amount: 300, note: '', persons: 1, days: 3 },
+      ],
+      budgetSummary: { totalBudget: 550, currency: 'EUR' },
     };
 
     it('modal is absent when no activity is selected', async () => {
@@ -658,7 +663,7 @@ describe('PublicTripDetailPage', () => {
       });
     });
 
-    it('files render as metadata-only rows — no img thumbnails or download anchors', async () => {
+    it('image files with url render as thumbnail links; non-image files with url render as download links', async () => {
       server.use(
         http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
       );
@@ -670,16 +675,52 @@ describe('PublicTripDetailPage', () => {
 
       const modal = screen.getByTestId('activity-modal');
 
-      // No <img> rendered for file entries
-      expect(modal.querySelector('img[alt="tower-photo.jpg"]')).toBeNull();
+      // image/jpeg with url → renders <img> thumbnail inside an <a>
+      const imgThumb = modal.querySelector('img[alt="tower-photo.jpg"]');
+      expect(imgThumb).not.toBeNull();
+
+      // Both files render as anchors pointing to the file URL
+      const fileLinks = modal.querySelectorAll('a[href*="/files/"]');
+      expect(fileLinks).toHaveLength(2);
+
+      // PDF file does NOT get an img thumbnail
       expect(modal.querySelector('img[alt="entry-info.pdf"]')).toBeNull();
 
-      // No <a> elements pointing at file download paths
-      expect(modal.querySelectorAll('a[href*="/files/"]')).toHaveLength(0);
-
-      // Filenames appear as plain text
+      // Filenames still visible as link text
       expect(screen.getByText('tower-photo.jpg')).toBeInTheDocument();
       expect(screen.getByText('entry-info.pdf')).toBeInTheDocument();
+    });
+
+    it('files without url render as plain text rows — no anchor or thumbnail', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            ...tripWithFiles,
+            assignments: {
+              '101': [
+                {
+                  ...tripWithFiles.assignments['101'][0],
+                  place: {
+                    ...tripWithFiles.assignments['101'][0].place,
+                    files: [
+                      { id: 3, original_name: 'no-url.pdf', mime_type: 'application/pdf', file_size: 1024 },
+                    ],
+                  },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      const modal = screen.getByTestId('activity-modal');
+      expect(modal.querySelectorAll('a[href*="/files/"]')).toHaveLength(0);
+      expect(screen.getByText('no-url.pdf')).toBeInTheDocument();
     });
 
     it('file section header shows the file count', async () => {
@@ -1348,5 +1389,142 @@ describe('FE-PUB-TRIP-018: File count badge on place cards', () => {
     const badge = screen.getByTestId('file-count-badge');
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveTextContent('1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-019: Per-place budget section in activity modal
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-019: Per-place budget section in activity modal', () => {
+  const tripWithPlaceBudget = {
+    trip: { id: 42, title: 'Budget Modal Trip', start_date: null, end_date: null, cover_image: null, currency: 'EUR' },
+    days: [{ id: 101, trip_id: 42, day_number: 1, date: '2026-07-01', title: 'Day 1' }],
+    assignments: {
+      '101': [
+        {
+          id: 201,
+          day_id: 101,
+          order_index: 0,
+          notes: null,
+          place: {
+            id: 301,
+            name: 'Eiffel Tower',
+            description: null,
+            lat: 48.8584,
+            lng: 2.2945,
+            address: null,
+            category_id: null,
+            place_time: null,
+            end_time: null,
+            duration_minutes: null,
+            price: null,
+            currency: null,
+            website: null,
+            phone: null,
+            image_url: null,
+            transport_mode: null,
+            category: null,
+            tags: [],
+            files: [],
+          },
+        },
+      ],
+    },
+    dayNotes: { '101': [] },
+    places: [],
+    categories: [],
+    reservations: [],
+    accommodations: [],
+    budgetItems: [
+      { id: 'b1', title: 'Entry ticket', category: 'Eiffel Tower', amount: 25, note: '', persons: 2, days: 1 },
+      { id: 'b2', title: 'Audio guide', category: 'Eiffel Tower', amount: 5, note: '', persons: 2, days: 1 },
+      { id: 'b3', title: 'Hotel', category: 'Accommodation', amount: 300, note: '', persons: 1, days: 3 },
+    ],
+    budgetSummary: { totalBudget: 330, currency: 'EUR' },
+  };
+
+  async function openBudgetModal() {
+    renderPublicTrip('42');
+    await waitFor(() => expect(screen.getAllByText('Eiffel Tower').length).toBeGreaterThan(0));
+    fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+    await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+  }
+
+  it('shows budget items matching the place name in the modal', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaceBudget)),
+    );
+
+    await openBudgetModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal).toHaveTextContent('Budget');
+    const items = modal.querySelectorAll('[data-testid="modal-budget-item"]');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('Entry ticket');
+    expect(items[0]).toHaveTextContent('25');
+    expect(items[1]).toHaveTextContent('Audio guide');
+    expect(items[1]).toHaveTextContent('5');
+  });
+
+  it('does not show budget items from other categories', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaceBudget)),
+    );
+
+    await openBudgetModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal).not.toHaveTextContent('Hotel');
+  });
+
+  it('hides the budget section when no budget items match the place name', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          ...tripWithPlaceBudget,
+          budgetItems: [
+            { id: 'b3', title: 'Hotel', category: 'Accommodation', amount: 300, note: '', persons: 1, days: 3 },
+          ],
+        }),
+      ),
+    );
+
+    await openBudgetModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal.querySelectorAll('[data-testid="modal-budget-item"]')).toHaveLength(0);
+    expect(modal).not.toHaveTextContent('Budget');
+  });
+
+  it('hides the budget section when budgetItems is absent from the response', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          ...tripWithPlaceBudget,
+          budgetItems: undefined,
+          budgetSummary: undefined,
+        }),
+      ),
+    );
+
+    await openBudgetModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    expect(modal.querySelectorAll('[data-testid="modal-budget-item"]')).toHaveLength(0);
+  });
+
+  it('renders budget amounts with the trip currency', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaceBudget)),
+    );
+
+    await openBudgetModal();
+
+    const modal = screen.getByTestId('activity-modal');
+    const items = modal.querySelectorAll('[data-testid="modal-budget-item"]');
+    expect(items[0]).toHaveTextContent('EUR');
+    expect(items[1]).toHaveTextContent('EUR');
   });
 });

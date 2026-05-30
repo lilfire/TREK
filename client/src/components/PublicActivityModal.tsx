@@ -39,12 +39,14 @@ function truncateText(text: string, maxLen = 120): string {
 interface Props {
   assignment: any
   tripCurrency: string
+  budgetItems?: any[]
   onClose: () => void
 }
 
-export default function PublicActivityModal({ assignment, tripCurrency, onClose }: Props) {
+export default function PublicActivityModal({ assignment, tripCurrency, budgetItems, onClose }: Props) {
   const place = assignment.place
   const files: any[] = place.files || []
+  const placeBudgetItems = (budgetItems || []).filter((item: any) => item.category === place.name)
 
   return (
     <div
@@ -159,7 +161,31 @@ export default function PublicActivityModal({ assignment, tripCurrency, onClose 
             )}
           </div>
 
-          {/* Files — metadata-only; no URLs available on public page */}
+          {/* Per-place budget items filtered by category matching place name */}
+          {placeBudgetItems.length > 0 && (
+            <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                Budget
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {placeBudgetItems.map((item: any) => (
+                  <div
+                    key={item.id}
+                    data-testid="modal-budget-item"
+                    className="flex items-center gap-2.5 text-sm"
+                  >
+                    <span className="text-zinc-400 text-xs font-mono w-3.5 text-center flex-shrink-0">$</span>
+                    <span className="flex-1 text-zinc-600 dark:text-zinc-300">{item.title}</span>
+                    <span className="text-zinc-600 dark:text-zinc-300 font-medium tabular-nums">
+                      {Number(item.amount).toLocaleString()} {tripCurrency}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Files — clickable downloads/thumbnails when URL is available */}
           {files.length > 0 && (
             <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
@@ -168,6 +194,33 @@ export default function PublicActivityModal({ assignment, tripCurrency, onClose 
               <div className="flex flex-col gap-1.5">
                 {files.map((f: any) => {
                   const size = formatFileSize(f.file_size)
+                  const isImage = f.mime_type?.startsWith('image/')
+
+                  if (f.url) {
+                    return (
+                      <a
+                        key={f.id}
+                        href={f.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-300 py-1 hover:text-zinc-900 dark:hover:text-white"
+                      >
+                        {isImage
+                          ? <img
+                              src={f.url}
+                              alt={f.original_name}
+                              className="w-8 h-8 object-cover rounded flex-shrink-0"
+                            />
+                          : <FileText size={13} className="flex-shrink-0 text-zinc-400" />
+                        }
+                        <span className="truncate flex-1">{f.original_name}</span>
+                        <span className="ml-auto text-xs text-zinc-400 flex-shrink-0">
+                          {mimeAbbr(f.mime_type || '')}{size ? `, ${size}` : ''}
+                        </span>
+                      </a>
+                    )
+                  }
+
                   return (
                     <div key={f.id} className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-300 py-1">
                       <FileText size={13} className="flex-shrink-0 text-zinc-400" />

@@ -354,6 +354,7 @@ export default function PublicTripDetailPage() {
         <PublicActivityModal
           assignment={selectedActivity}
           tripCurrency={trip.currency}
+          budgetItems={budgetItems}
           onClose={() => setSelectedActivity(null)}
         />
       )}
