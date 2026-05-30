@@ -114,7 +114,6 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
                 id: f.id, original_name: f.original_name,
                 file_size: f.file_size, mime_type: f.mime_type,
                 description: f.description, starred: f.starred ? true : false,
-                url: `/api/public/trips/${tripId}/files/${f.id}`,
               });
             }
           }
