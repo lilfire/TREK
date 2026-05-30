@@ -401,3 +401,125 @@ describe('Trip members', () => {
     expect(res.status).toBe(404);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fee_currency (LSO-1519)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('fee_currency', () => {
+  it('LSO-1519-A — saving fee_currency=USD with trip currency=NOK persists and returns correctly', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip', currency: 'NOK' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: 150, fee_mode: 'rsvp', fee_currency: 'USD' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.fee_currency).toBe('USD');
+    expect(res.body.trip.registration_fee).toBe(150);
+
+    const row = testDb.prepare('SELECT fee_currency FROM trips WHERE id = ?').get(trip.id) as { fee_currency: string };
+    expect(row.fee_currency).toBe('USD');
+  });
+
+  it('LSO-1519-B — clearing registration_fee to null also clears fee_currency', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip' });
+    testDb.prepare("UPDATE trips SET registration_fee=100, fee_mode='rsvp', fee_currency='EUR' WHERE id=?").run(trip.id);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.registration_fee).toBeNull();
+    expect(res.body.trip.fee_currency).toBeNull();
+
+    const row = testDb.prepare('SELECT fee_currency, registration_fee FROM trips WHERE id = ?').get(trip.id) as { fee_currency: string | null; registration_fee: number | null };
+    expect(row.registration_fee).toBeNull();
+    expect(row.fee_currency).toBeNull();
+  });
+
+  it('LSO-1519-C — clearing registration_fee to 0 also clears fee_currency', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip' });
+    testDb.prepare("UPDATE trips SET registration_fee=50, fee_mode='rsvp', fee_currency='GBP' WHERE id=?").run(trip.id);
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: 0 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.fee_currency).toBeNull();
+  });
+
+  it('LSO-1519-D — existing trips without fee_currency continue to work (backwards compat)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Old Trip' });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip).toBeDefined();
+    // fee_currency is null/undefined for trips that never set it — both are valid
+    expect(res.body.trip.fee_currency ?? null).toBeNull();
+  });
+
+  it('LSO-1519-E — invalid fee_currency "us" returns 400', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: 100, fee_currency: 'us' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/fee_currency/i);
+  });
+
+  it('LSO-1519-F — invalid fee_currency "USDX" returns 400', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: 100, fee_currency: 'USDX' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/fee_currency/i);
+  });
+
+  it('LSO-1519-G — invalid fee_currency "123" returns 400', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: 100, fee_currency: '123' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/fee_currency/i);
+  });
+
+  it('LSO-1519-H — null fee_currency is valid (omitted)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Trip' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ registration_fee: 100, fee_mode: 'rsvp', fee_currency: null });
+
+    expect(res.status).toBe(200);
+    expect(res.body.trip.fee_currency).toBeNull();
+  });
+});

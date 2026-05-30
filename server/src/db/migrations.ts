@@ -2319,6 +2319,10 @@ function runMigrations(db: Database.Database): void {
         db.exec('ALTER TABLE places DROP COLUMN budget_item_id');
       }
     },
+    // LSO-1519: fee_currency — registration fee can use a different currency than trip base currency
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN fee_currency TEXT`);
+    },
   ];
 
   if (currentVersion < migrations.length) {
