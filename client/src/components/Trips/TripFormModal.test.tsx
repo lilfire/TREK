@@ -1,5 +1,5 @@
 // FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-033 + FEE-001 to FEE-009
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { useAuthStore } from '../../store/authStore';
@@ -343,36 +343,57 @@ describe('TripFormModal', () => {
 // ── Country & Currency fields ─────────────────────────────────────────────────
 
 describe('Country and Currency fields', () => {
-  it('FE-COMP-TRIPFORM-034: renders country text input and currency select', () => {
+  it('FE-COMP-TRIPFORM-034: renders country dropdown and currency dropdown', () => {
     render(<TripFormModal {...defaultProps} />);
-    expect(screen.getByTestId('country-input')).toBeInTheDocument();
+    expect(screen.getByTestId('country-select')).toBeInTheDocument();
     expect(screen.getByTestId('currency-select')).toBeInTheDocument();
     expect(screen.getByText('Country')).toBeInTheDocument();
     expect(screen.getByText('Currency')).toBeInTheDocument();
   });
 
-  it('FE-COMP-TRIPFORM-035: form submission includes country and currency in payload', async () => {
+  it('FE-COMP-TRIPFORM-035: form submission includes country (ISO code) and currency in payload', async () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockResolvedValue({});
     render(<TripFormModal {...defaultProps} onSave={onSave} />);
     await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Norway Trip');
-    await user.type(screen.getByTestId('country-input'), 'Norway');
-    await user.selectOptions(screen.getByTestId('currency-select'), 'EUR');
+
+    // Open the country CustomSelect and select Norway (ISO code: NO)
+    const countryContainer = screen.getByTestId('country-select');
+    await user.click(within(countryContainer).getByRole('button'));
+    const countrySearch = await screen.findByPlaceholderText('...');
+    await user.type(countrySearch, 'Norway');
+    const norwayOption = await screen.findByRole('button', { name: 'Norway' });
+    await user.click(norwayOption);
+
+    // Open the currency CustomSelect and select EUR
+    const currencyContainer = screen.getByTestId('currency-select');
+    await user.click(within(currencyContainer).getByRole('button'));
+    const currencySearch = await screen.findByPlaceholderText('...');
+    await user.type(currencySearch, 'EUR');
+    const eurOption = await screen.findByRole('button', { name: /^EUR/ });
+    await user.click(eurOption);
+
     const submitBtns = screen.getAllByText('Create New Trip');
     const submitBtn = submitBtns.find(el => el.closest('button'))!;
     await user.click(submitBtn.closest('button')!);
     await waitFor(() => expect(onSave).toHaveBeenCalled());
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
-      country: 'Norway',
+      country: 'NO',
       currency: 'EUR',
     }));
   });
 
-  it('FE-COMP-TRIPFORM-036: pre-fills country and currency when editing an existing trip', () => {
-    const trip = buildTrip({ id: 1, country: 'Sweden', currency: 'SEK' });
+  it('FE-COMP-TRIPFORM-036: pre-fills country (ISO code) and currency when editing an existing trip', () => {
+    // ISO 3166-1 alpha-2 codes are now stored as values
+    const trip = buildTrip({ id: 1, country: 'SE', currency: 'SEK' } as any);
     render(<TripFormModal {...defaultProps} trip={trip} />);
-    expect((screen.getByTestId('country-input') as HTMLInputElement).value).toBe('Sweden');
-    expect((screen.getByTestId('currency-select') as HTMLSelectElement).value).toBe('SEK');
+    // Country CustomSelect trigger shows the display name for 'SE'
+    const countryTrigger = within(screen.getByTestId('country-select')).getByRole('button');
+    // The label is determined by Intl.DisplayNames; in test env it should be 'Sweden'
+    expect(countryTrigger.textContent).toMatch(/Sweden|SE/);
+    // Currency trigger shows label for SEK
+    const currencyTrigger = within(screen.getByTestId('currency-select')).getByRole('button');
+    expect(currencyTrigger.textContent).toContain('SEK');
   });
 });
 

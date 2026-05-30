@@ -207,6 +207,30 @@ describe('GET /api/public/trips/:id', () => {
     expect(dayAssignments[0].notes).toBe('Must see');
   });
 
+  function insertTripFileLinked(
+    tripId: number,
+    placeId: number,
+    opts: { starred?: number; created_at?: string; originalName?: string; mimeType?: string } = {}
+  ): number {
+    const r = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, starred, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      tripId,
+      `ptrip-test-linked-${Date.now()}-${Math.random()}`,
+      opts.originalName ?? 'doc.pdf',
+      100,
+      opts.mimeType ?? 'application/pdf',
+      opts.starred ?? 0,
+      opts.created_at ?? new Date().toISOString(),
+    );
+    const fileId = r.lastInsertRowid as number;
+    testDb.prepare(
+      `INSERT INTO file_links (file_id, place_id) VALUES (?, ?)`
+    ).run(fileId, placeId);
+    return fileId;
+  }
+
   it('PTRIP-006 — includes day notes in response', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Trip With Notes' });
@@ -220,6 +244,74 @@ describe('GET /api/public/trips/:id', () => {
     expect(Array.isArray(dayNotes)).toBe(true);
     expect(dayNotes).toHaveLength(1);
     expect(dayNotes[0].text).toBe('Arrive early');
+  });
+
+  it('PTRIP-007 — place object includes duration_minutes', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Duration Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2025-11-01' });
+    const place = createPlace(testDb, trip.id, { name: 'Museum' });
+    testDb.prepare('UPDATE places SET duration_minutes = 90 WHERE id = ?').run(place.id);
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    const assignments = res.body.assignments[day.id];
+    expect(Array.isArray(assignments)).toBe(true);
+    expect(assignments).toHaveLength(1);
+    expect(assignments[0].place.duration_minutes).toBe(90);
+  });
+
+  it('PTRIP-008 — place files include starred (boolean), exclude url', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Files Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2025-11-02' });
+    const place = createPlace(testDb, trip.id, { name: 'Gallery' });
+    createDayAssignment(testDb, day.id, place.id, {});
+    insertTripFileLinked(trip.id, place.id, { starred: 1, originalName: 'starred.pdf' });
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    const assignments = res.body.assignments[day.id];
+    expect(assignments).toHaveLength(1);
+    const files = assignments[0].place.files;
+    expect(Array.isArray(files)).toBe(true);
+    expect(files).toHaveLength(1);
+    expect(typeof files[0].starred).toBe('boolean');
+    expect(files[0].starred).toBe(true);
+    expect(files[0].url).toBeUndefined();
+    expect(files[0].original_name).toBe('starred.pdf');
+  });
+
+  it('PTRIP-009 — files are ordered starred-first, then created_at ASC', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Sort Files Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2025-11-03' });
+    const place = createPlace(testDb, trip.id, { name: 'Library' });
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    // Insert three files: not-starred (older), starred (middle), not-starred (newer)
+    insertTripFileLinked(trip.id, place.id, { starred: 0, created_at: '2025-01-01T10:00:00Z', originalName: 'c_unstarred_old.pdf' });
+    insertTripFileLinked(trip.id, place.id, { starred: 1, created_at: '2025-01-01T11:00:00Z', originalName: 'b_starred.pdf' });
+    insertTripFileLinked(trip.id, place.id, { starred: 0, created_at: '2025-01-01T12:00:00Z', originalName: 'a_unstarred_new.pdf' });
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    const assignments = res.body.assignments[day.id];
+    expect(assignments).toHaveLength(1);
+    const files = assignments[0].place.files;
+    expect(files).toHaveLength(3);
+    // starred file must come first
+    expect(files[0].starred).toBe(true);
+    expect(files[0].original_name).toBe('b_starred.pdf');
+    // then unstarred files ordered by created_at ASC
+    expect(files[1].starred).toBe(false);
+    expect(files[1].original_name).toBe('c_unstarred_old.pdf');
+    expect(files[2].starred).toBe(false);
+    expect(files[2].original_name).toBe('a_unstarred_new.pdf');
   });
 });
 

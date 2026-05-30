@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Modal from '../shared/Modal'
 import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe, DollarSign } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
@@ -9,6 +9,27 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import type { Trip } from '../../types'
+import { CURRENCY_CODES, CURRENCY_SYMBOLS } from '../../utils/currencies'
+
+// ISO 3166-1 alpha-2 codes for the country dropdown
+const ISO_3166_ALPHA2 = [
+  'AC','AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AS','AT','AU','AW','AX','AZ',
+  'BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ',
+  'CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ',
+  'DE','DJ','DK','DM','DO','DZ','EC','EE','EG','EH','ER','ES','ET',
+  'FI','FJ','FK','FM','FO','FR','GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY',
+  'HK','HM','HN','HR','HT','HU','ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT',
+  'JE','JM','JO','JP','KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ',
+  'LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY',
+  'MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ',
+  'NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ',
+  'OM','PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY',
+  'QA','RE','RO','RS','RU','RW',
+  'SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ',
+  'TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ',
+  'UA','UG','UM','US','UY','UZ','VA','VC','VE','VG','VI','VN','VU','WF','WS',
+  'XK','YE','YT','ZA','ZM','ZW',
+]
 
 interface TripFormModalProps {
   isOpen: boolean
@@ -29,6 +50,18 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const can = useCanDo()
   const canUploadCover = !isEditing || can('trip_cover_upload', trip)
   const canEditTrip = !isEditing || can('trip_edit', trip)
+
+  const countryOptions = useMemo(() => {
+    let dn: Intl.DisplayNames | null = null
+    try { dn = new Intl.DisplayNames(['en'], { type: 'region' }) } catch { /* */ }
+    return ISO_3166_ALPHA2
+      .map(code => ({ value: code, label: (dn ? dn.of(code) : null) || code }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [])
+
+  const currencyOptions = useMemo(() =>
+    CURRENCY_CODES.map(c => ({ value: c, label: `${c} (${CURRENCY_SYMBOLS[c] || c})` }))
+  , [])
 
   const [formData, setFormData] = useState({
     title: '',
@@ -536,29 +569,28 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               {t('trips.country')}
             </label>
-            <input
-              data-testid="country-input"
-              type="text"
-              value={country}
-              onChange={e => setCountry(e.target.value)}
-              placeholder="e.g. Norway"
-              className={inputCls}
-            />
+            <div data-testid="country-select">
+              <CustomSelect
+                value={country}
+                onChange={setCountry}
+                options={countryOptions}
+                placeholder={t('trips.selectCountry')}
+                searchable
+              />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               {t('trips.currency')}
             </label>
-            <select
-              data-testid="currency-select"
-              value={currency}
-              onChange={e => setCurrency(e.target.value)}
-              className={inputCls}
-            >
-              {['NOK', 'EUR', 'USD', 'GBP', 'SEK', 'DKK'].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <div data-testid="currency-select">
+              <CustomSelect
+                value={currency}
+                onChange={setCurrency}
+                options={currencyOptions}
+                searchable
+              />
+            </div>
           </div>
         </div>
 
