@@ -70,6 +70,11 @@ const publicTrip = {
   categories: [],
   reservations: [],
   accommodations: [],
+  budgetItems: [
+    { id: '1', title: 'Flights', category: 'Transport', amount: 400, note: '', persons: 2, days: 1 },
+    { id: '2', title: 'Hotel', category: 'Accommodation', amount: 600, note: '', persons: 2, days: 3 },
+  ],
+  budgetSummary: { totalBudget: 1000, currency: 'EUR' },
 };
 
 export const publicTripsHandlers = [
