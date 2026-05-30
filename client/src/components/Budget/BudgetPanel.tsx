@@ -72,6 +72,7 @@ import { budgetApi } from '../../api/client'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import type { BudgetItem, BudgetMember } from '../../types'
 import { currencyDecimals } from '../../utils/formatters'
+import { CURRENCY_CODES, CURRENCY_SYMBOLS } from '../../utils/currencies'
 
 interface TripMember {
   id: number
@@ -93,29 +94,12 @@ interface PerPersonSummaryEntry {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const CURRENCIES = [
-  'EUR', 'USD', 'GBP', 'JPY', 'CHF', 'CZK', 'PLN', 'SEK', 'NOK', 'DKK',
-  'TRY', 'THB', 'AUD', 'CAD', 'NZD', 'BRL', 'MXN', 'INR', 'IDR', 'MYR',
-  'PHP', 'SGD', 'KRW', 'CNY', 'HKD', 'TWD', 'ZAR', 'AED', 'SAR', 'ILS',
-  'EGP', 'MAD', 'HUF', 'RON', 'BGN', 'HRK', 'ISK', 'RUB', 'UAH', 'BDT',
-  'LKR', 'VND', 'CLP', 'COP', 'PEN', 'ARS',
-]
-const SYMBOLS = {
-  EUR: '€', USD: '$', GBP: '£', JPY: '¥', CHF: 'CHF', CZK: 'Kč', PLN: 'zł',
-  SEK: 'kr', NOK: 'kr', DKK: 'kr', TRY: '₺', THB: '฿', AUD: 'A$', CAD: 'C$',
-  NZD: 'NZ$', BRL: 'R$', MXN: 'MX$', INR: '₹', IDR: 'Rp', MYR: 'RM',
-  PHP: '₱', SGD: 'S$', KRW: '₩', CNY: '¥', HKD: 'HK$', TWD: 'NT$',
-  ZAR: 'R', AED: 'د.إ', SAR: '﷼', ILS: '₪', EGP: 'E£', MAD: 'MAD',
-  HUF: 'Ft', RON: 'lei', BGN: 'лв', HRK: 'kn', ISK: 'kr', RUB: '₽',
-  UAH: '₴', BDT: '৳', LKR: 'Rs', VND: '₫', CLP: 'CL$', COP: 'CO$',
-  PEN: 'S/.', ARS: 'AR$',
-}
 const PIE_COLORS = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#06b6d4', '#84cc16', '#a855f7']
 
 const fmtNum = (v, locale, cur) => {
   if (v == null || isNaN(v)) return '-'
   const d = currencyDecimals(cur)
-  return Number(v).toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + (SYMBOLS[cur] || cur)
+  return Number(v).toLocaleString(locale, { minimumFractionDigits: d, maximumFractionDigits: d }) + ' ' + (CURRENCY_SYMBOLS[cur] || cur)
 }
 
 const calcPP = (p, n) => (n > 0 ? p / n : null)
@@ -725,7 +709,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                 value={currency}
                 onChange={setCurrency}
                 disabled={!canEdit}
-                options={CURRENCIES.map(c => ({ value: c, label: `${c} (${SYMBOLS[c] || c})` }))}
+                options={CURRENCY_CODES.map(c => ({ value: c, label: `${c} (${CURRENCY_SYMBOLS[c] || c})` }))}
                 searchable
               />
             </div>
@@ -1011,7 +995,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, letterSpacing: '-0.03em', lineHeight: 1 }}>
                   <span style={{ fontSize: 38, fontWeight: 700 }}>{integerPart}</span>
                   {decimalPart && <span style={{ fontSize: 22, fontWeight: 500, color: theme.sub }}>{sep}{decimalPart}</span>}
-                  <span style={{ fontSize: 22, fontWeight: 500, color: theme.sub, marginLeft: 2 }}>{SYMBOLS[currency] || currency}</span>
+                  <span style={{ fontSize: 22, fontWeight: 500, color: theme.sub, marginLeft: 2 }}>{CURRENCY_SYMBOLS[currency] || currency}</span>
                 </div>
               )
             })()}
