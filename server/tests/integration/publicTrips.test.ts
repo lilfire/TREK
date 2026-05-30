@@ -263,14 +263,14 @@ describe('GET /api/public/trips/:id', () => {
     expect(assignments[0].place.duration_minutes).toBe(90);
   });
 
-  it('PTRIP-008 — place files include starred (boolean), exclude url', async () => {
+  it('PTRIP-008 — place files include starred (boolean) and url', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Files Trip' });
     testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
     const day = createDay(testDb, trip.id, { date: '2025-11-02' });
     const place = createPlace(testDb, trip.id, { name: 'Gallery' });
     createDayAssignment(testDb, day.id, place.id, {});
-    insertTripFileLinked(trip.id, place.id, { starred: 1, originalName: 'starred.pdf' });
+    const fileId = insertTripFileLinked(trip.id, place.id, { starred: 1, originalName: 'starred.pdf' });
 
     const res = await request(app).get(`/api/public/trips/${trip.id}`);
     expect(res.status).toBe(200);
@@ -281,7 +281,7 @@ describe('GET /api/public/trips/:id', () => {
     expect(files).toHaveLength(1);
     expect(typeof files[0].starred).toBe('boolean');
     expect(files[0].starred).toBe(true);
-    expect(files[0].url).toBeUndefined();
+    expect(files[0].url).toBe(`/api/public/trips/${trip.id}/files/${fileId}`);
     expect(files[0].original_name).toBe('starred.pdf');
   });
 
