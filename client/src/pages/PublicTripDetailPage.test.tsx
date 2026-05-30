@@ -1273,3 +1273,80 @@ describe('FE-PUB-TRIP-017: Budget section hidden when budgetItems is empty or ab
     expect(screen.queryByTestId('budget-section')).not.toBeInTheDocument();
   });
 });
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-018: File count badge on place cards
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-018: File count badge on place cards', () => {
+  it('shows a file count badge on the card when place.files is non-empty', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(
+          buildTripWithPlace({
+            files: [
+              { id: 1, original_name: 'doc.pdf', mime_type: 'application/pdf', file_size: 1024 },
+              { id: 2, original_name: 'photo.jpg', mime_type: 'image/jpeg', file_size: 2048 },
+            ],
+          }),
+        ),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => expect(screen.getByText('Test Place')).toBeInTheDocument());
+
+    const badge = screen.getByTestId('file-count-badge');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('2');
+  });
+
+  it('does not render a file count badge when place.files is an empty array', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ files: [] })),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => expect(screen.getByText('Test Place')).toBeInTheDocument());
+
+    expect(screen.queryByTestId('file-count-badge')).not.toBeInTheDocument();
+  });
+
+  it('does not render a file count badge when place.files is absent', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(buildTripWithPlace({ files: undefined })),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => expect(screen.getByText('Test Place')).toBeInTheDocument());
+
+    expect(screen.queryByTestId('file-count-badge')).not.toBeInTheDocument();
+  });
+
+  it('shows count of 1 correctly for a single file', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json(
+          buildTripWithPlace({
+            files: [{ id: 5, original_name: 'ticket.pdf', mime_type: 'application/pdf', file_size: 512 }],
+          }),
+        ),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => expect(screen.getByText('Test Place')).toBeInTheDocument());
+
+    const badge = screen.getByTestId('file-count-badge');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('1');
+  });
+});
