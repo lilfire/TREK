@@ -1180,3 +1180,96 @@ describe('FE-PUB-TRIP-015: fee_currency passed to RsvpForm', () => {
     expect(screen.getByTestId('fee-deadline-notice')).toHaveTextContent('100 EUR');
   });
 });
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-016: Budget section renders with items
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-016: Budget section renders with items', () => {
+  it('shows budget section heading, total, currency, item titles, amounts, and categories', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: { id: 1, title: 'Budget Trip', start_date: null, end_date: null, cover_image: null, currency: 'EUR' },
+          days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          budgetItems: [
+            { id: '1', title: 'Flights', category: 'Transport', amount: 400, note: '', persons: 1, days: 1 },
+            { id: '2', title: 'Hotel', category: 'Accommodation', amount: 600, note: '', persons: 1, days: 3 },
+          ],
+          budgetSummary: { totalBudget: 1000, currency: 'USD' },
+        }),
+      ),
+    );
+
+    renderPublicTrip('1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('budget-section')).toBeInTheDocument();
+    });
+
+    // Section heading
+    expect(screen.getByText('Budget')).toBeInTheDocument();
+
+    // Total and currency visible
+    const totalEl = screen.getByTestId('budget-total');
+    expect(totalEl).toHaveTextContent('1,000');
+    expect(totalEl).toHaveTextContent('USD');
+
+    // Item titles, amounts, and categories visible
+    expect(screen.getByText('Flights')).toBeInTheDocument();
+    expect(screen.getByText('Transport')).toBeInTheDocument();
+    expect(screen.getByText('Hotel')).toBeInTheDocument();
+    expect(screen.getByText('Accommodation')).toBeInTheDocument();
+
+    const items = screen.getAllByTestId('budget-item');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('400');
+    expect(items[1]).toHaveTextContent('600');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-017: Budget section hidden when budgetItems is empty or absent
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-017: Budget section hidden when budgetItems is empty or absent', () => {
+  it('hides budget section when budgetItems is an empty array', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: { id: 1, title: 'Empty Budget Trip', start_date: null, end_date: null, cover_image: null, currency: 'EUR' },
+          days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+          budgetItems: [],
+          budgetSummary: { totalBudget: 0, currency: 'EUR' },
+        }),
+      ),
+    );
+
+    renderPublicTrip('1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('budget-section')).not.toBeInTheDocument();
+  });
+
+  it('hides budget section when budgetItems is absent from the response', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: { id: 1, title: 'No Budget Trip', start_date: null, end_date: null, cover_image: null, currency: 'EUR' },
+          days: [], assignments: {}, dayNotes: {}, places: [], categories: [], reservations: [], accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('1');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('budget-section')).not.toBeInTheDocument();
+  });
+});
