@@ -506,13 +506,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
     const pendingFiles = data._pendingFiles
     delete data._pendingFiles
     if (editingPlace) {
-      // Always strip time fields from place update — time is per-assignment only
       const { place_time, end_time, ...placeData } = data
-      await tripActions.updatePlace(tripId, editingPlace.id, placeData)
-      // If editing from assignment context, save time per-assignment
       if (editingAssignmentId) {
+        // Assignment context: persist place fields separately from per-assignment times
+        await tripActions.updatePlace(tripId, editingPlace.id, placeData)
         await assignmentsApi.updateTime(tripId, editingAssignmentId, { place_time: place_time || null, end_time: end_time || null })
         await tripActions.refreshDays(tripId)
+      } else {
+        // No assignment context (sidebar/popup): include times directly on the place
+        await tripActions.updatePlace(tripId, editingPlace.id, { ...placeData, place_time: place_time || null, end_time: end_time || null })
       }
       // Upload pending files with place_id
       if (pendingFiles?.length > 0) {

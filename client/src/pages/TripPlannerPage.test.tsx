@@ -888,6 +888,204 @@ describe('TripPlannerPage', () => {
     });
   });
 
+  describe('FE-PAGE-PLANNER-029b: handleSavePlace — assignment context sends times to assignmentsApi only', () => {
+    it('sends times to assignmentsApi.updateTime and omits them from updatePlace when editing from day timeline', async () => {
+      let updatePlaceBody: Record<string, unknown> | null = null;
+      let updateTimeBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.put('/api/trips/42/places/1', async ({ request }) => {
+          updatePlaceBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ place: buildPlace({ id: 1, trip_id: 42 }) });
+        }),
+        http.put('/api/trips/42/assignments/10/time', async ({ request }) => {
+          updateTimeBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ success: true });
+        }),
+      );
+
+      vi.useFakeTimers();
+
+      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      const assignment = buildAssignment({ id: 10, day_id: 99, place, order_index: 0 });
+      seedTripStore({ id: 42 });
+      seedStore(useTripStore, { places: [place], assignments: { '99': [assignment] } } as any);
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => { expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument(); });
+
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onEditPlace?.(place, assignment.id);
+      });
+
+      await act(async () => {
+        await capturedPlaceFormModalProps.current.onSave?.({ name: 'Updated', lat: 1, lng: 2, place_time: '09:00', end_time: '10:00' });
+      });
+
+      await waitFor(() => {
+        expect(updateTimeBody).toMatchObject({ place_time: '09:00', end_time: '10:00' });
+        expect(updatePlaceBody).not.toHaveProperty('place_time');
+        expect(updatePlaceBody).not.toHaveProperty('end_time');
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-029c: handleSavePlace — no assignment context persists times via updatePlace', () => {
+    it('includes place_time and end_time in updatePlace body when editing from All Places sidebar', async () => {
+      let updatePlaceBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.put('/api/trips/42/places/1', async ({ request }) => {
+          updatePlaceBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ place: buildPlace({ id: 1, trip_id: 42 }) });
+        }),
+      );
+
+      vi.useFakeTimers();
+
+      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      seedTripStore({ id: 42 });
+      seedStore(useTripStore, { places: [place] } as any);
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => { expect(screen.getByTestId('places-sidebar')).toBeInTheDocument(); });
+
+      // PlacesSidebar onEditPlace sets editingAssignmentId=null
+      await act(async () => {
+        capturedPlacesSidebarProps.current.onEditPlace?.(place);
+      });
+
+      await act(async () => {
+        await capturedPlaceFormModalProps.current.onSave?.({ name: 'Updated', lat: 1, lng: 2, place_time: '14:00', end_time: '15:30' });
+      });
+
+      await waitFor(() => {
+        expect(updatePlaceBody).toMatchObject({ place_time: '14:00', end_time: '15:30' });
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-029d: handleSavePlace — map popup (no assignment) persists times', () => {
+    it('includes place_time and end_time in updatePlace when editing from map popup with no day selected', async () => {
+      let updatePlaceBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.put('/api/trips/42/places/1', async ({ request }) => {
+          updatePlaceBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ place: buildPlace({ id: 1, trip_id: 42 }) });
+        }),
+      );
+
+      vi.useFakeTimers();
+
+      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      mockPlaceSelectionState.selectedPlaceId = place.id;
+      seedTripStore({ id: 42 });
+      seedStore(useTripStore, { places: [place] } as any);
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => { expect(screen.getByTestId('place-inspector')).toBeInTheDocument(); });
+
+      // PlaceInspector onEdit with no selectedAssignmentId → editingAssignmentId=null
+      await act(async () => {
+        capturedPlaceInspectorProps.current.onEdit?.();
+      });
+
+      await act(async () => {
+        await capturedPlaceFormModalProps.current.onSave?.({ name: 'Updated', lat: 1, lng: 2, place_time: '11:00', end_time: '12:00' });
+      });
+
+      await waitFor(() => {
+        expect(updatePlaceBody).toMatchObject({ place_time: '11:00', end_time: '12:00' });
+      });
+    });
+  });
+
+  describe('FE-PAGE-PLANNER-029e: handleSavePlace — clearing times sends null in both paths', () => {
+    it('sends place_time:null and end_time:null in updatePlace when times are cleared (no assignment)', async () => {
+      let updatePlaceBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.put('/api/trips/42/places/1', async ({ request }) => {
+          updatePlaceBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ place: buildPlace({ id: 1, trip_id: 42 }) });
+        }),
+      );
+
+      vi.useFakeTimers();
+
+      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      seedTripStore({ id: 42 });
+      seedStore(useTripStore, { places: [place] } as any);
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => { expect(screen.getByTestId('places-sidebar')).toBeInTheDocument(); });
+
+      await act(async () => {
+        capturedPlacesSidebarProps.current.onEditPlace?.(place);
+      });
+
+      await act(async () => {
+        await capturedPlaceFormModalProps.current.onSave?.({ name: 'Updated', lat: 1, lng: 2, place_time: '', end_time: '' });
+      });
+
+      await waitFor(() => {
+        expect(updatePlaceBody).toMatchObject({ place_time: null, end_time: null });
+      });
+    });
+
+    it('sends place_time:null and end_time:null to assignmentsApi when times cleared (with assignment)', async () => {
+      let updateTimeBody: Record<string, unknown> | null = null;
+
+      server.use(
+        http.put('/api/trips/42/places/1', async () =>
+          HttpResponse.json({ place: buildPlace({ id: 1, trip_id: 42 }) }),
+        ),
+        http.put('/api/trips/42/assignments/10/time', async ({ request }) => {
+          updateTimeBody = await request.json() as Record<string, unknown>;
+          return HttpResponse.json({ success: true });
+        }),
+      );
+
+      vi.useFakeTimers();
+
+      const place = buildPlace({ id: 1, trip_id: 42, lat: 48.8566, lng: 2.3522 });
+      const assignment = buildAssignment({ id: 10, day_id: 99, place, order_index: 0 });
+      seedTripStore({ id: 42 });
+      seedStore(useTripStore, { places: [place], assignments: { '99': [assignment] } } as any);
+
+      renderPlannerPage(42);
+      act(() => { vi.runAllTimers(); });
+      vi.useRealTimers();
+
+      await waitFor(() => { expect(screen.getByTestId('day-plan-sidebar')).toBeInTheDocument(); });
+
+      await act(async () => {
+        capturedDayPlanSidebarProps.current.onEditPlace?.(place, assignment.id);
+      });
+
+      await act(async () => {
+        await capturedPlaceFormModalProps.current.onSave?.({ name: 'Updated', lat: 1, lng: 2, place_time: '', end_time: '' });
+      });
+
+      await waitFor(() => {
+        expect(updateTimeBody).toMatchObject({ place_time: null, end_time: null });
+      });
+    });
+  });
+
   describe('FE-PAGE-PLANNER-030: confirmDeletePlace covers delete-place logic', () => {
     it('calls onDeletePlace then ConfirmDialog onConfirm to exercise confirmDeletePlace', async () => {
       vi.useFakeTimers();
