@@ -6,6 +6,27 @@ import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import RsvpForm from '../components/Trips/RsvpForm'
 
+function mimeAbbr(mimeType: string): string {
+  const map: Record<string, string> = {
+    'application/pdf': 'PDF',
+    'image/jpeg': 'JPEG',
+    'image/png': 'PNG',
+    'image/gif': 'GIF',
+    'image/webp': 'WEBP',
+    'video/mp4': 'MP4',
+    'video/quicktime': 'MOV',
+    'application/zip': 'ZIP',
+  }
+  return map[mimeType] || mimeType.split('/')[1]?.toUpperCase().slice(0, 4) || 'FILE'
+}
+
+function formatFileSize(bytes: number | null | undefined): string | null {
+  if (bytes == null) return null
+  if (bytes < 1024) return '< 1 KB'
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
 export default function PublicTripDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { t, locale } = useTranslation()
@@ -324,8 +345,6 @@ export default function PublicTripDetailPage() {
       {selectedActivity && (() => {
         const place = selectedActivity.place
         const files: any[] = place.files || []
-        const images = files.filter(f => (f.mime_type || '').startsWith('image/'))
-        const docs = files.filter(f => !(f.mime_type || '').startsWith('image/'))
 
         return (
           <div
@@ -368,21 +387,6 @@ export default function PublicTripDetailPage() {
               </div>
 
               <div className="p-5 flex flex-col gap-4">
-                {/* Image gallery */}
-                {images.length > 0 && (
-                  <div className={`grid gap-2 ${images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                    {images.map((f: any) => (
-                      <a key={f.id} href={f.url} target="_blank" rel="noopener noreferrer">
-                        <img
-                          src={f.url}
-                          alt={f.original_name}
-                          className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                        />
-                      </a>
-                    ))}
-                  </div>
-                )}
-
                 {/* Description */}
                 {place.description && (
                   <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">
@@ -453,29 +457,25 @@ export default function PublicTripDetailPage() {
                   )}
                 </div>
 
-                {/* Documents */}
-                {docs.length > 0 && (
+                {/* Files — metadata-only; no URLs available on public page */}
+                {files.length > 0 && (
                   <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
-                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Files</p>
+                    <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                      Files ({files.length})
+                    </p>
                     <div className="flex flex-col gap-1.5">
-                      {docs.map((f: any) => (
-                        <a
-                          key={f.id}
-                          href={f.url}
-                          target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white py-1"
-                        >
-                          <FileText size={13} className="flex-shrink-0 text-zinc-400" />
-                          <span className="truncate">{f.original_name}</span>
-                          {f.file_size && (
+                      {files.map((f: any) => {
+                        const size = formatFileSize(f.file_size)
+                        return (
+                          <div key={f.id} className="flex items-center gap-2.5 text-sm text-zinc-600 dark:text-zinc-300 py-1">
+                            <FileText size={13} className="flex-shrink-0 text-zinc-400" />
+                            <span className="truncate flex-1">{f.original_name}</span>
                             <span className="ml-auto text-xs text-zinc-400 flex-shrink-0">
-                              {f.file_size < 1024 * 1024
-                                ? `${Math.round(f.file_size / 1024)} KB`
-                                : `${(f.file_size / (1024 * 1024)).toFixed(1)} MB`}
+                              {mimeAbbr(f.mime_type || '')}{size ? `, ${size}` : ''}
                             </span>
-                          )}
-                        </a>
-                      ))}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

@@ -658,37 +658,178 @@ describe('PublicTripDetailPage', () => {
       });
     });
 
-    it('images and document links render when place.files contains data', async () => {
+    it('files render as metadata-only rows — no img thumbnails or download anchors', async () => {
       server.use(
         http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
       );
 
       renderPublicTrip('42');
-
-      await waitFor(() => {
-        expect(screen.getByText('Eiffel Tower')).toBeInTheDocument();
-      });
-
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
       fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
 
-      await waitFor(() => {
-        expect(screen.getByTestId('activity-modal')).toBeInTheDocument();
-      });
+      const modal = screen.getByTestId('activity-modal');
 
-      // Image renders as <img> inside an <a> link
-      const img = screen.getByAltText('tower-photo.jpg');
-      expect(img).toBeInTheDocument();
-      expect(img.closest('a')).toHaveAttribute('href', '/api/public/trips/42/files/1');
-      expect(img.closest('a')).toHaveAttribute('target', '_blank');
+      // No <img> rendered for file entries
+      expect(modal.querySelector('img[alt="tower-photo.jpg"]')).toBeNull();
+      expect(modal.querySelector('img[alt="entry-info.pdf"]')).toBeNull();
 
-      // Document link renders with filename and size
-      const docLink = screen.getByText('entry-info.pdf');
-      expect(docLink).toBeInTheDocument();
-      expect(docLink.closest('a')).toHaveAttribute('href', '/api/public/trips/42/files/2');
-      expect(docLink.closest('a')).toHaveAttribute('target', '_blank');
+      // No <a> elements pointing at file download paths
+      expect(modal.querySelectorAll('a[href*="/files/"]')).toHaveLength(0);
 
-      // File size shown
-      expect(screen.getByText('200 KB')).toBeInTheDocument();
+      // Filenames appear as plain text
+      expect(screen.getByText('tower-photo.jpg')).toBeInTheDocument();
+      expect(screen.getByText('entry-info.pdf')).toBeInTheDocument();
+    });
+
+    it('file section header shows the file count', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      expect(screen.getByText('Files (2)')).toBeInTheDocument();
+    });
+
+    it('shows MIME abbreviations for file rows', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithFiles)),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      const modal = screen.getByTestId('activity-modal');
+      // image/jpeg → JPEG, application/pdf → PDF
+      expect(modal).toHaveTextContent('JPEG');
+      expect(modal).toHaveTextContent('PDF');
+    });
+
+    it('formats file sizes as KB and MB', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            ...tripWithFiles,
+            assignments: {
+              '101': [
+                {
+                  ...tripWithFiles.assignments['101'][0],
+                  place: {
+                    ...tripWithFiles.assignments['101'][0].place,
+                    files: [
+                      { id: 10, original_name: 'small.txt', mime_type: 'text/plain', file_size: 512 },
+                      { id: 11, original_name: 'medium.pdf', mime_type: 'application/pdf', file_size: 126976 },
+                      { id: 12, original_name: 'large.mp4', mime_type: 'video/mp4', file_size: 2621440 },
+                      { id: 13, original_name: 'unknown.bin', mime_type: 'application/octet-stream', file_size: null },
+                    ],
+                  },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      const modal = screen.getByTestId('activity-modal');
+      expect(modal).toHaveTextContent('< 1 KB');   // 512 bytes
+      expect(modal).toHaveTextContent('124 KB');   // 126976 / 1024 = 124
+      expect(modal).toHaveTextContent('2.5 MB');   // 2621440 / 1048576 = 2.5
+      // null file_size → no size string at all for that row
+      expect(modal).not.toHaveTextContent('null');
+    });
+
+    it('file section is hidden when place.files is empty', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            ...tripWithFiles,
+            assignments: {
+              '101': [
+                {
+                  ...tripWithFiles.assignments['101'][0],
+                  place: { ...tripWithFiles.assignments['101'][0].place, files: [] },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      expect(screen.queryByText(/^Files \(/)).not.toBeInTheDocument();
+    });
+
+    it('file section is hidden when place.files is absent', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            ...tripWithFiles,
+            assignments: {
+              '101': [
+                {
+                  ...tripWithFiles.assignments['101'][0],
+                  place: { ...tripWithFiles.assignments['101'][0].place, files: undefined },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      expect(screen.queryByText(/^Files \(/)).not.toBeInTheDocument();
+    });
+
+    it('unknown MIME type falls back to uppercased subtype or FILE', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () =>
+          HttpResponse.json({
+            ...tripWithFiles,
+            assignments: {
+              '101': [
+                {
+                  ...tripWithFiles.assignments['101'][0],
+                  place: {
+                    ...tripWithFiles.assignments['101'][0].place,
+                    files: [
+                      { id: 20, original_name: 'data.csv', mime_type: 'text/csv', file_size: 2048 },
+                      { id: 21, original_name: 'mystery', mime_type: '', file_size: null },
+                    ],
+                  },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+
+      renderPublicTrip('42');
+      await waitFor(() => expect(screen.getByText('Eiffel Tower')).toBeInTheDocument());
+      fireEvent.click(screen.getAllByText('Eiffel Tower')[0]);
+      await waitFor(() => expect(screen.getByTestId('activity-modal')).toBeInTheDocument());
+
+      const modal = screen.getByTestId('activity-modal');
+      expect(modal).toHaveTextContent('CSV');   // text/csv → CSV (4-char slice)
+      expect(modal).toHaveTextContent('FILE');  // empty mime → FILE fallback
     });
   });
 });
