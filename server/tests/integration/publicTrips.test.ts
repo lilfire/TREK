@@ -50,7 +50,7 @@ import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayNote } from '../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment, createDayNote, createBudgetItem } from '../helpers/factories';
 import { authHeader } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import { rsvpAttempts } from '../../src/routes/publicTrips';
@@ -312,6 +312,57 @@ describe('GET /api/public/trips/:id', () => {
     expect(files[1].original_name).toBe('c_unstarred_old.pdf');
     expect(files[2].starred).toBe(false);
     expect(files[2].original_name).toBe('a_unstarred_new.pdf');
+  });
+
+  it('PTRIP-010 — budgetItems and budgetSummary included in response with seeded items', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    const item1 = createBudgetItem(testDb, trip.id, { name: 'Flights', category: 'Transport', total_price: 450 });
+    const item2 = createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 300 });
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+
+    const { budgetItems, budgetSummary } = res.body;
+    expect(Array.isArray(budgetItems)).toBe(true);
+    expect(budgetItems).toHaveLength(2);
+
+    const titles = budgetItems.map((i: any) => i.title);
+    expect(titles).toContain('Flights');
+    expect(titles).toContain('Hotel');
+
+    const flights = budgetItems.find((i: any) => i.title === 'Flights');
+    expect(flights.amount).toBe(450);
+    expect(flights.category).toBe('Transport');
+    expect(flights.id).toBe(item1.id);
+
+    const hotel = budgetItems.find((i: any) => i.title === 'Hotel');
+    expect(hotel.amount).toBe(300);
+    expect(hotel.category).toBe('Accommodation');
+    expect(hotel.id).toBe(item2.id);
+
+    expect(budgetSummary).toBeDefined();
+    expect(budgetSummary.totalBudget).toBe(750);
+    expect(budgetSummary.currency).toBe('EUR');
+  });
+
+  it('PTRIP-011 — budgetItems is empty array and budgetSummary.totalBudget is 0 when no items seeded', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Empty Budget Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('USD', trip.id);
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+
+    const { budgetItems, budgetSummary } = res.body;
+    expect(Array.isArray(budgetItems)).toBe(true);
+    expect(budgetItems).toHaveLength(0);
+
+    expect(budgetSummary).toBeDefined();
+    expect(budgetSummary.totalBudget).toBe(0);
+    expect(budgetSummary.currency).toBe('USD');
   });
 });
 
