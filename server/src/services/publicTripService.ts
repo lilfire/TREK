@@ -83,6 +83,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
           id: a.place_id, name: a.place_name, description: a.place_description,
           lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
           price: a.price, place_time: a.place_time, end_time: a.end_time,
+          duration_minutes: a.duration_minutes,
           image_url: a.image_url, transport_mode: a.transport_mode,
           website: a.website, phone: a.phone, notes: a.place_notes, currency: a.place_currency,
           category: a.category_id
@@ -96,23 +97,23 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     if (placeIds.length > 0) {
       const fph = placeIds.map(() => '?').join(',');
       const fileRows = db.prepare(`
-        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description,
-               fl.place_id
+        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+               tf.created_at, fl.place_id
         FROM trip_files tf
         JOIN file_links fl ON fl.file_id = tf.id
         WHERE fl.place_id IN (${fph})
           AND tf.deleted_at IS NULL
+        ORDER BY tf.starred DESC, tf.created_at ASC
       `).all(...placeIds) as any[];
 
       for (const f of fileRows) {
-        const url = `/api/public/trips/${tripId}/files/${f.id}`;
         for (const dayArr of Object.values(byDay)) {
           for (const entry of dayArr) {
             if (entry.place.id === f.place_id) {
               entry.place.files.push({
                 id: f.id, original_name: f.original_name,
                 file_size: f.file_size, mime_type: f.mime_type,
-                description: f.description, url,
+                description: f.description, starred: f.starred ? true : false,
               });
             }
           }
