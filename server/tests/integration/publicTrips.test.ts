@@ -314,6 +314,51 @@ describe('GET /api/public/trips/:id', () => {
     expect(files[2].original_name).toBe('a_unstarred_new.pdf');
   });
 
+  it('PTRIP-009b — file uploaded directly via trip_files.place_id (no file_links row) appears in public response', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Direct Upload Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2025-12-01' });
+    const place = createPlace(testDb, trip.id, { name: 'Gallery' });
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    const r = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, place_id, starred, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(trip.id, `direct-${Date.now()}`, 'brochure.pdf', 512, 'application/pdf', place.id, 0, new Date().toISOString());
+    const fileId = r.lastInsertRowid as number;
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    const files = res.body.assignments[day.id][0].place.files;
+    expect(files).toHaveLength(1);
+    expect(files[0].id).toBe(fileId);
+    expect(files[0].original_name).toBe('brochure.pdf');
+    expect(files[0].url).toBe(`/api/public/trips/${trip.id}/files/${fileId}`);
+  });
+
+  it('PTRIP-009c — file with both trip_files.place_id and file_links entry appears exactly once', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Dedup Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2025-12-02' });
+    const place = createPlace(testDb, trip.id, { name: 'Theatre' });
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    const r = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, place_id, starred, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(trip.id, `dedup-${Date.now()}`, 'ticket.pdf', 256, 'application/pdf', place.id, 0, new Date().toISOString());
+    const fileId = r.lastInsertRowid as number;
+    testDb.prepare(`INSERT INTO file_links (file_id, place_id) VALUES (?, ?)`).run(fileId, place.id);
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    const files = res.body.assignments[day.id][0].place.files;
+    expect(files).toHaveLength(1);
+    expect(files[0].id).toBe(fileId);
+  });
+
   it('PTRIP-010 — budgetItems and budgetSummary included in response with seeded items', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
