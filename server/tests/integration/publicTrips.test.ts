@@ -364,6 +364,29 @@ describe('GET /api/public/trips/:id', () => {
     expect(budgetSummary.totalBudget).toBe(0);
     expect(budgetSummary.currency).toBe('USD');
   });
+
+  it('PTRIP-012 — fee_currency is returned in trip response when set (LSO-1537: was missing, caused HUF shown instead of NOK)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'NOK Fee Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ?, registration_fee = ?, fee_mode = ?, fee_currency = ? WHERE id = ?')
+      .run('HUF', 1000, 'rsvp', 'NOK', trip.id);
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.trip.fee_currency).toBe('NOK');
+    expect(res.body.trip.currency).toBe('HUF');
+  });
+
+  it('PTRIP-013 — fee_currency is null when not explicitly set (client falls back to base currency)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'No Fee Currency Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.trip.currency).toBe('EUR');
+    expect(res.body.trip.fee_currency).toBeNull();
+  });
 });
 
 describe('POST /api/public/trips/:id/rsvp', () => {

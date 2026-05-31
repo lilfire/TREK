@@ -205,3 +205,29 @@ describe('getPublicTripData — place fields', () => {
     expect(p.files).toEqual([]);
   });
 });
+
+describe('getPublicTripData — fee_currency field (LSO-1537 bug fix)', () => {
+  it('PTRSVC-007 — fee_currency is returned when set to a different currency than base', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Fee Currency Trip' });
+    testDb.prepare(
+      'UPDATE trips SET is_public = 1, currency = ?, registration_fee = ?, fee_mode = ?, fee_currency = ? WHERE id = ?'
+    ).run('HUF', 1000, 'rsvp', 'NOK', trip.id);
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(data!.trip.fee_currency).toBe('NOK');
+    expect(data!.trip.currency).toBe('HUF');
+  });
+
+  it('PTRSVC-008 — fee_currency is null when not set (client falls back to base currency)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'No Fee Currency Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(data!.trip.currency).toBe('EUR');
+    expect(data!.trip.fee_currency).toBeNull();
+  });
+});
