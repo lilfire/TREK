@@ -96,15 +96,24 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     }
     if (placeIds.length > 0) {
       const fph = placeIds.map(() => '?').join(',');
+      // Cover both upload paths: direct place_id and explicit file_links.
+      // UNION deduplicates files that appear in both.
       const fileRows = db.prepare(`
-        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
-               tf.created_at, fl.place_id
-        FROM trip_files tf
-        JOIN file_links fl ON fl.file_id = tf.id
-        WHERE fl.place_id IN (${fph})
-          AND tf.deleted_at IS NULL
-        ORDER BY tf.starred DESC, tf.created_at ASC
-      `).all(...placeIds) as any[];
+        SELECT id, original_name, file_size, mime_type, description, starred, created_at, place_id
+        FROM (
+          SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+                 tf.created_at, tf.place_id
+          FROM trip_files tf
+          WHERE tf.place_id IN (${fph}) AND tf.deleted_at IS NULL
+          UNION
+          SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+                 tf.created_at, fl.place_id
+          FROM trip_files tf
+          JOIN file_links fl ON fl.file_id = tf.id
+          WHERE fl.place_id IN (${fph}) AND tf.deleted_at IS NULL
+        )
+        ORDER BY starred DESC, created_at ASC
+      `).all(...placeIds, ...placeIds) as any[];
 
       for (const f of fileRows) {
         for (const dayArr of Object.values(byDay)) {
