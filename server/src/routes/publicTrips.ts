@@ -152,8 +152,8 @@ router.post('/:id/rsvp/payment-order', rsvpRateLimiter, async (req: Request, res
   if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
 
   const trip = db.prepare(
-    'SELECT id, registration_fee, fee_mode, currency FROM trips WHERE id = ? AND is_public = 1',
-  ).get(tripId) as { id: number; registration_fee: number | null; fee_mode: string | null; currency: string } | undefined;
+    'SELECT id, registration_fee, fee_mode, currency, fee_currency FROM trips WHERE id = ? AND is_public = 1',
+  ).get(tripId) as { id: number; registration_fee: number | null; fee_mode: string | null; currency: string; fee_currency: string | null } | undefined;
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
   if (!trip.registration_fee || trip.fee_mode !== 'rsvp') {
     return res.status(400).json({ error: 'This trip does not require a PayPal payment' });
@@ -182,8 +182,8 @@ router.post('/:id/rsvp/payment-capture', rsvpRateLimiter, async (req: Request, r
   if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
 
   const trip = db.prepare(
-    'SELECT id, registration_fee, currency FROM trips WHERE id = ? AND is_public = 1',
-  ).get(tripId) as { id: number; registration_fee: number | null; currency: string } | undefined;
+    'SELECT id, registration_fee, currency, fee_currency FROM trips WHERE id = ? AND is_public = 1',
+  ).get(tripId) as { id: number; registration_fee: number | null; currency: string; fee_currency: string | null } | undefined;
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
   const { orderId, rsvpId } = req.body;
@@ -194,7 +194,7 @@ router.post('/:id/rsvp/payment-capture', rsvpRateLimiter, async (req: Request, r
   if (!rsvp) return res.status(404).json({ error: 'RSVP not found' });
 
   const amount = trip.registration_fee ?? 0;
-  const currency = trip.currency;
+  const currency = trip.fee_currency ?? trip.currency;
 
   const paymentId = recordPayment({ rsvpId: Number(rsvpId), amount, currency, status: 'pending', providerOrderId: orderId });
 
