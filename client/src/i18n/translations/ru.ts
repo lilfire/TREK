@@ -2401,6 +2401,10 @@ const ru: Record<string, string> = {
   'publicTrip.rsvp.heading': "Присоединиться к этой поездке",
   'publicTrip.rsvp.subheading': "Введите свои данные, и мы зарезервируем ваше место.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Идеи и Незапланированное',
+  'publicTrip.unplanned.subheading': 'Места, добавленные в эту поездку, но ещё не запланированные.',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 

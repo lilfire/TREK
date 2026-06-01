@@ -2401,6 +2401,10 @@ const nl: Record<string, string> = {
   'publicTrip.rsvp.heading': "Sluit je aan bij deze reis",
   'publicTrip.rsvp.subheading': "Vul je gegevens in en we reserveren je plek.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Ideeën & Ongepland',
+  'publicTrip.unplanned.subheading': 'Plaatsen toegevoegd aan deze reis maar nog niet gepland.',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 

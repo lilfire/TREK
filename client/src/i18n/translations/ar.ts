@@ -2198,6 +2198,10 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "انضم إلى هذه الرحلة",
   'publicTrip.rsvp.subheading': "أدخل تفاصيلك أدناه وسنحجز مكانك.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'أفكار وغير مجدول',
+  'publicTrip.unplanned.subheading': 'أماكن أُضيفت إلى هذه الرحلة ولم يتم جدولتها بعد.',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 
