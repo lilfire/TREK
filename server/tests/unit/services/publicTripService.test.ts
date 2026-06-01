@@ -206,6 +206,107 @@ describe('getPublicTripData — place fields', () => {
   });
 });
 
+describe('getPublicTripData — unplanned place files (LSO-1556)', () => {
+  it('PTRSVC-009 — unplanned place without files has files: []', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Unplanned No Files' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    createPlace(testDb, trip.id, { name: 'Unassigned Place' });
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(Array.isArray(data!.places)).toBe(true);
+    expect(data!.places).toHaveLength(1);
+    expect(data!.places[0].files).toEqual([]);
+  });
+
+  it('PTRSVC-010 — unplanned place with file via file_links has populated files array', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Unplanned With Files' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Unassigned With File' });
+
+    const fileResult = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, description, starred)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(trip.id, 'unplanned.pdf', 'guide.pdf', 55000, 'application/pdf', 'Travel guide', 1);
+    const fileId = fileResult.lastInsertRowid as number;
+    testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(fileId, place.id);
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    const p = data!.places[0];
+    expect(Array.isArray(p.files)).toBe(true);
+    expect(p.files).toHaveLength(1);
+    expect(p.files[0].id).toBe(fileId);
+    expect(p.files[0].original_name).toBe('guide.pdf');
+    expect(p.files[0].file_size).toBe(55000);
+    expect(p.files[0].mime_type).toBe('application/pdf');
+    expect(p.files[0].description).toBe('Travel guide');
+    expect(p.files[0].starred).toBe(true);
+    expect(p.files[0].url).toBe(`/api/public/trips/${trip.id}/files/${fileId}`);
+  });
+
+  it('PTRSVC-011 — unplanned place with file via direct trip_files.place_id has populated files array', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Unplanned Direct Upload' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Direct Upload Place' });
+
+    const fileResult = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type, place_id)
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(trip.id, 'direct.pdf', 'brochure.pdf', 8000, 'application/pdf', place.id);
+    const fileId = fileResult.lastInsertRowid as number;
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    const p = data!.places[0];
+    expect(p.files).toHaveLength(1);
+    expect(p.files[0].id).toBe(fileId);
+    expect(p.files[0].url).toBe(`/api/public/trips/${trip.id}/files/${fileId}`);
+  });
+
+  it('PTRSVC-012 — soft-deleted files excluded from unplanned place files', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Deleted File Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Place With Deleted File' });
+
+    const fileResult = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, mime_type, deleted_at)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(trip.id, 'deleted.pdf', 'deleted.pdf', 'application/pdf', '2026-01-01T00:00:00Z');
+    testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(fileResult.lastInsertRowid, place.id);
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(data!.places[0].files).toEqual([]);
+  });
+
+  it('PTRSVC-013 — assigned activity files still work (no regression)', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Regression Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Assigned Place' });
+    createDayAssignment(testDb, day.id, place.id);
+
+    const fileResult = testDb.prepare(
+      `INSERT INTO trip_files (trip_id, filename, original_name, file_size, mime_type)
+       VALUES (?, ?, ?, ?, ?)`
+    ).run(trip.id, 'assigned.pdf', 'ticket.pdf', 2000, 'application/pdf');
+    testDb.prepare('INSERT INTO file_links (file_id, place_id) VALUES (?, ?)').run(fileResult.lastInsertRowid, place.id);
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    const assignedPlace = data!.assignments[day.id][0].place;
+    expect(Array.isArray(assignedPlace.files)).toBe(true);
+    expect(assignedPlace.files).toHaveLength(1);
+    expect(assignedPlace.files[0].original_name).toBe('ticket.pdf');
+  });
+});
+
 describe('getPublicTripData — fee_currency field (LSO-1537 bug fix)', () => {
   it('PTRSVC-007 — fee_currency is returned when set to a different currency than base', () => {
     const { user } = createUser(testDb);

@@ -66,6 +66,8 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  // Recreate uploads dir if another test suite's afterAll removed it (parallel fork race)
+  if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
   resetTestDb(testDb);
   loginAttempts.clear();
   mfaAttempts.clear();
