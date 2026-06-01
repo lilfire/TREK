@@ -124,7 +124,7 @@ export function createApp(): express.Application {
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
+        scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'", "https://www.paypal.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
         imgSrc: ["'self'", "data:", "blob:", "https:"],
         connectSrc: [
@@ -137,13 +137,14 @@ export function createApp(): express.Application {
           "https://geocoding-api.open-meteo.com", "https://api.exchangerate-api.com",
           "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
           "https://router.project-osrm.org/route/v1/",
-          "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com"
+          "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
+          "https://www.paypal.com", "https://www.sandbox.paypal.com"
         ],
         workerSrc: ["'self'", "blob:"],
         childSrc: ["'self'", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         objectSrc: ["'none'"],
-        frameSrc: ["'none'"],
+        frameSrc: ["'self'", "https://www.paypal.com", "https://www.sandbox.paypal.com"],
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: shouldForceHttps ? [] : null
       }
