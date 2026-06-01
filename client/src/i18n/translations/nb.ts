@@ -2376,6 +2376,53 @@ const nb: Record<string, string | { name: string; category: string }[]> = {
   'transport.modalTitle.edit': 'Rediger transport',
   'transport.title': 'Transport',
   'transport.addManual': 'Manuell transport',
+
+  // RSVP form
+  'rsvp.onTheList': 'Du er på listen.',
+  'rsvp.viewDashboard': 'Se turen i oversikten din →',
+  'rsvp.joining': 'Melder på...',
+  'rsvp.joinTrip': 'Bli med på tur',
+  'rsvp.intro': 'Vi oppretter en TREK-konto for deg slik at du får tilgang til hele reiseplanen.',
+  'rsvp.alreadyHaveAccount': 'Har du allerede en konto? Logg inn',
+  'rsvp.nameLabel': 'Navn',
+  'rsvp.namePlaceholder': 'Navn',
+  'rsvp.emailLabel': 'E-postadresse',
+  'rsvp.emailPlaceholder': 'din@epost.no',
+  'rsvp.accountNotice': 'En TREK-konto vil bli opprettet med denne e-postadressen.',
+  'rsvp.messageLabel': 'Melding',
+  'rsvp.messageOptional': '(valgfritt)',
+  'rsvp.messagePlaceholder': 'Noe du vil arrangøren skal vite...',
+  'rsvp.feeLabel': 'Påmeldingsavgift: {amount} {currency}',
+  'rsvp.feeDeadline': 'Betalingsfrist: {date}.',
+  'rsvp.feeInstructions': 'Betalingsinstruksjoner vil bli gitt av turens arrangør etter at du har registrert deg.',
+  'rsvp.logInHere': 'Logg inn her',
+  'rsvp.confirming': 'Bekrefter...',
+  'rsvp.confirmMySpot': 'Bekreft plassen min',
+  'rsvp.nameRequired': 'Navn er påkrevd.',
+  'rsvp.emailRequired': 'E-post er påkrevd.',
+  'rsvp.paymentSuccess': '🎉 Du er registrert! Betaling på {amount} {currency} bekreftet.',
+  'rsvp.paypalFeeNotice': 'Påmeldingsavgift: {amount} {currency}. Fullfør betalingen nedenfor for å bekrefte plassen din.',
+  'rsvp.paymentNotCompleted': 'Betalingen ble ikke fullført. Registreringen din er ikke lagret.',
+  'rsvp.paymentUnavailable': 'Nettbetaling er midlertidig utilgjengelig. Kontakt turens arrangør for å registrere deg.',
+  'rsvp.toastJoined': '🎉 Du er med! Sjekk oversikten din for å se hele reiseplanen.',
+  'rsvp.toastRegistered': '🎉 Du er med! Velkommen til TREK – sjekk innboksen din for en bekreftelse.',
+  'rsvp.error.duplicateRsvp': 'Du er allerede på listen for denne turen. Sjekk innboksen din for bekreftelsesdetaljer.',
+  'rsvp.error.emailConflict': 'Denne e-posten er knyttet til en TREK-konto. Logg inn for å melde deg på.',
+  'rsvp.error.notFound': 'Denne turen godtar ikke lenger påmeldinger.',
+  'rsvp.error.tooManyAttempts': 'For mange forsøk. Vent noen minutter før du prøver igjen.',
+  'rsvp.error.serverError': 'Noe gikk galt på vår side. Prøv igjen snart.',
+  'rsvp.error.unknown': 'Noe gikk galt. Prøv igjen.',
+  'rsvp.error.registrationClosed': 'Påmeldingen for denne turen er stengt.',
+  'rsvp.registrationClosed': 'Påmeldingen er stengt.',
+  'rsvp.deadlineNotice': 'Påmeldingen stenger {date}.',
+
+  // Public trip page — RSVP section
+  'publicTrip.rsvp.heading': 'Bli med på turen',
+  'publicTrip.rsvp.subheading': 'Fyll inn opplysningene nedenfor, så reserverer vi plassen din.',
+
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Ideer og uplanlagte aktiviteter',
+  'publicTrip.unplanned.subheading': 'Steder lagt til denne turen som ennå ikke er planlagt.',
 }
 
 export default nb

@@ -91,9 +91,33 @@ describe('isRtlLanguage', () => {
 describe('SUPPORTED_LANGUAGES', () => {
   it('FE-COMP-I18N-009: contains expected entries with value/label shape', () => {
     expect(Array.isArray(SUPPORTED_LANGUAGES)).toBe(true)
-    expect(SUPPORTED_LANGUAGES).toHaveLength(15)
+    expect(SUPPORTED_LANGUAGES).toHaveLength(16)
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'en', label: 'English' }))
     expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'ar', label: 'العربية' }))
+    expect(SUPPORTED_LANGUAGES).toContainEqual(expect.objectContaining({ value: 'nb', label: 'Norsk bokmål' }))
+  })
+})
+
+// ── FE-COMP-I18N-024 to 027: Norwegian (nb) language support ─────────────────
+
+describe('Norwegian (nb) language support', () => {
+  it('FE-COMP-I18N-024: getLocaleForLanguage returns nb-NO for nb', () => {
+    expect(getLocaleForLanguage('nb')).toBe('nb-NO')
+  })
+
+  it('FE-COMP-I18N-025: getIntlLanguage returns nb for nb', () => {
+    expect(getIntlLanguage('nb')).toBe('nb')
+  })
+
+  it('FE-COMP-I18N-026: isRtlLanguage returns false for nb', () => {
+    expect(isRtlLanguage('nb')).toBe(false)
+  })
+
+  it('FE-COMP-I18N-027: detectBrowserLanguage maps nb, nb-NO, no, nn to nb', () => {
+    for (const lang of ['nb', 'nb-NO', 'no', 'nn']) {
+      Object.defineProperty(navigator, 'languages', { value: [lang], configurable: true })
+      expect(detectBrowserLanguage()).toBe('nb')
+    }
   })
 })
 
