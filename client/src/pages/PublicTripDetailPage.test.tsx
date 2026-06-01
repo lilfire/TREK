@@ -12,6 +12,40 @@ vi.mock('@paypal/react-paypal-js', () => ({
   PayPalButtons: () => <div data-testid="paypal-buttons" />,
 }));
 
+const mapMock = {
+  fitBounds: vi.fn(),
+  panTo: vi.fn(),
+  setView: vi.fn(),
+  getZoom: vi.fn().mockReturnValue(10),
+  on: vi.fn(),
+  off: vi.fn(),
+};
+
+vi.mock('react-leaflet', () => ({
+  MapContainer: ({ children }: any) => <div data-testid="map-container">{children}</div>,
+  TileLayer: () => <div data-testid="tile-layer" />,
+  Marker: ({ children, position }: any) => (
+    <div data-testid="map-marker" data-lat={position[0]} data-lng={position[1]}>
+      {children}
+    </div>
+  ),
+  Tooltip: ({ children }: any) => <span data-testid="map-tooltip">{children}</span>,
+  useMap: () => mapMock,
+}));
+
+vi.mock('leaflet', () => ({
+  default: {
+    divIcon: vi.fn(() => ({})),
+    latLngBounds: vi.fn(() => ({ extend: vi.fn() })),
+  },
+}));
+
+vi.mock('react-dom/server', () => ({
+  renderToStaticMarkup: vi.fn(() => '<svg></svg>'),
+}));
+
+vi.mock('leaflet/dist/leaflet.css', () => ({}));
+
 function renderPublicTrip(id: string) {
   return render(
     <Routes>
@@ -1252,6 +1286,190 @@ describe('FE-PUB-TRIP-016: Budget section not rendered on public trip page', () 
     expect(screen.queryByTestId('budget-section')).not.toBeInTheDocument();
     expect(screen.queryByTestId('budget-total')).not.toBeInTheDocument();
     expect(screen.queryByTestId('budget-item')).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-020: Leaflet map on public trip page
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-020: Leaflet map renders for places with coordinates', () => {
+  const tripWithPlaces = {
+    trip: {
+      id: 42,
+      title: 'Map Test Trip',
+      description: null,
+      start_date: '2026-07-01',
+      end_date: '2026-07-03',
+      cover_image: null,
+      currency: 'EUR',
+    },
+    days: [{ id: 101, trip_id: 42, day_number: 1, date: '2026-07-01', title: 'Day 1' }],
+    assignments: { '101': [] },
+    dayNotes: { '101': [] },
+    places: [
+      {
+        id: 1,
+        name: 'Eiffel Tower',
+        lat: 48.8584,
+        lng: 2.2945,
+        category_name: 'Attraction',
+        category_color: '#f59e0b',
+        category_icon: 'landmark',
+      },
+      {
+        id: 2,
+        name: 'Louvre Museum',
+        lat: 48.8606,
+        lng: 2.3376,
+        category_name: 'Museum',
+        category_color: '#6366f1',
+        category_icon: 'building',
+      },
+    ],
+    categories: [],
+    reservations: [],
+    accommodations: [],
+  };
+
+  it('renders the map container when places with coordinates exist', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('map-container')).toBeInTheDocument();
+  });
+
+  it('renders a marker for each place with coordinates', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    const markers = screen.getAllByTestId('map-marker');
+    expect(markers).toHaveLength(2);
+  });
+
+  it('renders marker tooltips with place names', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    const tooltips = screen.getAllByTestId('map-tooltip');
+    const names = tooltips.map(t => t.textContent);
+    expect(names).toContain('Eiffel Tower');
+    expect(names).toContain('Louvre Museum');
+  });
+
+  it('hides the map when no places have coordinates', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          ...tripWithPlaces,
+          places: [
+            { id: 1, name: 'No Coords Place', lat: null, lng: null },
+          ],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('trip-map')).not.toBeInTheDocument();
+  });
+
+  it('hides the map when places array is empty', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({ ...tripWithPlaces, places: [] }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('trip-map')).not.toBeInTheDocument();
+  });
+
+  it('normalizes flat category fields into a nested category object for each marker', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          ...tripWithPlaces,
+          places: [
+            {
+              id: 1,
+              name: 'Eiffel Tower',
+              lat: 48.8584,
+              lng: 2.2945,
+              category_name: 'Attraction',
+              category_color: '#f59e0b',
+              category_icon: 'landmark',
+            },
+          ],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    // Marker should be rendered with the correct lat/lng
+    const marker = screen.getByTestId('map-marker');
+    expect(marker).toHaveAttribute('data-lat', '48.8584');
+    expect(marker).toHaveAttribute('data-lng', '2.2945');
+  });
+
+  it('places only places without coordinates are excluded from the map', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          ...tripWithPlaces,
+          places: [
+            { id: 1, name: 'Has Coords', lat: 48.8584, lng: 2.2945, category_name: null, category_color: null, category_icon: null },
+            { id: 2, name: 'No Lat', lat: null, lng: 2.2945, category_name: null, category_color: null, category_icon: null },
+            { id: 3, name: 'No Lng', lat: 48.8584, lng: null, category_name: null, category_color: null, category_icon: null },
+          ],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    const markers = screen.getAllByTestId('map-marker');
+    expect(markers).toHaveLength(1);
+    expect(screen.getByTestId('map-tooltip')).toHaveTextContent('Has Coords');
   });
 });
 
