@@ -1,11 +1,39 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createElement } from 'react'
 import { useParams } from 'react-router-dom'
 import { MapPin, Clock, FileText, ChevronRight, Paperclip } from 'lucide-react'
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { publicTripsApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
+import { getCategoryIcon } from '../components/shared/categoryIcons'
+import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
 import PublicActivityModal from '../components/PublicActivityModal'
+
+function createMarkerIcon(place: any) {
+  const cat = place.category
+  const color = cat?.color || '#6366f1'
+  const CatIcon = getCategoryIcon(cat?.icon)
+  const iconSvg = renderToStaticMarkup(createElement(CatIcon, { size: 14, strokeWidth: 2, color: 'white' }))
+  return L.divIcon({
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${iconSvg}</div>`,
+  })
+}
+
+function FitBoundsToPlaces({ places }: { places: any[] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (places.length === 0) return
+    const bounds = L.latLngBounds(places.map(p => [p.lat, p.lng]))
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+  }, [places, map])
+  return null
+}
 
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60)
@@ -71,8 +99,12 @@ export default function PublicTripDetailPage() {
     )
   }
 
-  const { trip, days, assignments, dayNotes, budgetItems } = data
+  const { trip, days, assignments, dayNotes, budgetItems, places } = data
   const sortedDays: any[] = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number)
+
+  const mapPlaces = (places || [])
+    .filter((p: any) => p?.lat && p?.lng)
+    .map((p: any) => ({ ...p, category: { name: p.category_name, color: p.category_color, icon: p.category_icon } }))
 
   function toggleDay(dayId: number) {
     setExpandedDays(prev => {
@@ -203,6 +235,26 @@ export default function PublicTripDetailPage() {
 
       {/* Content */}
       <div className="max-w-[900px] mx-auto px-4 py-6">
+        {/* Map */}
+        {mapPlaces.length > 0 && (
+          <div data-testid="trip-map" style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <MapContainer
+              center={[mapPlaces[0].lat, mapPlaces[0].lng]}
+              zoom={11}
+              zoomControl={false}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" referrerPolicy="strict-origin-when-cross-origin" />
+              <FitBoundsToPlaces places={mapPlaces} />
+              {mapPlaces.map((p: any) => (
+                <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
+                  <Tooltip>{p.name}</Tooltip>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
+        )}
+
         {/* Itinerary */}
         <section data-testid="itinerary" aria-label="Trip itinerary" className="flex flex-col gap-3 mb-10">
           <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Itinerary</h2>
