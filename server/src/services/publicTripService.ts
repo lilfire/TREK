@@ -63,6 +63,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes, p.image_url, p.transport_mode,
+        p.budget_category,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id
@@ -84,7 +85,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
           lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
           price: a.price, place_time: a.place_time, end_time: a.end_time,
           duration_minutes: a.duration_minutes,
-          image_url: a.image_url, transport_mode: a.transport_mode,
+          image_url: a.image_url, transport_mode: a.transport_mode, budget_category: a.budget_category || null,
           website: a.website, phone: a.phone, notes: a.place_notes, currency: a.place_currency,
           category: a.category_id
             ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon }
