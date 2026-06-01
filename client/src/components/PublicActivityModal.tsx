@@ -46,7 +46,8 @@ interface Props {
 export default function PublicActivityModal({ assignment, tripCurrency, budgetItems, onClose }: Props) {
   const place = assignment.place
   const files: any[] = place.files || []
-  const placeBudgetItems = (budgetItems || []).filter((item: any) => item.category === place.name)
+  const budgetMatchKey = place.budget_category || place.name
+  const placeBudgetItems = (budgetItems || []).filter((item: any) => item.category === budgetMatchKey)
 
   return (
     <div
