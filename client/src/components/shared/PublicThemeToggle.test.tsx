@@ -188,4 +188,40 @@ describe('PublicThemeToggle', () => {
     unmount()
     expect(removeEventListener).toHaveBeenCalled()
   })
+
+  it('FE-PTT-011: aria-pressed reflects dark mode state and updates on toggle', () => {
+    localStorage.setItem(STORAGE_KEY, 'light')
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    })
+    render(<PublicThemeToggle />)
+    const btn = screen.getByRole('button')
+
+    expect(btn.getAttribute('aria-pressed')).toBe('false')
+
+    fireEvent.click(btn)
+    expect(btn.getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(btn)
+    expect(btn.getAttribute('aria-pressed')).toBe('false')
+  })
+
+  it('FE-PTT-012: button has public-theme-toggle class for focus-visible ring', () => {
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    })
+    render(<PublicThemeToggle />)
+    const btn = screen.getByRole('button')
+    expect(btn.classList.contains('public-theme-toggle')).toBe(true)
+  })
 })

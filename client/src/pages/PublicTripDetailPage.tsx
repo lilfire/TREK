@@ -27,6 +27,20 @@ function createMarkerIcon(place: any) {
   })
 }
 
+function useDarkMode(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  )
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return isDark
+}
+
 function FitBoundsToPlaces({ places }: { places: any[] }) {
   const map = useMap()
   useEffect(() => {
@@ -61,6 +75,7 @@ export default function PublicTripDetailPage() {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set())
   const [showLangPicker, setShowLangPicker] = useState(false)
   const [selectedActivity, setSelectedActivity] = useState<any>(null)
+  const isDark = useDarkMode()
 
   useEffect(() => {
     if (!id) return
@@ -129,6 +144,10 @@ export default function PublicTripDetailPage() {
       return next
     })
   }
+
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
   function formatDate(d: string) {
     return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, {
@@ -262,7 +281,7 @@ export default function PublicTripDetailPage() {
               zoomControl={false}
               style={{ width: '100%', height: '100%' }}
             >
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" referrerPolicy="strict-origin-when-cross-origin" />
+              <TileLayer key={tileUrl} url={tileUrl} referrerPolicy="strict-origin-when-cross-origin" />
               <FitBoundsToPlaces places={mapPlaces} />
               {mapPlaces.map((p: any) => (
                 <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
@@ -299,7 +318,7 @@ export default function PublicTripDetailPage() {
                 >
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
-                    style={{ background: isExpanded ? '#18181b' : '#f4f4f5', color: isExpanded ? 'white' : '#71717a' }}
+                    style={{ background: isExpanded ? 'var(--accent)' : 'var(--bg-tertiary)', color: isExpanded ? 'var(--accent-text)' : 'var(--text-muted)' }}
                   >
                     {di + 1}
                   </div>
@@ -418,9 +437,9 @@ export default function PublicTripDetailPage() {
 
         {/* Footer */}
         <div className="flex flex-col items-center py-4 gap-2">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>Shared via <strong style={{ color: '#6b7280' }}>TREK</strong></span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Shared via <strong style={{ color: 'var(--text-secondary)' }}>TREK</strong></span>
           </div>
         </div>
       </div>

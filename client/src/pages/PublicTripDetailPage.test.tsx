@@ -23,7 +23,7 @@ const mapMock = {
 
 vi.mock('react-leaflet', () => ({
   MapContainer: ({ children }: any) => <div data-testid="map-container">{children}</div>,
-  TileLayer: () => <div data-testid="tile-layer" />,
+  TileLayer: ({ url }: any) => <div data-testid="tile-layer" data-url={url} />,
   Marker: ({ children, position }: any) => (
     <div data-testid="map-marker" data-lat={position[0]} data-lng={position[1]}>
       {children}
@@ -1470,6 +1470,43 @@ describe('FE-PUB-TRIP-020: Leaflet map renders for places with coordinates', () 
     const markers = screen.getAllByTestId('map-marker');
     expect(markers).toHaveLength(1);
     expect(screen.getByTestId('map-tooltip')).toHaveTextContent('Has Coords');
+  });
+
+  it('FE-PUB-TRIP-021: uses light tile URL when dark mode is off', async () => {
+    document.documentElement.classList.remove('dark');
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    const tileLayer = screen.getByTestId('tile-layer');
+    expect(tileLayer.getAttribute('data-url')).toContain('light_all');
+  });
+
+  it('FE-PUB-TRIP-022: switches to dark tile URL when dark mode class is applied', async () => {
+    document.documentElement.classList.remove('dark');
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    document.documentElement.classList.add('dark');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toContain('dark_all');
+    });
+
+    document.documentElement.classList.remove('dark');
   });
 });
 
