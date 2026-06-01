@@ -12,6 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
 import PublicActivityModal from '../components/PublicActivityModal'
 import UnplannedActivitiesSection from '../components/UnplannedActivitiesSection'
+import PublicThemeToggle from '../components/shared/PublicThemeToggle'
 
 function createMarkerIcon(place: any) {
   const cat = place.category
@@ -24,6 +25,20 @@ function createMarkerIcon(place: any) {
     iconAnchor: [14, 14],
     html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${iconSvg}</div>`,
   })
+}
+
+function useDarkMode(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  )
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return isDark
 }
 
 function FitBoundsToPlaces({ places }: { places: any[] }) {
@@ -60,6 +75,7 @@ export default function PublicTripDetailPage() {
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set())
   const [showLangPicker, setShowLangPicker] = useState(false)
   const [selectedActivity, setSelectedActivity] = useState<any>(null)
+  const isDark = useDarkMode()
 
   useEffect(() => {
     if (!id) return
@@ -129,6 +145,10 @@ export default function PublicTripDetailPage() {
     })
   }
 
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+
   function formatDate(d: string) {
     return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, {
       weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
@@ -163,46 +183,49 @@ export default function PublicTripDetailPage() {
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
 
-        {/* Language picker - top right */}
-        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button
-            data-testid="lang-picker-btn"
-            onClick={() => setShowLangPicker(v => !v)}
-            style={{
-              padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
-              color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
-          </button>
-          {showLangPicker && (
-            <div
-              data-testid="lang-picker-dropdown"
+        {/* Controls - top right: theme toggle + language picker */}
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <PublicThemeToggle />
+          <div style={{ position: 'relative' }}>
+            <button
+              data-testid="lang-picker-btn"
+              onClick={() => setShowLangPicker(v => !v)}
               style={{
-                position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white',
-                borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150,
+                padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
+                color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              {SUPPORTED_LANGUAGES.map(lang => (
-                <button
-                  key={lang.value}
-                  onClick={() => {
-                    useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
-                    setShowLangPicker(false)
-                  }}
-                  style={{
-                    display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none',
-                    textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
-                  {lang.label}
-                </button>
-              ))}
-            </div>
-          )}
+              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+            </button>
+            {showLangPicker && (
+              <div
+                data-testid="lang-picker-dropdown"
+                style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)',
+                  borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150,
+                }}
+              >
+                {SUPPORTED_LANGUAGES.map(lang => (
+                  <button
+                    key={lang.value}
+                    onClick={() => {
+                      useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
+                      setShowLangPicker(false)
+                    }}
+                    style={{
+                      display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none',
+                      textAlign: 'left', cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)', borderRadius: 6, fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="relative">
@@ -258,7 +281,7 @@ export default function PublicTripDetailPage() {
               zoomControl={false}
               style={{ width: '100%', height: '100%' }}
             >
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" referrerPolicy="strict-origin-when-cross-origin" />
+              <TileLayer key={tileUrl} url={tileUrl} referrerPolicy="strict-origin-when-cross-origin" />
               <FitBoundsToPlaces places={mapPlaces} />
               {mapPlaces.map((p: any) => (
                 <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
@@ -295,7 +318,7 @@ export default function PublicTripDetailPage() {
                 >
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
-                    style={{ background: isExpanded ? '#18181b' : '#f4f4f5', color: isExpanded ? 'white' : '#71717a' }}
+                    style={{ background: isExpanded ? 'var(--accent)' : 'var(--bg-tertiary)', color: isExpanded ? 'var(--accent-text)' : 'var(--text-muted)' }}
                   >
                     {di + 1}
                   </div>
@@ -414,9 +437,9 @@ export default function PublicTripDetailPage() {
 
         {/* Footer */}
         <div className="flex flex-col items-center py-4 gap-2">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>Shared via <strong style={{ color: '#6b7280' }}>TREK</strong></span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Shared via <strong style={{ color: 'var(--text-secondary)' }}>TREK</strong></span>
           </div>
         </div>
       </div>

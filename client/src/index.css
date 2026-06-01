@@ -98,6 +98,12 @@ html.dark .border-amber-200 { border-color: rgba(245,158,11,0.2) !important; }
 html.dark .disabled\:bg-slate-400:disabled { background-color: var(--text-faint) !important; }
 html.dark button.bg-slate-900 { background-color: #e2e8f0 !important; color: #0f172a !important; opacity: 1 !important; }
 html.dark button.bg-slate-900:hover { background-color: #cbd5e1 !important; }
+
+.public-theme-toggle:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.8);
+  outline-offset: 2px;
+  border-radius: 20px;
+}
 html.dark button.bg-slate-900:disabled { background-color: #ffffff !important; color: #000000 !important; opacity: 0.4 !important; }
 html.dark span.bg-slate-900 { background-color: #e2e8f0 !important; color: #0f172a !important; }
 html.dark span.bg-slate-100 { background-color: var(--bg-secondary) !important; color: var(--text-muted) !important; }
