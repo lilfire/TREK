@@ -2477,6 +2477,10 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': 'Join this trip',
   'publicTrip.rsvp.subheading': "Add your details below and we'll reserve your spot.",
+
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Ideas & Unplanned',
+  'publicTrip.unplanned.subheading': 'Places added to this trip but not yet scheduled.',
 }
 
 export default en

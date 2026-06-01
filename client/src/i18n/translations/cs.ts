@@ -2405,6 +2405,10 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Přidat se k této cestě",
   'publicTrip.rsvp.subheading': "Vyplňte své údaje níže a zarezervujeme vám místo.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Nápady a neplánované',
+  'publicTrip.unplanned.subheading': 'Místa přidaná do tohoto výletu, ale dosud neplánovaná.',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 

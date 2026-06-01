@@ -2443,6 +2443,10 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Ikut perjalanan ini",
   'publicTrip.rsvp.subheading': "Isi detail Anda di bawah dan kami akan memesan tempat Anda.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Ide & Belum Direncanakan',
+  'publicTrip.unplanned.subheading': 'Tempat yang ditambahkan ke perjalanan ini tetapi belum dijadwalkan.',
+
   'places.budgetSelectEntry': 'Select an entry',
 };
 

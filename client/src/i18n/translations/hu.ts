@@ -2402,6 +2402,10 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.rsvp.heading': "Csatlakozz ehhez az utazáshoz",
   'publicTrip.rsvp.subheading': "Add meg az adataidat, és fenntartjuk a helyed.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Ötletek & Nem tervezett',
+  'publicTrip.unplanned.subheading': 'Az utazáshoz hozzáadott, de még nem ütemezett helyek.',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 

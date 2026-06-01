@@ -2401,6 +2401,10 @@ const fr: Record<string, string> = {
   'publicTrip.rsvp.heading': "Rejoindre ce voyage",
   'publicTrip.rsvp.subheading': "Entrez vos informations ci-dessous et nous réserverons votre place.",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': 'Idées & Non Planifié',
+  'publicTrip.unplanned.subheading': 'Lieux ajoutés à ce voyage mais pas encore planifiés.',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 

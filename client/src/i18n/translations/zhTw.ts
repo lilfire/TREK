@@ -2402,6 +2402,10 @@ const zhTw: Record<string, string> = {
   'publicTrip.rsvp.heading': "加入此行程",
   'publicTrip.rsvp.subheading': "請在下方填寫您的資訊，我們將為您預留名額。",
 
+  // Public trip page — Unplanned Activities section
+  'publicTrip.unplanned.heading': '想法與未計劃',
+  'publicTrip.unplanned.subheading': '已新增至此行程但尚未安排的地點。',
+
   'places.budgetSelectEntry': 'Select an entry',
 }
 

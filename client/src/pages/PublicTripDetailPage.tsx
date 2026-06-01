@@ -11,6 +11,7 @@ import { getCategoryIcon } from '../components/shared/categoryIcons'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
 import PublicActivityModal from '../components/PublicActivityModal'
+import UnplannedActivitiesSection from '../components/UnplannedActivitiesSection'
 
 function createMarkerIcon(place: any) {
   const cat = place.category
@@ -101,6 +102,19 @@ export default function PublicTripDetailPage() {
 
   const { trip, days, assignments, dayNotes, budgetItems, places } = data
   const sortedDays: any[] = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number)
+
+  const assignedPlaceIds = new Set(
+    Object.values(assignments).flat().map((a: any) => a.place.id)
+  )
+  const unplannedPlaces = (places || []).filter((p: any) => !assignedPlaceIds.has(p.id))
+    .sort((a: any, b: any) => {
+      const catA = (a.category_name || '').toLowerCase()
+      const catB = (b.category_name || '').toLowerCase()
+      if (!a.category_name && b.category_name) return 1
+      if (a.category_name && !b.category_name) return -1
+      if (catA !== catB) return catA.localeCompare(catB)
+      return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
+    })
 
   const mapPlaces = (places || [])
     .filter((p: any) => p?.lat && p?.lng)
@@ -371,6 +385,16 @@ export default function PublicTripDetailPage() {
             )
           })}
         </section>
+
+        {/* Unplanned Activities */}
+        {unplannedPlaces.length > 0 && (
+          <UnplannedActivitiesSection
+            unplannedPlaces={unplannedPlaces}
+            onSelect={setSelectedActivity}
+            t={t}
+            locale={locale}
+          />
+        )}
 
         {/* RSVP section */}
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
