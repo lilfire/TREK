@@ -359,6 +359,21 @@ describe('GET /api/public/trips/:id', () => {
     expect(files[0].id).toBe(fileId);
   });
 
+  it('PTRIP-009d — assignment place object includes budget_category field', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Budget Category Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2025-12-03' });
+    const place = createPlace(testDb, trip.id, { name: 'shooting-range' });
+    testDb.prepare('UPDATE places SET budget_category = ? WHERE id = ?').run('Fun Activities', place.id);
+    createDayAssignment(testDb, day.id, place.id, {});
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    const p = res.body.assignments[day.id][0].place;
+    expect(p.budget_category).toBe('Fun Activities');
+  });
+
   it('PTRIP-010 — budgetItems and budgetSummary included in response with seeded items', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
