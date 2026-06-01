@@ -5,7 +5,6 @@ import { publicTripsApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import RsvpForm from '../components/Trips/RsvpForm'
-import PublicBudgetSection from '../components/PublicBudgetSection'
 import PublicActivityModal from '../components/PublicActivityModal'
 
 export function formatDuration(minutes: number): string {
@@ -72,7 +71,7 @@ export default function PublicTripDetailPage() {
     )
   }
 
-  const { trip, days, assignments, dayNotes, budgetItems, budgetSummary } = data
+  const { trip, days, assignments, dayNotes, budgetItems } = data
   const sortedDays: any[] = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number)
 
   function toggleDay(dayId: number) {
@@ -320,9 +319,6 @@ export default function PublicTripDetailPage() {
             )
           })}
         </section>
-
-        {/* Budget section */}
-        <PublicBudgetSection budgetItems={budgetItems} budgetSummary={budgetSummary} />
 
         {/* RSVP section */}
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
