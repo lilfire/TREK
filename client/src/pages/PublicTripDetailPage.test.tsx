@@ -1223,11 +1223,11 @@ describe('FE-PUB-TRIP-015: fee_currency passed to RsvpForm', () => {
 });
 
 // ---------------------------------------------------------------------------
-// FE-PUB-TRIP-016: Budget section renders with items
+// FE-PUB-TRIP-016: Budget section removed from public page
 // ---------------------------------------------------------------------------
 
-describe('FE-PUB-TRIP-016: Budget section renders with items', () => {
-  it('shows budget section heading, total, currency, item titles, amounts, and categories', async () => {
+describe('FE-PUB-TRIP-016: Budget section not rendered on public trip page', () => {
+  it('does not render budget-section even when budgetItems are present in the response', async () => {
     server.use(
       http.get('/api/public/trips/:id', () =>
         HttpResponse.json({
@@ -1245,27 +1245,13 @@ describe('FE-PUB-TRIP-016: Budget section renders with items', () => {
     renderPublicTrip('1');
 
     await waitFor(() => {
-      expect(screen.getByTestId('budget-section')).toBeInTheDocument();
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
     });
 
-    // Section heading
-    expect(screen.getByText('Budget')).toBeInTheDocument();
-
-    // Total and currency visible
-    const totalEl = screen.getByTestId('budget-total');
-    expect(totalEl).toHaveTextContent('1,000');
-    expect(totalEl).toHaveTextContent('USD');
-
-    // Item titles, amounts, and categories visible
-    expect(screen.getByText('Flights')).toBeInTheDocument();
-    expect(screen.getByText('Transport')).toBeInTheDocument();
-    expect(screen.getByText('Hotel')).toBeInTheDocument();
-    expect(screen.getByText('Accommodation')).toBeInTheDocument();
-
-    const items = screen.getAllByTestId('budget-item');
-    expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent('400');
-    expect(items[1]).toHaveTextContent('600');
+    // PublicBudgetSection has been removed from the page; budget-section must not appear
+    expect(screen.queryByTestId('budget-section')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-total')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-item')).not.toBeInTheDocument();
   });
 });
 
