@@ -149,7 +149,44 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM places p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.trip_id = ? ORDER BY p.created_at DESC
-  `).all(tripId);
+  `).all(tripId) as any[];
+
+  for (const p of places) {
+    p.files = [];
+  }
+
+  if (places.length > 0) {
+    const unplannedPlaceIds = places.map((p: any) => p.id);
+    const ufph = unplannedPlaceIds.map(() => '?').join(',');
+    const unplannedFileRows = db.prepare(`
+      SELECT id, original_name, file_size, mime_type, description, starred, created_at, place_id
+      FROM (
+        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+               tf.created_at, tf.place_id
+        FROM trip_files tf
+        WHERE tf.place_id IN (${ufph}) AND tf.deleted_at IS NULL
+        UNION
+        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+               tf.created_at, fl.place_id
+        FROM trip_files tf
+        JOIN file_links fl ON fl.file_id = tf.id
+        WHERE fl.place_id IN (${ufph}) AND tf.deleted_at IS NULL
+      )
+      ORDER BY starred DESC, created_at ASC
+    `).all(...unplannedPlaceIds, ...unplannedPlaceIds) as any[];
+
+    for (const f of unplannedFileRows) {
+      const place = places.find((p: any) => p.id === f.place_id);
+      if (place) {
+        place.files.push({
+          id: f.id, original_name: f.original_name,
+          file_size: f.file_size, mime_type: f.mime_type,
+          description: f.description, starred: f.starred ? true : false,
+          url: `/api/public/trips/${tripId}/files/${f.id}`,
+        });
+      }
+    }
+  }
 
   const reservations = db.prepare(
     'SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC'
