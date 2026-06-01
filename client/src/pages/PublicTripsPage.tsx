@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Calendar } from 'lucide-react'
 import { publicTripsApi, type PublicTripSummary } from '../api/client'
 import { formatDateRange } from '../utils/formatters'
+import PublicThemeToggle from '../components/shared/PublicThemeToggle'
 
 export default function PublicTripsPage() {
   const navigate = useNavigate()
@@ -35,8 +36,9 @@ export default function PublicTripsPage() {
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
 
-        {/* Login / Register links */}
-        <nav className="absolute top-3 right-3 flex gap-2" aria-label="Account navigation">
+        {/* Login / Register links + theme toggle */}
+        <nav className="absolute top-3 right-3 flex gap-2 items-center" aria-label="Account navigation">
+          <PublicThemeToggle />
           <Link
             to="/login"
             data-testid="login-link"

@@ -264,13 +264,14 @@ describe('Dark mode effects', () => {
     )
   })
 
-  it('FE-COMP-APP-022: forces light mode on /shared/ path even when dark_mode is true', async () => {
+  it('FE-COMP-APP-022: does not force-remove dark class on /shared/ path (PublicThemeToggle owns it)', async () => {
     document.documentElement.classList.add('dark')
     useSettingsStore.setState({ settings: buildSettings({ dark_mode: true }) })
     seedAuth({ isAuthenticated: false, loadUser: vi.fn().mockResolvedValue(undefined) })
     renderApp('/shared/tok')
+    // App.tsx skips settings-store dark logic for public routes; dark class is preserved
     await waitFor(() =>
-      expect(document.documentElement.classList.contains('dark')).toBe(false)
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
     )
   })
 

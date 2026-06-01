@@ -12,6 +12,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
 import PublicActivityModal from '../components/PublicActivityModal'
 import UnplannedActivitiesSection from '../components/UnplannedActivitiesSection'
+import PublicThemeToggle from '../components/shared/PublicThemeToggle'
 
 function createMarkerIcon(place: any) {
   const cat = place.category
@@ -163,46 +164,49 @@ export default function PublicTripDetailPage() {
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
 
-        {/* Language picker - top right */}
-        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button
-            data-testid="lang-picker-btn"
-            onClick={() => setShowLangPicker(v => !v)}
-            style={{
-              padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
-              color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
-          </button>
-          {showLangPicker && (
-            <div
-              data-testid="lang-picker-dropdown"
+        {/* Controls - top right: theme toggle + language picker */}
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <PublicThemeToggle />
+          <div style={{ position: 'relative' }}>
+            <button
+              data-testid="lang-picker-btn"
+              onClick={() => setShowLangPicker(v => !v)}
               style={{
-                position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white',
-                borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150,
+                padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
+                color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              {SUPPORTED_LANGUAGES.map(lang => (
-                <button
-                  key={lang.value}
-                  onClick={() => {
-                    useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
-                    setShowLangPicker(false)
-                  }}
-                  style={{
-                    display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none',
-                    textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >
-                  {lang.label}
-                </button>
-              ))}
-            </div>
-          )}
+              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+            </button>
+            {showLangPicker && (
+              <div
+                data-testid="lang-picker-dropdown"
+                style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)',
+                  borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150,
+                }}
+              >
+                {SUPPORTED_LANGUAGES.map(lang => (
+                  <button
+                    key={lang.value}
+                    onClick={() => {
+                      useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
+                      setShowLangPicker(false)
+                    }}
+                    style={{
+                      display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none',
+                      textAlign: 'left', cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)', borderRadius: 6, fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="relative">
