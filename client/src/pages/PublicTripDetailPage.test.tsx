@@ -453,7 +453,7 @@ describe('PublicTripDetailPage', () => {
 
       const dropdown = screen.getByTestId('lang-picker-dropdown');
       const langButtons = dropdown.querySelectorAll('button');
-      expect(langButtons.length).toBe(15);
+      expect(langButtons.length).toBe(16);
     });
 
     it('closes dropdown on second click of the picker button', async () => {
