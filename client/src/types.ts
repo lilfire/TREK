@@ -141,6 +141,7 @@ export interface BudgetItem {
   persons: number
   members: BudgetMember[]
   expense_date: string | null
+  category_currency?: string | null
 }
 
 export interface BudgetMember {

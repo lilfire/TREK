@@ -16,6 +16,7 @@ import {
   calculateSettlement,
   reorderBudgetItems,
   reorderBudgetCategories,
+  updateCategoryCurrency,
 } from '../services/budgetService';
 
 const router = express.Router({ mergeParams: true });
@@ -101,6 +102,22 @@ router.put('/reorder/categories', authenticate, (req: Request, res: Response) =>
   reorderBudgetCategories(tripId, orderedCategories);
   res.json({ success: true });
   broadcast(tripId, 'budget:reordered', { orderedCategories }, req.headers['x-socket-id'] as string);
+});
+
+router.patch('/categories/:category/currency', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId, category } = req.params;
+  const { currency } = req.body;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  updateCategoryCurrency(tripId, category, currency ?? null);
+  res.json({ success: true });
+  broadcast(tripId, 'budget:category-currency-updated', { category, currency: currency ?? null }, req.headers['x-socket-id'] as string);
 });
 
 router.put('/:id', authenticate, (req: Request, res: Response) => {
