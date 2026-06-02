@@ -244,14 +244,6 @@ export default function PublicTripDetailPage() {
         </div>
 
         <div className="relative">
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', marginBottom: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <img src="/icons/icon-white.svg" alt="TREK" width={26} height={26} />
-          </div>
-
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12 }}>
-            Travel Resource &amp; Exploration Kit
-          </div>
-
           <h1 data-testid="trip-title" style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>
             {trip.title}
           </h1>
@@ -450,13 +442,6 @@ export default function PublicTripDetailPage() {
           />
         </section>
 
-        {/* Footer */}
-        <div className="flex flex-col items-center py-4 gap-2">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Shared via <strong style={{ color: 'var(--text-secondary)' }}>TREK</strong></span>
-          </div>
-        </div>
       </div>
 
       {/* Activity detail modal */}
