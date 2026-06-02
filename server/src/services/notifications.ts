@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
-import { logInfo, logDebug, logError } from './auditLog';
+import { logInfo, logDebug, logError, logWarn } from './auditLog';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -365,7 +365,7 @@ function resolveFromAddress(): string {
     const hostname = new URL(getAppUrl()).hostname;
     const addr = `noreply@${hostname}`;
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
-      logInfo(`resolveFromAddress: derived ${addr} from localhost URL — email will be dropped`);
+      logWarn(`resolveFromAddress: APP_URL is ${hostname} — emails will not be delivered without SMTP configured`);
     }
     return addr;
   } catch {
@@ -398,6 +398,11 @@ async function sendViaSMTP(
 async function sendViaDirect(
   to: string, subject: string, text: string, html: string, from: string, hostname: string,
 ): Promise<boolean> {
+  logWarn(
+    `sendViaDirect: attempting direct MX transport from ${hostname} — delivery is unreliable ` +
+    `without SPF/DKIM/DMARC records authorizing this server IP. Configure SMTP for reliable delivery. ` +
+    `to=${to} subject="${subject}"`
+  );
   try {
     const transporter = nodemailer.createTransport({ direct: true, name: hostname } as any);
     await transporter.sendMail({ from, to, subject: `TREK — ${subject}`, text, html });
@@ -418,7 +423,10 @@ export async function sendEmail(to: string, subject: string, body: string, userI
   let hostname: string;
   try { hostname = new URL(getAppUrl()).hostname; } catch { return false; }
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    logInfo(`Email dropped (localhost URL) to=${to} subject="${subject}"`);
+    logWarn(
+      `sendEmail: email NOT sent — no SMTP configured and APP_URL is ${hostname}. ` +
+      `Configure SMTP or set APP_URL to your real domain. to=${to} subject="${subject}"`
+    );
     return false;
   }
   return sendViaDirect(to, subject, body, html, from, hostname);

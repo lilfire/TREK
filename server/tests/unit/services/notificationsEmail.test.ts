@@ -34,7 +34,7 @@ vi.mock('nodemailer', () => ({
 }));
 
 import { sendEmail } from '../../../src/services/notifications';
-import { logInfo, logError } from '../../../src/services/auditLog';
+import { logInfo, logError, logWarn } from '../../../src/services/auditLog';
 import nodemailer from 'nodemailer';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -61,6 +61,7 @@ afterEach(() => {
   mockSendMail.mockReset();
   vi.mocked(logInfo).mockClear();
   vi.mocked(logError).mockClear();
+  vi.mocked(logWarn).mockClear();
   vi.mocked(nodemailer.createTransport).mockClear();
 });
 
@@ -175,7 +176,7 @@ describe('sendEmail — localhost URL (no-op)', () => {
   it('EMAIL-LOCAL-003 — logs a warning when dropping email due to localhost', async () => {
     process.env.APP_URL = 'http://localhost:3001';
     await sendEmail('alice@example.com', 'Test', 'Body');
-    expect(vi.mocked(logInfo)).toHaveBeenCalledWith(expect.stringContaining('localhost'));
+    expect(vi.mocked(logWarn)).toHaveBeenCalledWith(expect.stringContaining('localhost'));
   });
 
   it('EMAIL-LOCAL-004 — does not crash; returns false cleanly', async () => {
