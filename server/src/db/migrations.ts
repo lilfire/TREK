@@ -2323,6 +2323,10 @@ function runMigrations(db: Database.Database): void {
     () => {
       db.exec(`ALTER TABLE trips ADD COLUMN fee_currency TEXT`);
     },
+    // LSO-1595: per-category budget currency — NULL means inherit from trip default currency
+    () => {
+      try { db.exec('ALTER TABLE budget_category_order ADD COLUMN currency TEXT DEFAULT NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {

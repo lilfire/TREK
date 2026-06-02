@@ -404,6 +404,67 @@ describe('Prompt: budget-overview', () => {
     const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
     expect(text).toContain('No expenses recorded.');
   });
+
+  it('shows per-category currencies and cross-currency note when categories differ', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Multi-Currency Trip' });
+    testDb.prepare('UPDATE trips SET currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    // Insert category order entries with different currencies directly
+    testDb.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)').run(trip.id, 'Transport', 0, 'NOK');
+    testDb.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)').run(trip.id, 'Food', 1, 'HUF');
+
+    // Mock getTripSummary to include category_currency on budget items
+    mockGetTripSummary.mockReturnValueOnce({
+      trip: { id: trip.id, title: 'Multi-Currency Trip', currency: 'EUR', user_id: user.id },
+      days: [],
+      members: [],
+      budget: [
+        { id: 1, category: 'Transport', name: 'Ferry', total_price: 300, category_currency: 'NOK' },
+        { id: 2, category: 'Food', name: 'Dinner', total_price: 15000, category_currency: 'HUF' },
+      ],
+      packing: [],
+      reservations: [],
+      collabNotes: [],
+    });
+
+    const server = buildServer(user.id);
+    const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('Transport');
+    expect(text).toContain('300 NOK');
+    expect(text).toContain('Food');
+    expect(text).toContain('15000 HUF');
+    // Cross-currency note should be shown
+    expect(text).toContain('different currencies');
+    // No grand total line (cross-currency)
+    expect(text).not.toContain('Total:');
+  });
+
+  it('shows grand total and per-person when all categories share the same currency', async () => {
+    const { user } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Single-Currency Trip' });
+    addTripMember(testDb, trip.id, member.id);
+
+    mockGetTripSummary.mockReturnValueOnce({
+      trip: { id: trip.id, title: 'Single-Currency Trip', currency: 'NOK', user_id: user.id },
+      days: [],
+      members: [{ id: user.id, name: user.username }, { id: member.id, name: member.username }],
+      budget: [
+        { id: 1, category: 'Transport', name: 'Ferry', total_price: 200, category_currency: 'NOK' },
+        { id: 2, category: 'Food', name: 'Dinner', total_price: 100, category_currency: 'NOK' },
+      ],
+      packing: [],
+      reservations: [],
+      collabNotes: [],
+    });
+
+    const server = buildServer(user.id);
+    const text = await invokePromptText(server, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('300 NOK'); // grand total
+    expect(text).toContain('150.00 NOK'); // per person
+    expect(text).not.toContain('different currencies');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -591,5 +652,48 @@ describe('Prompt: place-budget-binding', () => {
     });
     expect(text).toContain('total_price: 0');
     expect(text).toContain("Added 'Public Park' (0");
+  });
+
+  it('shows category currency from budget_category_order when category already has a currency', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'HUF Trip' });
+    // Pre-seed category with HUF currency
+    testDb.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)').run(trip.id, 'Food', 0, 'HUF');
+    createBudgetItem(testDb, trip.id, { name: 'Lunch', category: 'Food', total_price: 5000 });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Restaurant', category: 'Food', amount: 3000,
+    });
+    expect(text).toContain('HUF');
+    expect(text).toContain('Category currency: HUF');
+    expect(text).toContain('3000 HUF');
+    expect(text).toContain('currency: "HUF"');
+    expect(text).toContain("Added 'Restaurant' (3000 HUF) to budget group 'Food'.");
+  });
+
+  it('shows trip currency as default for new category with currency step note', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'EUR Trip' });
+    testDb.prepare('UPDATE trips SET currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Museum', category: 'Culture', amount: 20,
+    });
+    expect(text).toContain('Category currency: EUR');
+    expect(text).toContain('currency will be set to EUR');
+    expect(text).toContain('currency: "EUR"');
+  });
+
+  it('includes currency in create_budget_item step', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+
+    const server = buildServer(user.id);
+    const text = await invokePrompt(server, 'place-budget-binding', {
+      tripId: trip.id, placeName: 'Zoo', category: 'Family', amount: 40,
+    });
+    expect(text).toContain('currency:');
   });
 });

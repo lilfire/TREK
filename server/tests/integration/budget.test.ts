@@ -544,3 +544,97 @@ describe('Budget edit permission enforcement', () => {
     invalidatePermissionsCache();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-category currency
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Per-category budget currency', () => {
+  it('BUDGET-C01 — POST sets currency on new category in budget_category_order', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/budget`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Oslo Ferry', category: 'Transport', total_price: 300, currency: 'NOK' });
+    expect(res.status).toBe(201);
+
+    const catRow = testDb.prepare(
+      'SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?'
+    ).get(trip.id, 'Transport') as { currency: string | null } | undefined;
+    expect(catRow?.currency).toBe('NOK');
+  });
+
+  it('BUDGET-C02 — POST does not override existing category currency', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    // First item establishes NOK for Transport
+    await request(app)
+      .post(`/api/trips/${trip.id}/budget`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Ferry', category: 'Transport', total_price: 80, currency: 'NOK' });
+
+    // Second item with EUR should NOT override the category currency
+    await request(app)
+      .post(`/api/trips/${trip.id}/budget`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: 'Bus', category: 'Transport', total_price: 30, currency: 'EUR' });
+
+    const catRow = testDb.prepare(
+      'SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?'
+    ).get(trip.id, 'Transport') as { currency: string | null } | undefined;
+    expect(catRow?.currency).toBe('NOK'); // first wins
+  });
+
+  it('BUDGET-C03 — GET /budget returns category_currency on each item', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    // Insert category order with HUF currency
+    testDb.prepare(
+      'INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'Food', 0, 'HUF');
+    createBudgetItem(testDb, trip.id, { name: 'Dinner', category: 'Food', total_price: 12000 });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/budget`)
+      .set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].category_currency).toBe('HUF');
+  });
+
+  it('BUDGET-C04 — PUT updates currency on new category when changing category', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createBudgetItem(testDb, trip.id, { name: 'Item', category: 'Food', total_price: 50 });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/budget/${item.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ category: 'NewCategory', currency: 'SEK' });
+    expect(res.status).toBe(200);
+    expect(res.body.item.category).toBe('NewCategory');
+
+    const catRow = testDb.prepare(
+      'SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?'
+    ).get(trip.id, 'NewCategory') as { currency: string | null } | undefined;
+    expect(catRow?.currency).toBe('SEK');
+  });
+
+  it('BUDGET-C05 — category_currency is null for legacy items without currency set', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // Insert without currency (legacy path)
+    testDb.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order) VALUES (?, ?, ?)').run(trip.id, 'Legacy', 0);
+    createBudgetItem(testDb, trip.id, { name: 'Old Item', category: 'Legacy', total_price: 99 });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/budget`)
+      .set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.body.items[0].category_currency).toBeNull();
+  });
+});
