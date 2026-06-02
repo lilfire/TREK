@@ -1771,6 +1771,46 @@ describe('FE-PUB-TRIP-019: Per-place budget section in activity modal', () => {
 });
 
 // ---------------------------------------------------------------------------
+// FE-PUB-TRIP-023: Trek logo, tagline, and shared-via badge removed (LSO-1593)
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-023: Trek logo, tagline, and shared-via badge removed', () => {
+  it('does not render the TREK logo image in the banner', async () => {
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    const logoImg = document.querySelector('img[alt="TREK"][src*="icon-white"]');
+    expect(logoImg).toBeNull();
+  });
+
+  it('does not render the "Travel Resource & Exploration Kit" tagline', async () => {
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/Travel Resource/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Exploration Kit/i)).not.toBeInTheDocument();
+  });
+
+  it('does not render the "Shared via TREK" footer badge', async () => {
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-title')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/Shared via/i)).not.toBeInTheDocument();
+    const footerIcon = document.querySelector('img[alt="TREK"][src*="icon.svg"]');
+    expect(footerIcon).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // FE-PUB-TRIP-022: State-aware RSVP section headings (LSO-1587)
 // ---------------------------------------------------------------------------
 
