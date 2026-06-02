@@ -105,6 +105,20 @@ describe('sendEmail — SMTP path', () => {
       expect.objectContaining({ host: 'smtp.example.com', port: 587 }),
     );
   });
+
+  it('EMAIL-SMTP-006 — logs structured transport=smtp line before dispatch', async () => {
+    await sendEmail('alice@example.com', 'Test', 'Body');
+    expect(vi.mocked(logInfo)).toHaveBeenCalledWith(
+      expect.stringContaining('transport=smtp'),
+    );
+    // Verify the transport log line precedes the SMTP-specific dispatch log
+    const calls = vi.mocked(logInfo).mock.calls.map((c) => String(c[0]));
+    const transportLogIdx = calls.findIndex((m) => m.includes('transport=smtp'));
+    const sendLogIdx = calls.findIndex((m) => m.startsWith('Email sent to='));
+    expect(transportLogIdx).toBeGreaterThanOrEqual(0);
+    expect(sendLogIdx).toBeGreaterThanOrEqual(0);
+    expect(transportLogIdx).toBeLessThan(sendLogIdx);
+  });
 });
 
 // ── sendEmail — direct transport path ─────────────────────────────────────
@@ -148,6 +162,19 @@ describe('sendEmail — direct transport path (no SMTP config)', () => {
     await sendEmail('alice@example.com', 'Test', 'Body');
     const call = mockSendMail.mock.calls[0][0];
     expect(call.from).toBe('noreply@trek.myserver.com');
+  });
+
+  it('EMAIL-DIRECT-006 — logs structured transport=direct line before dispatch', async () => {
+    await sendEmail('alice@example.com', 'Test', 'Body');
+    expect(vi.mocked(logInfo)).toHaveBeenCalledWith(
+      expect.stringContaining('transport=direct'),
+    );
+    const infoCalls = vi.mocked(logInfo).mock.calls.map((c) => String(c[0]));
+    const transportLogIdx = infoCalls.findIndex((m) => m.includes('transport=direct'));
+    const sendLogIdx = infoCalls.findIndex((m) => m.startsWith('Email sent (direct) to='));
+    expect(transportLogIdx).toBeGreaterThanOrEqual(0);
+    expect(sendLogIdx).toBeGreaterThanOrEqual(0);
+    expect(transportLogIdx).toBeLessThan(sendLogIdx);
   });
 });
 
