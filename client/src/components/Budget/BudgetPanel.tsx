@@ -543,7 +543,7 @@ interface BudgetPanelProps {
 }
 
 export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelProps) {
-  const { trip, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, loadBudgetItems, updateTrip, setBudgetItemMembers, toggleBudgetMemberPaid, reorderBudgetItems, reorderBudgetCategories, updateBudgetCategoryCurrency } = useTripStore()
+  const { trip, budgetItems, addBudgetItem, updateBudgetItem, deleteBudgetItem, loadBudgetItems, setBudgetItemMembers, toggleBudgetMemberPaid, reorderBudgetItems, reorderBudgetCategories, updateBudgetCategoryCurrency } = useTripStore()
   const can = useCanDo()
   const { t, locale } = useTranslation()
   const isDark = useIsDark()
@@ -553,6 +553,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   const [settlement, setSettlement] = useState<{ balances: any[]; flows: any[] } | null>(null)
   const [settlementOpen, setSettlementOpen] = useState(false)
   const currency = trip?.currency || 'NOK'
+  const [newCategoryCurrency, setNewCategoryCurrency] = useState(() => trip?.currency || 'NOK')
   const canEdit = can('budget_edit', trip)
 
   const fmt = (v, cur) => fmtNum(v, locale, cur)
@@ -571,10 +572,6 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
     if (!hasMultipleMembers) return
     budgetApi.settlement(tripId).then(setSettlement).catch(() => {})
   }, [tripId, budgetItems, hasMultipleMembers])
-
-  const setCurrency = (cur) => {
-    if (tripId) updateTrip(tripId, { currency: cur })
-  }
 
   useEffect(() => { if (tripId) loadBudgetItems(tripId) }, [tripId])
 
@@ -626,7 +623,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   }
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return
-    addBudgetItem(tripId, { name: t('budget.defaultEntry'), category: newCategoryName.trim(), total_price: 0 })
+    addBudgetItem(tripId, { name: t('budget.defaultEntry'), category: newCategoryName.trim(), total_price: 0, currency: newCategoryCurrency })
     setNewCategoryName('')
   }
 
@@ -707,10 +704,10 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
             {t('budget.title')}
           </h2>
           <div className="flex flex-wrap max-md:!w-full max-md:!mt-2" style={{ alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 0 }}>
-            <div className="max-md:!w-full" style={{ width: 150 }}>
+            <div className="max-md:!w-full" style={{ width: 150 }} data-testid="new-cat-currency">
               <CustomSelect
-                value={currency}
-                onChange={setCurrency}
+                value={newCategoryCurrency}
+                onChange={setNewCategoryCurrency}
                 disabled={!canEdit}
                 options={CURRENCY_CODES.map(c => ({ value: c, label: `${c} (${CURRENCY_SYMBOLS[c] || c})` }))}
                 searchable
