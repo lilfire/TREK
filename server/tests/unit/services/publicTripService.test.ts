@@ -41,7 +41,7 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip, createDay, createPlace, createDayAssignment } from '../../helpers/factories';
+import { createUser, createTrip, createDay, createPlace, createDayAssignment, createBudgetItem } from '../../helpers/factories';
 import { getPublicTripData } from '../../../src/services/publicTripService';
 
 beforeAll(() => {
@@ -304,6 +304,69 @@ describe('getPublicTripData — unplanned place files (LSO-1556)', () => {
     expect(Array.isArray(assignedPlace.files)).toBe(true);
     expect(assignedPlace.files).toHaveLength(1);
     expect(assignedPlace.files[0].original_name).toBe('ticket.pdf');
+  });
+});
+
+describe('getPublicTripData — budget item category_currency (LSO-1603)', () => {
+  it('PTRSVC-014 — budget items expose category_currency when budget_category_order row exists', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Budget Currency Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    createBudgetItem(testDb, trip.id, { category: 'Food', name: 'Dinner', total_price: 50 });
+    createBudgetItem(testDb, trip.id, { category: 'Transport', name: 'Taxi', total_price: 20 });
+
+    testDb.prepare(
+      'INSERT OR REPLACE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'Food', 0, 'JPY');
+    testDb.prepare(
+      'INSERT OR REPLACE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'Transport', 1, 'USD');
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(Array.isArray(data!.budgetItems)).toBe(true);
+    expect(data!.budgetItems).toHaveLength(2);
+
+    const food = data!.budgetItems.find((b: any) => b.category === 'Food');
+    const transport = data!.budgetItems.find((b: any) => b.category === 'Transport');
+    expect(food).toBeDefined();
+    expect(food!.category_currency).toBe('JPY');
+    expect(transport).toBeDefined();
+    expect(transport!.category_currency).toBe('USD');
+  });
+
+  it('PTRSVC-015 — category_currency is null when budget_category_order row is missing', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Missing Order Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    createBudgetItem(testDb, trip.id, { category: 'Misc', name: 'Souvenirs', total_price: 10 });
+
+    testDb.prepare('DELETE FROM budget_category_order WHERE trip_id = ? AND category = ?').run(trip.id, 'Misc');
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(data!.budgetItems).toHaveLength(1);
+    expect(data!.budgetItems[0].category).toBe('Misc');
+    expect(data!.budgetItems[0].category_currency).toBeNull();
+  });
+
+  it('PTRSVC-016 — category_currency is null when budget_category_order row exists but currency column is null', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Null Currency Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1, currency = ? WHERE id = ?').run('EUR', trip.id);
+
+    createBudgetItem(testDb, trip.id, { category: 'Lodging', name: 'Hotel', total_price: 200 });
+
+    testDb.prepare(
+      'INSERT OR REPLACE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)'
+    ).run(trip.id, 'Lodging', 0, null);
+
+    const data = getPublicTripData(trip.id);
+    expect(data).not.toBeNull();
+    expect(data!.budgetItems).toHaveLength(1);
+    expect(data!.budgetItems[0].category_currency).toBeNull();
   });
 });
 
