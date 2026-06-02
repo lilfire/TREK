@@ -178,7 +178,7 @@ export default function PublicActivityModal({ assignment, tripCurrency, budgetIt
                     <span className="text-zinc-400 text-xs font-mono w-3.5 text-center flex-shrink-0">$</span>
                     <span className="flex-1 text-zinc-600 dark:text-zinc-300">{item.title}</span>
                     <span className="text-zinc-600 dark:text-zinc-300 font-medium tabular-nums">
-                      {Number(item.amount).toLocaleString()} {tripCurrency}
+                      {Number(item.amount).toLocaleString()} {item.category_currency ?? tripCurrency}
                     </span>
                   </div>
                 ))}
