@@ -398,6 +398,11 @@ async function sendViaSMTP(
 async function sendViaDirect(
   to: string, subject: string, text: string, html: string, from: string, hostname: string,
 ): Promise<boolean> {
+  logWarn(
+    `sendViaDirect: attempting direct MX transport from ${hostname} — delivery is unreliable ` +
+    `without SPF/DKIM/DMARC records authorizing this server IP. Configure SMTP for reliable delivery. ` +
+    `to=${to} subject="${subject}"`
+  );
   try {
     const transporter = nodemailer.createTransport({ direct: true, name: hostname } as any);
     await transporter.sendMail({ from, to, subject: `TREK — ${subject}`, text, html });

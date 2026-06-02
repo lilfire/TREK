@@ -169,6 +169,30 @@ describe('sendEmail() — LSO-1608 localhost surfacing', () => {
     expect(resolveLocalhostCalls).toHaveLength(0);
   });
 
+  it('SE-006 — sendViaDirect logs an SPF/DKIM/DMARC reliability warning per call', async () => {
+    // The direct MX path is unreliable without SPF/DKIM/DMARC records authorizing the
+    // server IP (LSO-1608 follow-up: this is the actually-exercised path in production
+    // when SMTP is unconfigured and APP_URL is a real domain). Every call must surface
+    // the warning so operators know why mail may be silently rejected by receivers.
+    process.env.APP_URL = 'https://trip.lsoft.no';
+
+    const result = await sendEmail('user@example.com', 'Hello', 'Body');
+
+    expect(result).toBe(true);
+    expect(sendMailMock).toHaveBeenCalledTimes(1);
+
+    const directWarnings = logWarnMock.mock.calls
+      .map(([msg]) => (typeof msg === 'string' ? msg : ''))
+      .filter(msg => msg.includes('sendViaDirect: attempting direct MX transport'));
+    expect(directWarnings.length).toBe(1);
+    const warning = directWarnings[0];
+    expect(warning).toContain('SPF/DKIM/DMARC');
+    expect(warning).toContain('Configure SMTP');
+    expect(warning).toContain('trip.lsoft.no');
+    expect(warning).toContain('user@example.com');
+    expect(warning).toContain('Hello');
+  });
+
   it('SE-004 — SMTP configured + APP_URL=https domain: sends via SMTP', async () => {
     configureSmtp();
     process.env.APP_URL = 'https://trek.example.com';
