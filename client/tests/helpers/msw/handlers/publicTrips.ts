@@ -96,4 +96,12 @@ export const publicTripsHandlers = [
     const user = buildUser();
     return HttpResponse.json({ rsvpId: 1, userId: user.id, authToken: 'mock-rsvp-token' }, { status: 201 });
   }),
+
+  http.post('/api/public/trips/:id/rsvp/payment-order', () => {
+    return HttpResponse.json({ orderId: 'ORDER-123' }, { status: 201 });
+  }),
+
+  http.post('/api/public/trips/:id/rsvp/payment-capture', () => {
+    return HttpResponse.json({ success: true, captureId: 'CAPTURE-1' }, { status: 200 });
+  }),
 ];

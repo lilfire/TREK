@@ -155,6 +155,21 @@ export default function PublicTripDetailPage() {
     })
   }
 
+  const isMember = data?.trip?.user_is_member === true
+  const rsvpDeadlineVal: string | null = data?.trip?.rsvp_deadline ?? null
+  const todayIso = new Date().toISOString().split('T')[0]
+  const rsvpClosed = rsvpDeadlineVal != null && todayIso > rsvpDeadlineVal
+  const rsvpHeadingKey = isMember
+    ? 'publicTrip.rsvp.headingMember'
+    : rsvpClosed
+      ? 'publicTrip.rsvp.headingClosed'
+      : 'publicTrip.rsvp.heading'
+  const rsvpSubheadingKey = isMember
+    ? 'publicTrip.rsvp.subheadingMember'
+    : rsvpClosed
+      ? 'publicTrip.rsvp.subheadingClosed'
+      : 'publicTrip.rsvp.subheading'
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero header */}
@@ -421,12 +436,12 @@ export default function PublicTripDetailPage() {
 
         {/* RSVP section */}
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
-          <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-1">{t('publicTrip.rsvp.heading')}</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">{t('publicTrip.rsvp.subheading')}</p>
+          <h2 data-testid="rsvp-section-heading" className="text-base font-bold text-zinc-900 dark:text-white mb-1">{t(rsvpHeadingKey)}</h2>
+          <p data-testid="rsvp-section-subheading" className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">{t(rsvpSubheadingKey)}</p>
           <RsvpForm
             tripId={id!}
-            isMember={data?.trip?.user_is_member === true}
-            rsvpDeadline={data?.trip?.rsvp_deadline ?? null}
+            isMember={isMember}
+            rsvpDeadline={rsvpDeadlineVal}
             registrationFee={data?.trip?.registration_fee ?? null}
             feeMode={data?.trip?.fee_mode ?? null}
             feeDeadline={data?.trip?.fee_deadline ?? null}

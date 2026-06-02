@@ -77,7 +77,7 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<RsvpError | null>(null)
   const [joinDone, setJoinDone] = useState(false)
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
+  const [paymentAuthFailed, setPaymentAuthFailed] = useState(false)
 
   const hasFee = typeof registrationFee === 'number' && registrationFee > 0
   const isDeadlineFee = hasFee && feeMode === 'deadline'
@@ -304,10 +304,13 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
 
   // Case C: fee at registration — PayPal payment required
   if (isRsvpFee && paypalClientId) {
-    if (paymentSuccess) {
+    if (paymentAuthFailed) {
       return (
-        <div data-testid="rsvp-payment-success" className="p-4 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 text-sm text-green-800 dark:text-green-200">
-          {t('rsvp.paymentSuccess', { amount: String(registrationFee), currency })}
+        <div data-testid="rsvp-auth-failed" className="p-4 rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-800 text-sm text-yellow-800 dark:text-yellow-200">
+          {t('rsvp.authFailedAfterPayment')}{' '}
+          <Link to="/login" className="underline font-medium">
+            {t('rsvp.logInHere')}
+          </Link>
         </div>
       )
     }
@@ -363,7 +366,12 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
                   })
 
                   await useAuthStore.getState().loadUser()
-                  setPaymentSuccess(true)
+                  if (useAuthStore.getState().isAuthenticated) {
+                    toast.success(t('rsvp.toastPaymentSuccess'))
+                    navigate('/dashboard')
+                  } else {
+                    setPaymentAuthFailed(true)
+                  }
                 } catch (err: unknown) {
                   setError(parseRsvpError(t, err))
                 } finally {
