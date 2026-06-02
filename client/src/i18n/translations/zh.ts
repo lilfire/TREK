@@ -2400,6 +2400,12 @@ const zh: Record<string, string> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "加入此行程",
   'publicTrip.rsvp.subheading': "请在下方填写您的信息，我们将为您预留名额。",
+  'publicTrip.rsvp.headingMember': "您已加入此行程",
+  'publicTrip.rsvp.subheadingMember': "您已确认 — 请查看控制台了解完整行程。",
+  'publicTrip.rsvp.headingClosed': "报名已截止",
+  'publicTrip.rsvp.subheadingClosed': "此行程不再接受新的报名。",
+  'rsvp.toastPaymentSuccess': "🎉 您已加入！欢迎来到 TREK — 请查收确认邮件。",
+  'rsvp.authFailedAfterPayment': "您的付款已收到，但我们无法自动为您登录。请手动登录以查看您的行程。",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': '想法与未计划',

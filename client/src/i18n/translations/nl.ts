@@ -2400,6 +2400,12 @@ const nl: Record<string, string> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Sluit je aan bij deze reis",
   'publicTrip.rsvp.subheading': "Vul je gegevens in en we reserveren je plek.",
+  'publicTrip.rsvp.headingMember': "Je bent bij deze reis",
+  'publicTrip.rsvp.subheadingMember': "Je bent bevestigd — bekijk je dashboard voor het volledige reisschema.",
+  'publicTrip.rsvp.headingClosed': "Inschrijving gesloten",
+  'publicTrip.rsvp.subheadingClosed': "Deze reis accepteert geen nieuwe inschrijvingen meer.",
+  'rsvp.toastPaymentSuccess': "🎉 Je bent erbij! Welkom bij TREK — controleer je inbox voor een bevestigingsmail.",
+  'rsvp.authFailedAfterPayment': "Je betaling is ontvangen maar we konden je niet automatisch aanmelden. Log in om je reis te bekijken.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Ideeën & Ongepland',

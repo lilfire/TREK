@@ -2442,6 +2442,12 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Ikut perjalanan ini",
   'publicTrip.rsvp.subheading': "Isi detail Anda di bawah dan kami akan memesan tempat Anda.",
+  'publicTrip.rsvp.headingMember': "Anda terdaftar dalam perjalanan ini",
+  'publicTrip.rsvp.subheadingMember': "Anda dikonfirmasi — cek dasbor untuk melihat itinerary lengkap.",
+  'publicTrip.rsvp.headingClosed': "Pendaftaran ditutup",
+  'publicTrip.rsvp.subheadingClosed': "Perjalanan ini tidak lagi menerima pendaftaran baru.",
+  'rsvp.toastPaymentSuccess': "🎉 Anda bergabung! Selamat datang di TREK — cek kotak masuk Anda untuk email konfirmasi.",
+  'rsvp.authFailedAfterPayment': "Pembayaran Anda diterima tetapi kami tidak dapat masuk secara otomatis. Silakan masuk untuk melihat perjalanan Anda.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Ide & Belum Direncanakan',

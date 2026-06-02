@@ -2401,6 +2401,12 @@ const zhTw: Record<string, string> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "加入此行程",
   'publicTrip.rsvp.subheading': "請在下方填寫您的資訊，我們將為您預留名額。",
+  'publicTrip.rsvp.headingMember': "您已加入此行程",
+  'publicTrip.rsvp.subheadingMember': "您已確認 — 請查看控制台了解完整行程。",
+  'publicTrip.rsvp.headingClosed': "報名已截止",
+  'publicTrip.rsvp.subheadingClosed': "此行程不再接受新的報名。",
+  'rsvp.toastPaymentSuccess': "🎉 您已加入！歡迎來到 TREK — 請查收確認郵件。",
+  'rsvp.authFailedAfterPayment': "您的付款已收到，但我們無法自動為您登入。請手動登入以查看您的行程。",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': '想法與未計劃',
