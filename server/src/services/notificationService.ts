@@ -4,7 +4,7 @@ import {
   getActiveChannels,
   isEnabledForEvent,
   getAdminGlobalPref,
-  isSmtpConfigured,
+  isEmailDeliveryAvailable,
   ADMIN_SCOPED_EVENTS,
   type NotifEventType,
   type NotifChannel,
@@ -257,7 +257,7 @@ export async function send(payload: NotificationPayload): Promise<void> {
     // Admin-scoped events: use global pref + SMTP check (bypass notification_channels toggle)
     // Regular events: use active channels + per-user pref
     const emailEnabled = ADMIN_SCOPED_EVENTS.has(event)
-      ? isSmtpConfigured() && getAdminGlobalPref(event, 'email')
+      ? isEmailDeliveryAvailable() && getAdminGlobalPref(event, 'email')
       : activeChannels.includes('email') && isEnabledForEvent(recipientId, event, 'email');
 
     if (emailEnabled) {
