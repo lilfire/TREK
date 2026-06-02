@@ -2477,6 +2477,12 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': 'Join this trip',
   'publicTrip.rsvp.subheading': "Add your details below and we'll reserve your spot.",
+  'publicTrip.rsvp.headingMember': "You're on this trip",
+  'publicTrip.rsvp.subheadingMember': "You're confirmed — check your dashboard to view the full itinerary.",
+  'publicTrip.rsvp.headingClosed': 'Registration closed',
+  'publicTrip.rsvp.subheadingClosed': 'This trip is no longer accepting new registrations.',
+  'rsvp.toastPaymentSuccess': "🎉 You're in! Welcome to TREK — check your inbox for a confirmation email.",
+  'rsvp.authFailedAfterPayment': 'Your payment was received but we could not sign you in automatically. Please log in to view your trip.',
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Ideas & Unplanned',

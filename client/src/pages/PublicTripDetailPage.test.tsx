@@ -1769,3 +1769,164 @@ describe('FE-PUB-TRIP-019: Per-place budget section in activity modal', () => {
     expect(items[1]).toHaveTextContent('EUR');
   });
 });
+
+// ---------------------------------------------------------------------------
+// FE-PUB-TRIP-022: State-aware RSVP section headings (LSO-1587)
+// ---------------------------------------------------------------------------
+
+describe('FE-PUB-TRIP-022: State-aware RSVP section headings', () => {
+  it('shows "Join this trip" heading by default (no member, no closed)', async () => {
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-section-heading')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('rsvp-section-heading')).toHaveTextContent('Join this trip');
+    expect(screen.getByTestId('rsvp-section-subheading')).toHaveTextContent(
+      /add your details below/i,
+    );
+  });
+
+  it('shows "You\'re on this trip" heading when user_is_member=true', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: {
+            id: 42,
+            title: 'Member Trip',
+            start_date: null,
+            end_date: null,
+            cover_image: null,
+            currency: 'EUR',
+            user_is_member: true,
+            rsvp_deadline: null,
+          },
+          days: [],
+          assignments: {},
+          dayNotes: {},
+          places: [],
+          categories: [],
+          reservations: [],
+          accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-section-heading')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('rsvp-section-heading')).toHaveTextContent("You're on this trip");
+    expect(screen.getByTestId('rsvp-section-subheading')).toHaveTextContent(
+      /you're confirmed/i,
+    );
+  });
+
+  it('shows "Registration closed" heading when rsvp_deadline is in the past', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: {
+            id: 42,
+            title: 'Closed Trip',
+            start_date: null,
+            end_date: null,
+            cover_image: null,
+            currency: 'EUR',
+            user_is_member: false,
+            rsvp_deadline: '2000-01-01',
+          },
+          days: [],
+          assignments: {},
+          dayNotes: {},
+          places: [],
+          categories: [],
+          reservations: [],
+          accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-section-heading')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('rsvp-section-heading')).toHaveTextContent('Registration closed');
+    expect(screen.getByTestId('rsvp-section-subheading')).toHaveTextContent(
+      /no longer accepting/i,
+    );
+  });
+
+  it('member heading takes precedence over closed deadline', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: {
+            id: 42,
+            title: 'Member + Closed Trip',
+            start_date: null,
+            end_date: null,
+            cover_image: null,
+            currency: 'EUR',
+            user_is_member: true,
+            rsvp_deadline: '2000-01-01',
+          },
+          days: [],
+          assignments: {},
+          dayNotes: {},
+          places: [],
+          categories: [],
+          reservations: [],
+          accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-section-heading')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('rsvp-section-heading')).toHaveTextContent("You're on this trip");
+  });
+
+  it('shows default heading when rsvp_deadline is in the future', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({
+          trip: {
+            id: 42,
+            title: 'Open Trip',
+            start_date: null,
+            end_date: null,
+            cover_image: null,
+            currency: 'EUR',
+            user_is_member: false,
+            rsvp_deadline: '2099-12-31',
+          },
+          days: [],
+          assignments: {},
+          dayNotes: {},
+          places: [],
+          categories: [],
+          reservations: [],
+          accommodations: [],
+        }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('rsvp-section-heading')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('rsvp-section-heading')).toHaveTextContent('Join this trip');
+  });
+});
