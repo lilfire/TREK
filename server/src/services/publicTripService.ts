@@ -217,10 +217,13 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
   const categories = db.prepare('SELECT * FROM categories').all();
 
   const budgetItemRows = db.prepare(`
-    SELECT id, name, category, total_price, note, persons, days, sort_order
-    FROM budget_items
-    WHERE trip_id = ?
-    ORDER BY sort_order ASC, created_at ASC
+    SELECT bi.id, bi.name, bi.category, bi.total_price, bi.note, bi.persons, bi.days, bi.sort_order,
+           bco.currency AS category_currency
+    FROM budget_items bi
+    LEFT JOIN budget_category_order bco
+      ON bco.trip_id = bi.trip_id AND bco.category = bi.category
+    WHERE bi.trip_id = ?
+    ORDER BY COALESCE(bco.sort_order, 999999) ASC, bi.sort_order ASC, bi.created_at ASC
   `).all(tripId) as any[];
 
   const budgetItems = budgetItemRows.map((row: any) => ({
@@ -231,6 +234,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     note: row.note,
     persons: row.persons,
     days: row.days,
+    category_currency: row.category_currency ?? null,
   }));
 
   const budgetSummary = {
