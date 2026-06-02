@@ -35,6 +35,12 @@ export interface Trip {
   is_archived: number;
   is_public: number;
   reminder_days: number;
+  registration_fee?: number | null;
+  fee_mode?: 'deadline' | 'rsvp' | null;
+  fee_deadline?: string | null;
+  rsvp_deadline?: string | null;
+  fee_currency?: string | null;
+  country?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -72,6 +78,7 @@ export interface Place {
   website?: string | null;
   phone?: string | null;
   transport_mode?: string;
+  budget_category?: string | null;
   created_at?: string;
   updated_at?: string;
 }

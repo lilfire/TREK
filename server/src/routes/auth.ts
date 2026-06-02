@@ -39,7 +39,8 @@ import {
   requestPasswordReset,
   resetPassword,
 } from '../services/authService';
-import { sendPasswordResetEmail, getAppUrl } from '../services/notifications';
+import { getAppUrl } from '../services/notifications';
+import { sendPasswordResetEmail } from '../services/passwordResetService';
 
 const router = express.Router();
 

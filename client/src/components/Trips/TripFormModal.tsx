@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe } from 'lucide-react'
+import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe, DollarSign } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
@@ -9,6 +9,27 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import type { Trip } from '../../types'
+import { CURRENCY_CODES, CURRENCY_SYMBOLS } from '../../utils/currencies'
+
+// ISO 3166-1 alpha-2 codes for the country dropdown
+const ISO_3166_ALPHA2 = [
+  'AC','AD','AE','AF','AG','AI','AL','AM','AO','AQ','AR','AS','AT','AU','AW','AX','AZ',
+  'BA','BB','BD','BE','BF','BG','BH','BI','BJ','BL','BM','BN','BO','BQ','BR','BS','BT','BV','BW','BY','BZ',
+  'CA','CC','CD','CF','CG','CH','CI','CK','CL','CM','CN','CO','CR','CU','CV','CW','CX','CY','CZ',
+  'DE','DJ','DK','DM','DO','DZ','EC','EE','EG','EH','ER','ES','ET',
+  'FI','FJ','FK','FM','FO','FR','GA','GB','GD','GE','GF','GG','GH','GI','GL','GM','GN','GP','GQ','GR','GS','GT','GU','GW','GY',
+  'HK','HM','HN','HR','HT','HU','ID','IE','IL','IM','IN','IO','IQ','IR','IS','IT',
+  'JE','JM','JO','JP','KE','KG','KH','KI','KM','KN','KP','KR','KW','KY','KZ',
+  'LA','LB','LC','LI','LK','LR','LS','LT','LU','LV','LY',
+  'MA','MC','MD','ME','MF','MG','MH','MK','ML','MM','MN','MO','MP','MQ','MR','MS','MT','MU','MV','MW','MX','MY','MZ',
+  'NA','NC','NE','NF','NG','NI','NL','NO','NP','NR','NU','NZ',
+  'OM','PA','PE','PF','PG','PH','PK','PL','PM','PN','PR','PS','PT','PW','PY',
+  'QA','RE','RO','RS','RU','RW',
+  'SA','SB','SC','SD','SE','SG','SH','SI','SJ','SK','SL','SM','SN','SO','SR','SS','ST','SV','SX','SY','SZ',
+  'TC','TD','TF','TG','TH','TJ','TK','TL','TM','TN','TO','TR','TT','TV','TW','TZ',
+  'UA','UG','UM','US','UY','UZ','VA','VC','VE','VG','VI','VN','VU','WF','WS',
+  'XK','YE','YT','ZA','ZM','ZW',
+]
 
 interface TripFormModalProps {
   isOpen: boolean
@@ -30,6 +51,18 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const canUploadCover = !isEditing || can('trip_cover_upload', trip)
   const canEditTrip = !isEditing || can('trip_edit', trip)
 
+  const countryOptions = useMemo(() => {
+    let dn: Intl.DisplayNames | null = null
+    try { dn = new Intl.DisplayNames(['en'], { type: 'region' }) } catch { /* */ }
+    return ISO_3166_ALPHA2
+      .map(code => ({ value: code, label: (dn ? dn.of(code) : null) || code }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  }, [])
+
+  const currencyOptions = useMemo(() =>
+    CURRENCY_CODES.map(c => ({ value: c, label: `${c} (${CURRENCY_SYMBOLS[c] || c})` }))
+  , [])
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -41,6 +74,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [customReminder, setCustomReminder] = useState(false)
   const [isPublic, setIsPublic] = useState(false)
   const [togglingPublic, setTogglingPublic] = useState(false)
+  const [country, setCountry] = useState(trip?.country || '')
+  const [currency, setCurrency] = useState(trip?.currency || 'NOK')
+  const [feeCurrency, setFeeCurrency] = useState(trip?.fee_currency ?? trip?.currency ?? 'NOK')
+  const [feeAmount, setFeeAmount] = useState('')
+  const [feeMode, setFeeMode] = useState<'deadline' | 'rsvp' | ''>('')
+  const [feeDeadline, setFeeDeadline] = useState('')
+  const [rsvpDeadline, setRsvpDeadline] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [coverPreview, setCoverPreview] = useState(null)
@@ -65,11 +105,25 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
       setIsPublic(Boolean((trip as any).is_public))
+      setFeeAmount((trip as any).registration_fee != null ? String((trip as any).registration_fee) : '')
+      setFeeMode((trip as any).fee_mode || '')
+      setFeeDeadline((trip as any).fee_deadline || '')
+      setRsvpDeadline((trip as any).rsvp_deadline || '')
+      setCountry(trip.country || '')
+      setCurrency(trip.currency || 'NOK')
+      setFeeCurrency(trip.fee_currency ?? trip.currency ?? 'NOK')
     } else {
       setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
       setCustomReminder(false)
       setCoverPreview(null)
       setIsPublic(false)
+      setFeeAmount('')
+      setFeeMode('')
+      setFeeDeadline('')
+      setRsvpDeadline('')
+      setCountry('')
+      setCurrency('NOK')
+      setFeeCurrency('NOK')
     }
     setPendingCoverFile(null)
     setSelectedMembers([])
@@ -100,8 +154,28 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     if (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date)) {
       setError(t('dashboard.endDateError')); return
     }
+    const parsedFee = feeAmount.trim() ? parseFloat(feeAmount) : null
+    if (parsedFee !== null && (isNaN(parsedFee) || parsedFee < 0)) {
+      setError('Registration fee must be a non-negative number'); return
+    }
+    if (parsedFee && parsedFee > 0 && !feeMode) {
+      setError('Please select a fee type'); return
+    }
+    if (parsedFee && parsedFee > 0 && feeMode === 'deadline' && !feeDeadline) {
+      setError('Please select a payment deadline'); return
+    }
+    if (parsedFee && parsedFee > 0 && feeMode === 'deadline' && feeDeadline && new Date(feeDeadline) < new Date(new Date().toDateString())) {
+      setError('Payment deadline must not be in the past'); return
+    }
     setIsLoading(true)
     try {
+      const feePayload: Record<string, number | string | null> = {
+        registration_fee: parsedFee,
+        fee_mode: parsedFee && parsedFee > 0 ? (feeMode || null) : null,
+        fee_deadline: parsedFee && parsedFee > 0 && feeMode === 'deadline' ? (feeDeadline || null) : null,
+        rsvp_deadline: rsvpDeadline || null,
+        fee_currency: parsedFee && parsedFee > 0 ? feeCurrency : null,
+      }
       const result = await onSave({
         title: formData.title.trim(),
         description: formData.description.trim() || null,
@@ -109,6 +183,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
+        country: country.trim() || null,
+        currency: currency || 'NOK',
+        ...feePayload,
       })
       // Add selected members for newly created trips
       if (selectedMembers.length > 0 && result?.trip?.id) {
@@ -489,6 +566,139 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             </button>
           </div>
         )}
+
+        {/* Country & Currency */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('trips.country')}
+            </label>
+            <div data-testid="country-select">
+              <CustomSelect
+                value={country}
+                onChange={setCountry}
+                options={countryOptions}
+                placeholder={t('trips.selectCountry')}
+                searchable
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              {t('trips.currency')}
+            </label>
+            <div data-testid="currency-select">
+              <CustomSelect
+                value={currency}
+                onChange={setCurrency}
+                options={currencyOptions}
+                searchable
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Registration Fee */}
+        <div data-testid="fee-section">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            <DollarSign className="inline w-4 h-4 mr-1" />Registration Fee
+          </label>
+          <div className="flex items-center gap-2 mb-2">
+            <input
+              data-testid="fee-amount-input"
+              type="number"
+              min="0"
+              step="0.01"
+              value={feeAmount}
+              onChange={e => {
+                setFeeAmount(e.target.value)
+                if (!e.target.value || parseFloat(e.target.value) === 0) {
+                  setFeeMode('')
+                  setFeeDeadline('')
+                }
+              }}
+              placeholder={`Amount (${feeCurrency})`}
+              className={inputCls + ' flex-1'}
+            />
+            <div data-testid="fee-currency-select" style={{ width: 120, flexShrink: 0 }}>
+              <CustomSelect
+                value={feeCurrency}
+                onChange={setFeeCurrency}
+                options={currencyOptions}
+                searchable
+                size="sm"
+              />
+            </div>
+          </div>
+
+          {feeAmount && parseFloat(feeAmount) > 0 && (
+            <div className="space-y-2 mt-2" data-testid="fee-mode-section">
+              <p className="text-xs text-slate-500">Fee type</p>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    data-testid="fee-mode-deadline"
+                    type="radio"
+                    name="fee_mode"
+                    value="deadline"
+                    checked={feeMode === 'deadline'}
+                    onChange={() => setFeeMode('deadline')}
+                    className="accent-slate-900"
+                  />
+                  <span className="text-sm text-slate-700">Inform registrants of a payment deadline</span>
+                </label>
+              </div>
+              <div className="flex gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    data-testid="fee-mode-rsvp"
+                    type="radio"
+                    name="fee_mode"
+                    value="rsvp"
+                    checked={feeMode === 'rsvp'}
+                    onChange={() => { setFeeMode('rsvp'); setFeeDeadline('') }}
+                    className="accent-slate-900"
+                  />
+                  <span className="text-sm text-slate-700">Collect payment at registration (PayPal)</span>
+                </label>
+              </div>
+
+              {feeMode === 'deadline' && (
+                <div data-testid="fee-deadline-section">
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Payment deadline</label>
+                  <input
+                    data-testid="fee-deadline-input"
+                    type="date"
+                    value={feeDeadline}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => setFeeDeadline(e.target.value)}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4">
+          <label className="block text-xs font-medium text-slate-600 mb-1">RSVP deadline <span className="font-normal text-slate-400">(optional)</span></label>
+          <input
+            data-testid="rsvp-deadline-input"
+            type="date"
+            value={rsvpDeadline}
+            onChange={e => setRsvpDeadline(e.target.value)}
+            className={inputCls}
+          />
+          {rsvpDeadline && (
+            <button
+              type="button"
+              onClick={() => setRsvpDeadline('')}
+              className="mt-1 text-xs text-slate-400 hover:text-slate-600 underline"
+            >
+              Clear deadline
+            </button>
+          )}
+        </div>
 
       </form>
     </Modal>

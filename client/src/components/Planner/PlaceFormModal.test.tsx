@@ -1,4 +1,4 @@
-// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-036
+// FE-COMP-PLACEFORM-001 to FE-COMP-PLACEFORM-042
 import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment } from '../../../tests/helpers/factories';
+import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment, buildBudgetItem } from '../../../tests/helpers/factories';
 import PlaceFormModal from './PlaceFormModal';
 
 // Mock CustomTimePicker so we get a simple text input instead of the portal-heavy UI
@@ -431,5 +431,175 @@ describe('PlaceFormModal', () => {
 
     expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2.3522')).toBeInTheDocument();
+  });
+
+  // ── Budget Group (LSO-1423) ───────────────────────────────────────────────────
+
+  it('FE-COMP-PLACEFORM-037: budget group field is hidden when budgetAddonEnabled is false', () => {
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={false} />);
+    expect(screen.queryByText('Budget Group')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-group-input')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-038: budget group field renders with correct label, placeholder, and helper when addon is enabled', () => {
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    expect(screen.getByText('Budget Group')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Select a group or type to create one/i)).toBeInTheDocument();
+    expect(screen.getByText(/Optional. Links this activity/i)).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-039: existing categories appear in dropdown when user focuses the input', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Food', 'Transport', 'Activities'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+
+    await waitFor(() => {
+      expect(screen.getByText('Food')).toBeInTheDocument();
+      expect(screen.getByText('Transport')).toBeInTheDocument();
+      expect(screen.getByText('Activities')).toBeInTheDocument();
+    });
+  });
+
+  it('FE-COMP-PLACEFORM-040: typing a new name shows "Create group" option and item selector does NOT appear for new group with no items', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () => HttpResponse.json({ categories: [] })),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+    const input = await screen.findByTestId('budget-group-input');
+    await user.type(input, 'Nightlife');
+
+    await waitFor(() => {
+      expect(screen.getByText(/Create group/i)).toBeInTheDocument();
+    });
+
+    // No amount input should be present
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+
+    // Click "Create group" to confirm selection
+    const createBtn = screen.getByText(/Create group/i);
+    await user.click(createBtn);
+
+    // Still no amount input (new UI uses item selector, but no items exist for this new group)
+    await waitFor(() => {
+      expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+    });
+  });
+
+  it('FE-COMP-PLACEFORM-041: no sub-picker renders when a budget group is selected (even with items present)', async () => {
+    const user = userEvent.setup();
+    const budgetItem1 = buildBudgetItem({ id: 10, category: 'Food', name: 'Lunch', amount: 50, currency: 'NOK' });
+    const budgetItem2 = buildBudgetItem({ id: 11, category: 'Food', name: 'Dinner', amount: 120, currency: 'NOK' });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), budgetItems: [budgetItem1, budgetItem2] });
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Food'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} budgetAddonEnabled={true} />);
+
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+    const foodBtn = await screen.findByRole('option', { name: 'Food' });
+    await user.click(foodBtn);
+
+    // No sub-picker item buttons should render
+    await waitFor(() => {
+      expect(screen.queryByTestId('budget-item-option-10')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('budget-item-option-11')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Select an entry/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-041b: budget group selection sends budget_category (not budget_item_id) to onSave', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Food'] }),
+      ),
+    );
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
+
+    const input = await screen.findByTestId('budget-group-input');
+    await user.click(input);
+    const foodBtn = await screen.findByRole('option', { name: 'Food' });
+    await user.click(foodBtn);
+
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Restaurant');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_category: 'Food' }));
+    expect(onSave).not.toHaveBeenCalledWith(expect.objectContaining({ budget_item_id: expect.anything() }));
+  });
+
+  it('FE-COMP-PLACEFORM-041c: budget_category is null when no group is confirmed', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: [] }),
+      ),
+    );
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
+
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Somewhere');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_category: null }));
+  });
+
+  it('FE-COMP-PLACEFORM-042: pre-fills budget group when editing a place with budget_category', async () => {
+    const place = buildPlace({ budget_category: 'Museums' });
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: ['Museums'] }),
+      ),
+    );
+
+    render(<PlaceFormModal {...defaultProps} place={place} budgetAddonEnabled={true} />);
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue('Museums')).toBeInTheDocument();
+    });
+    expect(screen.queryByTestId('budget-amount-input')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Select an entry/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PLACEFORM-042b: budget_category is null when group input is typed but not confirmed', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/trips/1/budget/categories', () =>
+        HttpResponse.json({ categories: [] }),
+      ),
+    );
+    const onSave = vi.fn().mockResolvedValue(undefined);
+
+    render(<PlaceFormModal {...defaultProps} onSave={onSave} budgetAddonEnabled={true} />);
+
+    // Type in the budget group input without selecting/confirming
+    const input = await screen.findByTestId('budget-group-input');
+    await user.type(input, 'Unconfirmed');
+
+    await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Somewhere');
+    await user.click(screen.getByRole('button', { name: /^Add$/i }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ budget_category: null }));
   });
 });

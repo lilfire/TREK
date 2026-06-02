@@ -156,6 +156,38 @@ describe('budgetSlice', () => {
     expect(items[1].id).toBe(1);
   });
 
+  it('FE-STORE-BUDGET-012: updateBudgetCategoryCurrency patches API and updates store', async () => {
+    const item = buildBudgetItem({ id: 1, trip_id: 1, category: 'Hotels', category_currency: null });
+    seedStore(useTripStore, { budgetItems: [item] });
+
+    server.use(
+      http.patch('/api/trips/1/budget/categories/Hotels/currency', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        expect(body.currency).toBe('USD');
+        return HttpResponse.json({ success: true });
+      })
+    );
+    await useTripStore.getState().updateBudgetCategoryCurrency(1, 'Hotels', 'USD');
+    const stored = useTripStore.getState().budgetItems.find(i => i.id === 1);
+    expect(stored?.category_currency).toBe('USD');
+  });
+
+  it('FE-STORE-BUDGET-013: updateBudgetCategoryCurrency updates only items in the target category', async () => {
+    const hotelItem = buildBudgetItem({ id: 1, trip_id: 1, category: 'Hotels', category_currency: null });
+    const foodItem = buildBudgetItem({ id: 2, trip_id: 1, category: 'Food', category_currency: null });
+    seedStore(useTripStore, { budgetItems: [hotelItem, foodItem] });
+
+    server.use(
+      http.patch('/api/trips/1/budget/categories/Hotels/currency', () =>
+        HttpResponse.json({ success: true })
+      )
+    );
+    await useTripStore.getState().updateBudgetCategoryCurrency(1, 'Hotels', 'GBP');
+    const items = useTripStore.getState().budgetItems;
+    expect(items.find(i => i.id === 1)?.category_currency).toBe('GBP');
+    expect(items.find(i => i.id === 2)?.category_currency).toBeNull();
+  });
+
   it('FE-STORE-BUDGET-011: reorderBudgetItems reloads list on API error', async () => {
     const a = buildBudgetItem({ id: 1, trip_id: 1 });
     const b = buildBudgetItem({ id: 2, trip_id: 1 });

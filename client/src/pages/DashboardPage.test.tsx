@@ -875,4 +875,149 @@ describe('DashboardPage', () => {
       expect(screen.getByText(/my trips/i)).toBeInTheDocument();
     });
   });
+
+  describe('FE-PAGE-DASH-033: Discover tab renders public trips', () => {
+    it('clicking Discover tab shows public trips list', async () => {
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('discover-grid')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Public Paris Trip')).toBeInTheDocument();
+      expect(screen.getByText('Barcelona Weekend')).toBeInTheDocument();
+    });
+
+    it('shows Join Trip buttons for each discoverable trip', async () => {
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      await waitFor(() => {
+        const joinBtns = screen.getAllByTestId('discover-join-btn');
+        expect(joinBtns.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe('FE-PAGE-DASH-034: Discover tab excludes already-joined trips', () => {
+    it('filters out trips the user is already a member of', async () => {
+      // Override trips to include a trip with the same ID as a public trip (42)
+      server.use(
+        http.get('/api/trips', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
+          const alreadyJoined = buildTrip({ id: 42, title: 'Public Paris Trip', start_date: '2026-07-01', end_date: '2026-07-03' });
+          return HttpResponse.json({ trips: [alreadyJoined] });
+        }),
+      );
+
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      await waitFor(() => {
+        // Barcelona Weekend (id=99) should appear
+        expect(screen.getByText('Barcelona Weekend')).toBeInTheDocument();
+      });
+
+      // Public Paris Trip (id=42) should NOT appear in Discover since user is already in it
+      expect(screen.queryByTestId('discover-grid')).toBeInTheDocument();
+      const discoverCards = screen.queryAllByTestId('discover-card');
+      const parisCard = discoverCards.find(card => card.textContent?.includes('Public Paris Trip'));
+      expect(parisCard).toBeUndefined();
+    });
+  });
+
+  describe('FE-PAGE-DASH-035: Discover tab empty state', () => {
+    it('shows empty state when all public trips are already joined or none exist', async () => {
+      server.use(
+        http.get('/api/public/trips', () => HttpResponse.json([])),
+      );
+
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      await waitFor(() => {
+        expect(screen.getByTestId('discover-empty')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('discover-empty')).toHaveTextContent(/no public trips to discover/i);
+    });
+  });
+
+  describe('FE-PAGE-DASH-036: Discover tab Join Trip calls rsvpAuthenticated', () => {
+    it('clicking Join Trip calls POST /api/public/trips/:id/rsvp', async () => {
+      const rsvpHandler = vi.fn(() =>
+        HttpResponse.json({ ok: true }, { status: 201 }),
+      );
+      server.use(http.post('/api/public/trips/:id/rsvp', rsvpHandler));
+
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      const joinBtns = await screen.findAllByTestId('discover-join-btn');
+      await user.click(joinBtns[0]);
+
+      await waitFor(() => {
+        expect(rsvpHandler).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('FE-PAGE-DASH-037: Discover tab handles alreadyMember response', () => {
+    it('navigates to dashboard when backend returns alreadyMember: true', async () => {
+      server.use(
+        http.post('/api/public/trips/:id/rsvp', () =>
+          HttpResponse.json({ alreadyMember: true }, { status: 200 }),
+        ),
+      );
+
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('tab-discover')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByTestId('tab-discover'));
+
+      const joinBtns = await screen.findAllByTestId('discover-join-btn');
+      await user.click(joinBtns[0]);
+
+      // Navigation occurs (no error state shown)
+      await waitFor(() => {
+        expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+      });
+    });
+  });
 });

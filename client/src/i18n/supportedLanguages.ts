@@ -12,6 +12,7 @@ export const SUPPORTED_LANGUAGES = [
   { value: 'zh',    label: '简体中文',              locale: 'zh-CN' },
   { value: 'zh-TW', label: '繁體中文',              locale: 'zh-TW' },
   { value: 'it',    label: 'Italiano',             locale: 'it-IT' },
+  { value: 'nb',    label: 'Norsk bokmål',         locale: 'nb-NO' },
   { value: 'ar',    label: 'العربية',              locale: 'ar-SA' },
   { value: 'id',    label: 'Bahasa Indonesia',     locale: 'id-ID' },
 ] as const

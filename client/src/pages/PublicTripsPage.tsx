@@ -1,28 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Calendar } from 'lucide-react'
-import { publicTripsApi } from '../api/client'
-
-interface PublicTripSummary {
-  id: number
-  name: string
-  start_date: string | null
-  end_date: string | null
-  cover_image_url: string | null
-  description: string | null
-  place_count: number
-}
-
-function formatDateRange(start: string | null, end: string | null): string {
-  const fmt = (d: string) =>
-    new Date(d + 'T00:00:00Z').toLocaleDateString('en', {
-      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
-    })
-  if (start && end) return `${fmt(start)} — ${fmt(end)}`
-  if (start) return fmt(start)
-  if (end) return fmt(end)
-  return ''
-}
+import { publicTripsApi, type PublicTripSummary } from '../api/client'
+import { formatDateRange } from '../utils/formatters'
+import PublicThemeToggle from '../components/shared/PublicThemeToggle'
 
 export default function PublicTripsPage() {
   const navigate = useNavigate()
@@ -55,8 +36,9 @@ export default function PublicTripsPage() {
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
 
-        {/* Login / Register links */}
-        <nav className="absolute top-3 right-3 flex gap-2" aria-label="Account navigation">
+        {/* Login / Register links + theme toggle */}
+        <nav className="absolute top-3 right-3 flex gap-2 items-center" aria-label="Account navigation">
+          <PublicThemeToggle />
           <Link
             to="/login"
             data-testid="login-link"
@@ -116,7 +98,7 @@ export default function PublicTripsPage() {
                 {trip.cover_image_url ? (
                   <div className="h-36 overflow-hidden">
                     <img
-                      src={trip.cover_image_url.startsWith('http') ? trip.cover_image_url : `/uploads/${trip.cover_image_url}`}
+                      src={trip.cover_image_url.startsWith('http') || trip.cover_image_url.startsWith('/') ? trip.cover_image_url : `/uploads/${trip.cover_image_url}`}
                       alt=""
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -163,9 +145,9 @@ export default function PublicTripsPage() {
 
       {/* Footer */}
       <div className="flex flex-col items-center pb-8">
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-          <span style={{ fontSize: 11, color: '#9ca3af' }}>Powered by <strong style={{ color: '#6b7280' }}>TREK</strong></span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Powered by <strong style={{ color: 'var(--text-secondary)' }}>TREK</strong></span>
         </div>
       </div>
     </div>

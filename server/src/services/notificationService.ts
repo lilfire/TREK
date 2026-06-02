@@ -12,17 +12,14 @@ import {
 import {
   getEventText,
   sendEmail,
-  sendWebhook,
-  sendNtfy,
   getUserEmail,
   getUserLanguage,
   getUserWebhookUrl,
   getAdminWebhookUrl,
-  getUserNtfyConfig,
-  getAdminNtfyConfig,
-  resolveNtfyUrl,
   getAppUrl,
 } from './notifications';
+import { sendWebhook } from './webhookService';
+import { sendNtfy, getUserNtfyConfig, getAdminNtfyConfig, resolveNtfyUrl } from './ntfyService';
 import {
   resolveRecipients,
   createNotificationForRecipient,

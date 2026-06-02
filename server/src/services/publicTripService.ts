@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { loadTagsByPlaceIds } from './queryHelpers';
+import { getPaypalClientId } from './paypalService';
 
 export interface PublicTripSummary {
   id: number;
@@ -38,9 +39,12 @@ export function getPublicTripsList(): PublicTripSummary[] {
  */
 export function getPublicTripData(tripId: string | number): Record<string, any> | null {
   const trip = db.prepare(
-    'SELECT id, title, description, start_date, end_date, cover_image, currency FROM trips WHERE id = ? AND is_public = 1'
-  ).get(tripId);
+    'SELECT id, title, description, start_date, end_date, cover_image, currency, registration_fee, fee_mode, fee_deadline, rsvp_deadline, fee_currency FROM trips WHERE id = ? AND is_public = 1'
+  ).get(tripId) as any;
   if (!trip) return null;
+
+  const paypalClientId = getPaypalClientId();
+  if (paypalClientId) (trip as any).paypalClientId = paypalClientId;
 
   const days = db.prepare(
     'SELECT * FROM days WHERE trip_id = ? ORDER BY day_number ASC'
@@ -55,9 +59,11 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     const allAssignments = db.prepare(`
       SELECT da.*, p.id as place_id, p.name as place_name, p.description as place_description,
         p.lat, p.lng, p.address, p.category_id, p.price, p.currency as place_currency,
+        p.website, p.phone,
         COALESCE(da.assignment_time, p.place_time) as place_time,
         COALESCE(da.assignment_end_time, p.end_time) as end_time,
         p.duration_minutes, p.notes as place_notes, p.image_url, p.transport_mode,
+        p.budget_category,
         c.name as category_name, c.color as category_color, c.icon as category_icon
       FROM day_assignments da
       JOIN places p ON da.place_id = p.id
@@ -78,14 +84,54 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
           id: a.place_id, name: a.place_name, description: a.place_description,
           lat: a.lat, lng: a.lng, address: a.address, category_id: a.category_id,
           price: a.price, place_time: a.place_time, end_time: a.end_time,
-          image_url: a.image_url, transport_mode: a.transport_mode,
+          duration_minutes: a.duration_minutes,
+          image_url: a.image_url, transport_mode: a.transport_mode, budget_category: a.budget_category || null,
+          website: a.website, phone: a.phone, notes: a.place_notes, currency: a.place_currency,
           category: a.category_id
             ? { id: a.category_id, name: a.category_name, color: a.category_color, icon: a.category_icon }
             : null,
           tags: tagsByPlace[a.place_id] || [],
+          files: [],
         },
       });
     }
+    if (placeIds.length > 0) {
+      const fph = placeIds.map(() => '?').join(',');
+      // Cover both upload paths: direct place_id and explicit file_links.
+      // UNION deduplicates files that appear in both.
+      const fileRows = db.prepare(`
+        SELECT id, original_name, file_size, mime_type, description, starred, created_at, place_id
+        FROM (
+          SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+                 tf.created_at, tf.place_id
+          FROM trip_files tf
+          WHERE tf.place_id IN (${fph}) AND tf.deleted_at IS NULL
+          UNION
+          SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+                 tf.created_at, fl.place_id
+          FROM trip_files tf
+          JOIN file_links fl ON fl.file_id = tf.id
+          WHERE fl.place_id IN (${fph}) AND tf.deleted_at IS NULL
+        )
+        ORDER BY starred DESC, created_at ASC
+      `).all(...placeIds, ...placeIds) as any[];
+
+      for (const f of fileRows) {
+        for (const dayArr of Object.values(byDay)) {
+          for (const entry of dayArr) {
+            if (entry.place.id === f.place_id) {
+              entry.place.files.push({
+                id: f.id, original_name: f.original_name,
+                file_size: f.file_size, mime_type: f.mime_type,
+                description: f.description, starred: f.starred ? true : false,
+                url: `/api/public/trips/${tripId}/files/${f.id}`,
+              });
+            }
+          }
+        }
+      }
+    }
+
     assignments = byDay;
 
     const allNotes = db.prepare(
@@ -103,7 +149,44 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon
     FROM places p LEFT JOIN categories c ON p.category_id = c.id
     WHERE p.trip_id = ? ORDER BY p.created_at DESC
-  `).all(tripId);
+  `).all(tripId) as any[];
+
+  for (const p of places) {
+    p.files = [];
+  }
+
+  if (places.length > 0) {
+    const unplannedPlaceIds = places.map((p: any) => p.id);
+    const ufph = unplannedPlaceIds.map(() => '?').join(',');
+    const unplannedFileRows = db.prepare(`
+      SELECT id, original_name, file_size, mime_type, description, starred, created_at, place_id
+      FROM (
+        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+               tf.created_at, tf.place_id
+        FROM trip_files tf
+        WHERE tf.place_id IN (${ufph}) AND tf.deleted_at IS NULL
+        UNION
+        SELECT tf.id, tf.original_name, tf.file_size, tf.mime_type, tf.description, tf.starred,
+               tf.created_at, fl.place_id
+        FROM trip_files tf
+        JOIN file_links fl ON fl.file_id = tf.id
+        WHERE fl.place_id IN (${ufph}) AND tf.deleted_at IS NULL
+      )
+      ORDER BY starred DESC, created_at ASC
+    `).all(...unplannedPlaceIds, ...unplannedPlaceIds) as any[];
+
+    for (const f of unplannedFileRows) {
+      const place = places.find((p: any) => p.id === f.place_id);
+      if (place) {
+        place.files.push({
+          id: f.id, original_name: f.original_name,
+          file_size: f.file_size, mime_type: f.mime_type,
+          description: f.description, starred: f.starred ? true : false,
+          url: `/api/public/trips/${tripId}/files/${f.id}`,
+        });
+      }
+    }
+  }
 
   const reservations = db.prepare(
     'SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC'
@@ -133,6 +216,32 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
 
   const categories = db.prepare('SELECT * FROM categories').all();
 
+  const budgetItemRows = db.prepare(`
+    SELECT bi.id, bi.name, bi.category, bi.total_price, bi.note, bi.persons, bi.days, bi.sort_order,
+           bco.currency AS category_currency
+    FROM budget_items bi
+    LEFT JOIN budget_category_order bco
+      ON bco.trip_id = bi.trip_id AND bco.category = bi.category
+    WHERE bi.trip_id = ?
+    ORDER BY COALESCE(bco.sort_order, 999999) ASC, bi.sort_order ASC, bi.created_at ASC
+  `).all(tripId) as any[];
+
+  const budgetItems = budgetItemRows.map((row: any) => ({
+    id: row.id,
+    title: row.name,
+    category: row.category,
+    amount: row.total_price,
+    note: row.note,
+    persons: row.persons,
+    days: row.days,
+    category_currency: row.category_currency ?? null,
+  }));
+
+  const budgetSummary = {
+    totalBudget: budgetItemRows.reduce((sum: number, row: any) => sum + (row.total_price || 0), 0),
+    currency: trip.currency,
+  };
+
   return {
     trip,
     days,
@@ -142,5 +251,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     categories,
     reservations,
     accommodations,
+    budgetItems,
+    budgetSummary,
   };
 }

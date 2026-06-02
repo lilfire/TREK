@@ -1,5 +1,5 @@
-// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-028
-import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
+// FE-COMP-TRIPFORM-001 to FE-COMP-TRIPFORM-033 + FEE-001 to FEE-009
+import { render, screen, waitFor, fireEvent, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { useAuthStore } from '../../store/authStore';
@@ -337,5 +337,242 @@ describe('TripFormModal', () => {
     render(<TripFormModal {...defaultProps} trip={ownerTrip as any} />);
     const toggle = screen.getByRole('switch', { name: 'List this trip on the public page' });
     expect(toggle).toHaveAttribute('aria-checked', 'true');
+  });
+});
+
+// ── Country & Currency fields ─────────────────────────────────────────────────
+
+describe('Country and Currency fields', () => {
+  it('FE-COMP-TRIPFORM-034: renders country dropdown and currency dropdown', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.getByTestId('country-select')).toBeInTheDocument();
+    expect(screen.getByTestId('currency-select')).toBeInTheDocument();
+    expect(screen.getByText('Country')).toBeInTheDocument();
+    expect(screen.getByText('Currency')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TRIPFORM-035: form submission includes country (ISO code) and currency in payload', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Norway Trip');
+
+    // Open the country CustomSelect and select Norway (ISO code: NO)
+    const countryContainer = screen.getByTestId('country-select');
+    await user.click(within(countryContainer).getByRole('button'));
+    const countrySearch = await screen.findByPlaceholderText('...');
+    await user.type(countrySearch, 'Norway');
+    const norwayOption = await screen.findByRole('button', { name: 'Norway' });
+    await user.click(norwayOption);
+
+    // Open the currency CustomSelect and select EUR
+    const currencyContainer = screen.getByTestId('currency-select');
+    await user.click(within(currencyContainer).getByRole('button'));
+    const currencySearch = await screen.findByPlaceholderText('...');
+    await user.type(currencySearch, 'EUR');
+    const eurOption = await screen.findByRole('button', { name: /^EUR/ });
+    await user.click(eurOption);
+
+    const submitBtns = screen.getAllByText('Create New Trip');
+    const submitBtn = submitBtns.find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      country: 'NO',
+      currency: 'EUR',
+    }));
+  });
+
+  it('FE-COMP-TRIPFORM-036: pre-fills country (ISO code) and currency when editing an existing trip', () => {
+    // ISO 3166-1 alpha-2 codes are now stored as values
+    const trip = buildTrip({ id: 1, country: 'SE', currency: 'SEK' } as any);
+    render(<TripFormModal {...defaultProps} trip={trip} />);
+    // Country CustomSelect trigger shows the display name for 'SE'
+    const countryTrigger = within(screen.getByTestId('country-select')).getByRole('button');
+    // The label is determined by Intl.DisplayNames; in test env it should be 'Sweden'
+    expect(countryTrigger.textContent).toMatch(/Sweden|SE/);
+    // Currency trigger shows label for SEK
+    const currencyTrigger = within(screen.getByTestId('currency-select')).getByRole('button');
+    expect(currencyTrigger.textContent).toContain('SEK');
+  });
+});
+
+// ── Registration Fee Section tests ────────────────────────────────────────────
+
+describe('Registration Fee section', () => {
+  it('FEE-001: renders fee section with amount input', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.getByTestId('fee-section')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-amount-input')).toBeInTheDocument();
+  });
+
+  it('FEE-002: fee mode options hidden when fee amount is empty', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.queryByTestId('fee-mode-section')).not.toBeInTheDocument();
+  });
+
+  it('FEE-003: fee mode options appear when fee amount > 0', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    expect(screen.getByTestId('fee-mode-section')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-mode-deadline')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-mode-rsvp')).toBeInTheDocument();
+  });
+
+  it('FEE-004: deadline date picker appears only when deadline mode is selected', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '30');
+    expect(screen.queryByTestId('fee-deadline-section')).not.toBeInTheDocument();
+    await user.click(screen.getByTestId('fee-mode-deadline'));
+    expect(screen.getByTestId('fee-deadline-section')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-deadline-input')).toBeInTheDocument();
+  });
+
+  it('FEE-005: deadline date picker hidden when rsvp mode selected', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '30');
+    await user.click(screen.getByTestId('fee-mode-deadline'));
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+    expect(screen.queryByTestId('fee-deadline-section')).not.toBeInTheDocument();
+  });
+
+  it('FEE-006: shows validation error when fee > 0 but no fee mode selected', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn();
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Test Trip');
+    await user.type(screen.getByTestId('fee-amount-input'), '25');
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'));
+    await user.click(submitBtn!.closest('button')!);
+    await waitFor(() => expect(screen.getByText(/please select a fee type/i)).toBeInTheDocument());
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
+  it('FEE-007: includes fee fields in onSave payload', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Trip With Fee');
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'));
+    await user.click(submitBtn!.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      registration_fee: 50,
+      fee_mode: 'rsvp',
+      fee_deadline: null,
+    }));
+  });
+
+  it('FEE-008: loads existing fee data from trip prop', () => {
+    const trip = { ...buildTrip({ id: 5 }), user_id: 1, registration_fee: 99, fee_mode: 'deadline', fee_deadline: '2027-12-31' };
+    render(<TripFormModal {...defaultProps} trip={trip as any} />);
+    expect((screen.getByTestId('fee-amount-input') as HTMLInputElement).value).toBe('99');
+    expect((screen.getByTestId('fee-mode-deadline') as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByTestId('fee-deadline-input') as HTMLInputElement).value).toBe('2027-12-31');
+  });
+
+  it('FEE-009: clears fee mode and deadline when fee amount is cleared', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} />);
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+    expect(screen.getByTestId('fee-mode-section')).toBeInTheDocument();
+    await user.clear(screen.getByTestId('fee-amount-input'));
+    expect(screen.queryByTestId('fee-mode-section')).not.toBeInTheDocument();
+  });
+});
+
+// ── Fee Currency dropdown (FEE-CUR-001 to FEE-CUR-005) ───────────────────────
+
+describe('Fee Currency dropdown', () => {
+  it('FEE-CUR-001: renders fee currency dropdown next to amount input', () => {
+    render(<TripFormModal {...defaultProps} />);
+    expect(screen.getByTestId('fee-currency-select')).toBeInTheDocument();
+    expect(screen.getByTestId('fee-amount-input')).toBeInTheDocument();
+    // Both should be in the same row (flex container)
+    const amountInput = screen.getByTestId('fee-amount-input');
+    const currencySelect = screen.getByTestId('fee-currency-select');
+    expect(amountInput.closest('.flex')).toBe(currencySelect.closest('.flex'));
+  });
+
+  it('FEE-CUR-002: defaults to trip.fee_currency when set', () => {
+    const trip = { ...buildTrip({ id: 1 }), user_id: 1, fee_currency: 'USD', currency: 'EUR' };
+    render(<TripFormModal {...defaultProps} trip={trip as any} />);
+    const trigger = within(screen.getByTestId('fee-currency-select')).getByRole('button');
+    expect(trigger.textContent).toContain('USD');
+  });
+
+  it('FEE-CUR-003: falls back to trip.currency when fee_currency is null', () => {
+    const trip = { ...buildTrip({ id: 1 }), user_id: 1, fee_currency: null, currency: 'SEK' };
+    render(<TripFormModal {...defaultProps} trip={trip as any} />);
+    const trigger = within(screen.getByTestId('fee-currency-select')).getByRole('button');
+    expect(trigger.textContent).toContain('SEK');
+  });
+
+  it('FEE-CUR-004: defaults to NOK when no fee_currency and no currency', () => {
+    render(<TripFormModal {...defaultProps} trip={null} />);
+    const trigger = within(screen.getByTestId('fee-currency-select')).getByRole('button');
+    expect(trigger.textContent).toContain('NOK');
+  });
+
+  it('FEE-CUR-005: selecting a currency updates the placeholder text', async () => {
+    const user = userEvent.setup();
+    render(<TripFormModal {...defaultProps} trip={null} />);
+    // Open the fee currency dropdown
+    const currencyContainer = screen.getByTestId('fee-currency-select');
+    await user.click(within(currencyContainer).getByRole('button'));
+    const search = await screen.findByPlaceholderText('...');
+    await user.type(search, 'EUR');
+    const eurOption = await screen.findByRole('button', { name: /^EUR/ });
+    await user.click(eurOption);
+    // Placeholder of amount input should now reflect EUR
+    const amountInput = screen.getByTestId('fee-amount-input') as HTMLInputElement;
+    expect(amountInput.placeholder).toContain('EUR');
+  });
+
+  it('FEE-CUR-006: submit includes fee_currency in payload when fee > 0', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'Trip With Fee');
+    await user.type(screen.getByTestId('fee-amount-input'), '50');
+    await user.click(screen.getByTestId('fee-mode-rsvp'));
+
+    // Select USD as fee currency
+    const currencyContainer = screen.getByTestId('fee-currency-select');
+    await user.click(within(currencyContainer).getByRole('button'));
+    const search = await screen.findByPlaceholderText('...');
+    await user.type(search, 'USD');
+    const usdOption = await screen.findByRole('button', { name: /^USD/ });
+    await user.click(usdOption);
+
+    const submitBtn = screen.getAllByText('Create New Trip').find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      registration_fee: 50,
+      fee_currency: 'USD',
+    }));
+  });
+
+  it('FEE-CUR-007: fee_currency is null in payload when fee is 0', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({});
+    render(<TripFormModal {...defaultProps} onSave={onSave} />);
+    await user.type(screen.getByPlaceholderText(/Summer in Japan/i), 'No Fee Trip');
+    // Leave fee amount empty (parsedFee = null)
+    const submitBtns = screen.getAllByText('Create New Trip');
+    const submitBtn = submitBtns.find(el => el.closest('button'))!;
+    await user.click(submitBtn.closest('button')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({
+      registration_fee: null,
+      fee_currency: null,
+    }));
   });
 });

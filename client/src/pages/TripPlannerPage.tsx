@@ -506,13 +506,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
     const pendingFiles = data._pendingFiles
     delete data._pendingFiles
     if (editingPlace) {
-      // Always strip time fields from place update — time is per-assignment only
       const { place_time, end_time, ...placeData } = data
-      await tripActions.updatePlace(tripId, editingPlace.id, placeData)
-      // If editing from assignment context, save time per-assignment
       if (editingAssignmentId) {
+        // Assignment context: persist place fields separately from per-assignment times
+        await tripActions.updatePlace(tripId, editingPlace.id, placeData)
         await assignmentsApi.updateTime(tripId, editingAssignmentId, { place_time: place_time || null, end_time: end_time || null })
         await tripActions.refreshDays(tripId)
+      } else {
+        // No assignment context (sidebar/popup): include times directly on the place
+        await tripActions.updatePlace(tripId, editingPlace.id, { ...placeData, place_time: place_time || null, end_time: end_time || null })
       }
       // Upload pending files with place_id
       if (pendingFiles?.length > 0) {
@@ -1226,7 +1228,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
       </div>
 
-      <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingAssignmentId ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} />
+      <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingAssignmentId ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} budgetAddonEnabled={enabledAddons.budget} />
       <TripFormModal isOpen={showTripForm} onClose={() => setShowTripForm(false)} onSave={async (data) => { await tripActions.updateTrip(tripId, data); toast.success(t('trip.toast.tripUpdated')) }} trip={trip} />
       <TripMembersModal isOpen={showMembersModal} onClose={() => { setShowMembersModal(false); refreshTripPublicState() }} tripId={tripId} tripTitle={trip?.title} />
       <ReservationModal isOpen={showReservationModal} onClose={() => { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) }} onSave={handleSaveReservation} reservation={editingReservation} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} />

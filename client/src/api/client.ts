@@ -337,6 +337,9 @@ export const adminApi = {
   saveDemoBaseline: () => apiClient.post('/admin/save-demo-baseline').then(r => r.data),
   getOidc: () => apiClient.get('/admin/oidc').then(r => r.data),
   updateOidc: (data: Record<string, unknown>) => apiClient.put('/admin/oidc', data).then(r => r.data),
+  getPaypalSettings: () => apiClient.get('/admin/paypal-settings').then(r => r.data),
+  updatePaypalSettings: (data: Record<string, unknown>) => apiClient.put('/admin/paypal-settings', data).then(r => r.data),
+  testPaypalConnection: () => apiClient.post('/admin/paypal-settings/test').then(r => r.data),
   addons: () => apiClient.get('/admin/addons').then(r => r.data),
   updateAddon: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/admin/addons/${id}`, data).then(r => r.data),
   checkVersion: () => apiClient.get('/admin/version-check').then(r => r.data),
@@ -462,6 +465,9 @@ export const budgetApi = {
   settlement: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/settlement`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories }).then(r => r.data),
+  categories: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/categories`).then(r => r.data),
+  updateCategoryCurrency: (tripId: number | string, category: string, currency: string | null) =>
+    apiClient.patch(`/trips/${tripId}/budget/categories/${encodeURIComponent(category)}/currency`, { currency }).then(r => r.data),
 }
 
 export const filesApi = {
@@ -571,13 +577,6 @@ export const shareApi = {
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
 }
 
-export const publicTripsApi = {
-  list: () => apiClient.get('/public/trips').then(r => r.data),
-  get: (id: number | string) => apiClient.get(`/public/trips/${id}`).then(r => r.data),
-  rsvp: (id: number | string, data: { name: string; email: string; message?: string }) =>
-    apiClient.post(`/public/trips/${id}/rsvp`, data).then(r => r.data),
-}
-
 export const notificationsApi = {
   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),
@@ -604,5 +603,8 @@ export const inAppNotificationsApi = {
   respond: (id: number, response: 'positive' | 'negative') =>
       apiClient.post(`/notifications/in-app/${id}/respond`, { response }).then(r => r.data),
 }
+
+export { publicTripsApi } from './publicTripsApi'
+export type { PublicTripSummary } from './publicTripsApi'
 
 export default apiClient

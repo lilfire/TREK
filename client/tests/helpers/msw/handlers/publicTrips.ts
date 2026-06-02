@@ -70,6 +70,11 @@ const publicTrip = {
   categories: [],
   reservations: [],
   accommodations: [],
+  budgetItems: [
+    { id: '1', title: 'Flights', category: 'Transport', amount: 400, note: '', persons: 2, days: 1 },
+    { id: '2', title: 'Hotel', category: 'Accommodation', amount: 600, note: '', persons: 2, days: 3 },
+  ],
+  budgetSummary: { totalBudget: 1000, currency: 'EUR' },
 };
 
 export const publicTripsHandlers = [
@@ -89,6 +94,14 @@ export const publicTripsHandlers = [
 
   http.post('/api/public/trips/:id/rsvp', () => {
     const user = buildUser();
-    return HttpResponse.json({ user, token: 'mock-rsvp-token' }, { status: 201 });
+    return HttpResponse.json({ rsvpId: 1, userId: user.id, authToken: 'mock-rsvp-token' }, { status: 201 });
+  }),
+
+  http.post('/api/public/trips/:id/rsvp/payment-order', () => {
+    return HttpResponse.json({ orderId: 'ORDER-123' }, { status: 201 });
+  }),
+
+  http.post('/api/public/trips/:id/rsvp/payment-capture', () => {
+    return HttpResponse.json({ success: true, captureId: 'CAPTURE-1' }, { status: 200 });
   }),
 ];

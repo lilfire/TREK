@@ -1,17 +1,81 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createElement } from 'react'
 import { useParams } from 'react-router-dom'
-import { MapPin, Clock, FileText } from 'lucide-react'
+import { MapPin, Clock, FileText, ChevronRight, Paperclip } from 'lucide-react'
+import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import { publicTripsApi } from '../api/client'
-import { useTranslation } from '../i18n'
+import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
+import { useSettingsStore } from '../store/settingsStore'
+import { getCategoryIcon } from '../components/shared/categoryIcons'
+import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
+import PublicActivityModal from '../components/PublicActivityModal'
+import UnplannedActivitiesSection from '../components/UnplannedActivitiesSection'
+import PublicThemeToggle from '../components/shared/PublicThemeToggle'
+
+function createMarkerIcon(place: any) {
+  const cat = place.category
+  const color = cat?.color || '#6366f1'
+  const CatIcon = getCategoryIcon(cat?.icon)
+  const iconSvg = renderToStaticMarkup(createElement(CatIcon, { size: 14, strokeWidth: 2, color: 'white' }))
+  return L.divIcon({
+    className: '',
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+    html: `<div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white;">${iconSvg}</div>`,
+  })
+}
+
+function useDarkMode(): boolean {
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  )
+  useEffect(() => {
+    const obs = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    })
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => obs.disconnect()
+  }, [])
+  return isDark
+}
+
+function FitBoundsToPlaces({ places }: { places: any[] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (places.length === 0) return
+    const bounds = L.latLngBounds(places.map(p => [p.lat, p.lng]))
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+  }, [places, map])
+  return null
+}
+
+export function formatDuration(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
+  if (hours === 0) return `${mins}min`
+  if (mins === 0) return `${hours}hr`
+  return `${hours}hr ${mins}min`
+}
+
+export function truncateText(text: string, maxLen = 120): string {
+  if (text.length <= maxLen) return text
+  const slice = text.slice(0, maxLen)
+  const lastSpace = slice.lastIndexOf(' ')
+  return (lastSpace > 0 ? slice.slice(0, lastSpace) : slice) + '…'
+}
 
 export default function PublicTripDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const { locale } = useTranslation()
+  const { t, locale } = useTranslation()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set())
+  const [showLangPicker, setShowLangPicker] = useState(false)
+  const [selectedActivity, setSelectedActivity] = useState<any>(null)
+  const isDark = useDarkMode()
 
   useEffect(() => {
     if (!id) return
@@ -52,8 +116,25 @@ export default function PublicTripDetailPage() {
     )
   }
 
-  const { trip, days, assignments, dayNotes } = data
+  const { trip, days, assignments, dayNotes, budgetItems, places } = data
   const sortedDays: any[] = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number)
+
+  const assignedPlaceIds = new Set(
+    Object.values(assignments).flat().map((a: any) => a.place.id)
+  )
+  const unplannedPlaces = (places || []).filter((p: any) => !assignedPlaceIds.has(p.id))
+    .sort((a: any, b: any) => {
+      const catA = (a.category_name || '').toLowerCase()
+      const catB = (b.category_name || '').toLowerCase()
+      if (!a.category_name && b.category_name) return 1
+      if (a.category_name && !b.category_name) return -1
+      if (catA !== catB) return catA.localeCompare(catB)
+      return (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase())
+    })
+
+  const mapPlaces = (places || [])
+    .filter((p: any) => p?.lat && p?.lng)
+    .map((p: any) => ({ ...p, category: { name: p.category_name, color: p.category_color, icon: p.category_icon } }))
 
   function toggleDay(dayId: number) {
     setExpandedDays(prev => {
@@ -64,40 +145,105 @@ export default function PublicTripDetailPage() {
     })
   }
 
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+
   function formatDate(d: string) {
     return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, {
       weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
     })
   }
 
+  const isMember = data?.trip?.user_is_member === true
+  const rsvpDeadlineVal: string | null = data?.trip?.rsvp_deadline ?? null
+  const todayIso = new Date().toISOString().split('T')[0]
+  const rsvpClosed = rsvpDeadlineVal != null && todayIso > rsvpDeadlineVal
+  const rsvpHeadingKey = isMember
+    ? 'publicTrip.rsvp.headingMember'
+    : rsvpClosed
+      ? 'publicTrip.rsvp.headingClosed'
+      : 'publicTrip.rsvp.heading'
+  const rsvpSubheadingKey = isMember
+    ? 'publicTrip.rsvp.subheadingMember'
+    : rsvpClosed
+      ? 'publicTrip.rsvp.subheadingClosed'
+      : 'publicTrip.rsvp.subheading'
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       {/* Hero header */}
       <div
         className="relative text-white text-center"
-        style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px', overflow: 'hidden' }}
+        style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px' }}
       >
         {trip.cover_image && (
-          <div
-            style={{
-              position: 'absolute', inset: 0,
-              backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
-              backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15,
-            }}
-          />
+          <>
+            <div
+              data-testid="cover-image"
+              style={{
+                position: 'absolute', inset: 0,
+                backgroundImage: `url(${trip.cover_image.startsWith('http') || trip.cover_image.startsWith('/') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
+                backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.5,
+              }}
+            />
+            <div
+              style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.65) 100%)',
+              }}
+            />
+          </>
         )}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
 
+        {/* Controls - top right: theme toggle + language picker */}
+        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <PublicThemeToggle />
+          <div style={{ position: 'relative' }}>
+            <button
+              data-testid="lang-picker-btn"
+              onClick={() => setShowLangPicker(v => !v)}
+              style={{
+                padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
+                background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
+                color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+            </button>
+            {showLangPicker && (
+              <div
+                data-testid="lang-picker-dropdown"
+                style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)',
+                  borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150,
+                }}
+              >
+                {SUPPORTED_LANGUAGES.map(lang => (
+                  <button
+                    key={lang.value}
+                    onClick={() => {
+                      useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
+                      setShowLangPicker(false)
+                    }}
+                    style={{
+                      display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none',
+                      textAlign: 'left', cursor: 'pointer', fontSize: 12, color: 'var(--text-secondary)', borderRadius: 6, fontFamily: 'inherit',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="relative">
-          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', marginBottom: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
-            <img src="/icons/icon-white.svg" alt="TREK" width={26} height={26} />
-          </div>
-
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12 }}>
-            Travel Resource &amp; Exploration Kit
-          </div>
-
           <h1 data-testid="trip-title" style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>
             {trip.title}
           </h1>
@@ -133,6 +279,26 @@ export default function PublicTripDetailPage() {
 
       {/* Content */}
       <div className="max-w-[900px] mx-auto px-4 py-6">
+        {/* Map */}
+        {mapPlaces.length > 0 && (
+          <div data-testid="trip-map" style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <MapContainer
+              center={[mapPlaces[0].lat, mapPlaces[0].lng]}
+              zoom={11}
+              zoomControl={false}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <TileLayer key={tileUrl} url={tileUrl} referrerPolicy="strict-origin-when-cross-origin" />
+              <FitBoundsToPlaces places={mapPlaces} />
+              {mapPlaces.map((p: any) => (
+                <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
+                  <Tooltip>{p.name}</Tooltip>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
+        )}
+
         {/* Itinerary */}
         <section data-testid="itinerary" aria-label="Trip itinerary" className="flex flex-col gap-3 mb-10">
           <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Itinerary</h2>
@@ -159,7 +325,7 @@ export default function PublicTripDetailPage() {
                 >
                   <div
                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
-                    style={{ background: isExpanded ? '#18181b' : '#f4f4f5', color: isExpanded ? 'white' : '#71717a' }}
+                    style={{ background: isExpanded ? 'var(--accent)' : 'var(--bg-tertiary)', color: isExpanded ? 'var(--accent-text)' : 'var(--text-muted)' }}
                   >
                     {di + 1}
                   </div>
@@ -198,7 +364,12 @@ export default function PublicTripDetailPage() {
                       const place = a.place
                       if (!place) return null
                       return (
-                        <div key={`a-${a.id}`} className="flex items-center gap-3">
+                        <button
+                          key={`a-${a.id}`}
+                          type="button"
+                          onClick={() => setSelectedActivity(a)}
+                          className="flex items-center gap-3 w-full text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-lg px-2 py-1.5 -mx-2 transition-colors"
+                        >
                           <div
                             className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                             style={{ background: place.category?.color || '#6366f1' }}
@@ -225,7 +396,17 @@ export default function PublicTripDetailPage() {
                               {place.end_time ? ` – ${place.end_time}` : ''}
                             </span>
                           )}
-                        </div>
+                          {place.files?.length > 0 && (
+                            <span
+                              data-testid="file-count-badge"
+                              className="text-xs text-zinc-400 flex items-center gap-1 flex-shrink-0"
+                            >
+                              <Paperclip size={10} />
+                              {place.files.length}
+                            </span>
+                          )}
+                          <ChevronRight size={12} className="ml-auto flex-shrink-0 text-zinc-300" />
+                        </button>
                       )
                     })}
                   </div>
@@ -235,21 +416,43 @@ export default function PublicTripDetailPage() {
           })}
         </section>
 
+        {/* Unplanned Activities */}
+        {unplannedPlaces.length > 0 && (
+          <UnplannedActivitiesSection
+            unplannedPlaces={unplannedPlaces}
+            onSelect={setSelectedActivity}
+            t={t}
+            locale={locale}
+          />
+        )}
+
         {/* RSVP section */}
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
-          <h2 className="text-base font-bold text-zinc-900 dark:text-white mb-1">RSVP</h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">Let the organiser know you're coming.</p>
-          <RsvpForm tripId={id!} />
+          <h2 data-testid="rsvp-section-heading" className="text-base font-bold text-zinc-900 dark:text-white mb-1">{t(rsvpHeadingKey)}</h2>
+          <p data-testid="rsvp-section-subheading" className="text-sm text-zinc-500 dark:text-zinc-400 mb-5">{t(rsvpSubheadingKey)}</p>
+          <RsvpForm
+            tripId={id!}
+            isMember={isMember}
+            rsvpDeadline={rsvpDeadlineVal}
+            registrationFee={data?.trip?.registration_fee ?? null}
+            feeMode={data?.trip?.fee_mode ?? null}
+            feeDeadline={data?.trip?.fee_deadline ?? null}
+            currency={data?.trip?.fee_currency ?? data?.trip?.currency ?? 'NOK'}
+            paypalClientId={data?.trip?.paypalClientId ?? null}
+          />
         </section>
 
-        {/* Footer */}
-        <div className="flex flex-col items-center py-4 gap-2">
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>Shared via <strong style={{ color: '#6b7280' }}>TREK</strong></span>
-          </div>
-        </div>
       </div>
+
+      {/* Activity detail modal */}
+      {selectedActivity && (
+        <PublicActivityModal
+          assignment={selectedActivity}
+          tripCurrency={trip.currency}
+          budgetItems={budgetItems}
+          onClose={() => setSelectedActivity(null)}
+        />
+      )}
     </div>
   )
 }

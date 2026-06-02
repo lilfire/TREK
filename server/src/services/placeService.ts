@@ -102,26 +102,27 @@ export function createPlace(
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
     google_place_id?: string; osm_id?: string; website?: string; phone?: string;
-    transport_mode?: string; tags?: number[];
+    transport_mode?: string; tags?: number[]; budget_category?: string | null;
   },
 ) {
   const {
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
     duration_minutes, notes, image_url, google_place_id, osm_id, website, phone,
-    transport_mode, tags = [],
+    transport_mode, tags = [], budget_category,
   } = body;
 
   const result = db.prepare(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, transport_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, transport_mode, budget_category)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     tripId, name, description || null, lat || null, lng || null, address || null,
     category_id || null, price || null, currency || null,
     place_time || null, end_time || null, duration_minutes || 60, notes || null, image_url || null,
     google_place_id || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
+    budget_category || null,
   );
 
   const placeId = result.lastInsertRowid;
@@ -131,6 +132,11 @@ export function createPlace(
     for (const tagId of tags) {
       insertTag.run(placeId, tagId);
     }
+  }
+
+  if (budget_category && price != null) {
+    db.prepare('UPDATE budget_items SET total_price = ? WHERE trip_id = ? AND category = ?')
+      .run(price, tripId, budget_category);
   }
 
   return getPlaceWithTags(Number(placeId));
@@ -159,7 +165,7 @@ export function updatePlace(
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
     google_place_id?: string; osm_id?: string; website?: string; phone?: string;
-    transport_mode?: string; tags?: number[];
+    transport_mode?: string; tags?: number[]; budget_category?: string | null;
   },
 ) {
   const existingPlace = db.prepare('SELECT * FROM places WHERE id = ? AND trip_id = ?').get(placeId, tripId) as Place | undefined;
@@ -169,8 +175,11 @@ export function updatePlace(
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
     duration_minutes, notes, image_url, google_place_id, osm_id, website, phone,
-    transport_mode, tags,
+    transport_mode, tags, budget_category,
   } = body;
+
+  const effectiveBudgetCategory = budget_category !== undefined ? budget_category : (existingPlace as any).budget_category;
+  const effectivePrice = price !== undefined ? price : existingPlace.price;
 
   db.prepare(`
     UPDATE places SET
@@ -192,6 +201,7 @@ export function updatePlace(
       website = ?,
       phone = ?,
       transport_mode = COALESCE(?, transport_mode),
+      budget_category = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
   `).run(
@@ -213,8 +223,14 @@ export function updatePlace(
     website !== undefined ? website : existingPlace.website,
     phone !== undefined ? phone : existingPlace.phone,
     transport_mode || null,
+    effectiveBudgetCategory ?? null,
     placeId,
   );
+
+  if (effectiveBudgetCategory && effectivePrice != null) {
+    db.prepare('UPDATE budget_items SET total_price = ? WHERE trip_id = ? AND category = ?')
+      .run(effectivePrice, tripId, effectiveBudgetCategory);
+  }
 
   if (tags !== undefined) {
     db.prepare('DELETE FROM place_tags WHERE place_id = ?').run(placeId);

@@ -2259,6 +2259,74 @@ function runMigrations(db: Database.Database): void {
       db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_trip ON trip_rsvps(trip_id)`);
       db.exec(`CREATE INDEX IF NOT EXISTS idx_trip_rsvps_user ON trip_rsvps(user_id)`);
     },
+    // LSO-1428: trip registration fee columns
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN registration_fee REAL`);
+      db.exec(`ALTER TABLE trips ADD COLUMN fee_mode TEXT`);
+      db.exec(`ALTER TABLE trips ADD COLUMN fee_deadline TEXT`);
+    },
+    // LSO-1428: payment records for trip RSVP fees
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS trip_rsvp_payments (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          rsvp_id INTEGER NOT NULL REFERENCES trip_rsvps(id) ON DELETE CASCADE,
+          provider TEXT NOT NULL DEFAULT 'paypal',
+          amount REAL NOT NULL,
+          currency TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          provider_order_id TEXT,
+          provider_capture_id TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_rsvp_payments_rsvp ON trip_rsvp_payments(rsvp_id)`);
+    },
+    // LSO-1443: RSVP registration deadline
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN rsvp_deadline TEXT`);
+    },
+    // LSO-1452: Backfill existing trips that still have currency='EUR' to 'NOK'
+    () => {
+      db.prepare("UPDATE trips SET currency = 'NOK' WHERE currency = 'EUR'").run();
+    },
+    // LSO-1461: Add budget_item_id to places for linking a place to a specific budget entry
+    () => {
+      try {
+        db.exec('ALTER TABLE places ADD COLUMN budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+    },
+    () => {
+      try { db.exec('ALTER TABLE trips ADD COLUMN country TEXT'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
+    // LSO-1502: Add budget_category to places, backfill from budget_item_id, drop budget_item_id
+    () => {
+      try {
+        db.exec('ALTER TABLE places ADD COLUMN budget_category TEXT');
+      } catch (err: any) {
+        if (!err.message?.includes('duplicate column name')) throw err;
+      }
+      const cols = db.prepare('PRAGMA table_info(places)').all() as { name: string }[];
+      if (cols.some(c => c.name === 'budget_item_id')) {
+        db.exec(`
+          UPDATE places
+          SET budget_category = (SELECT bi.category FROM budget_items bi WHERE bi.id = places.budget_item_id)
+          WHERE places.budget_item_id IS NOT NULL
+        `);
+        db.exec('ALTER TABLE places DROP COLUMN budget_item_id');
+      }
+    },
+    // LSO-1519: fee_currency — registration fee can use a different currency than trip base currency
+    () => {
+      db.exec(`ALTER TABLE trips ADD COLUMN fee_currency TEXT`);
+    },
+    // LSO-1595: per-category budget currency — NULL means inherit from trip default currency
+    () => {
+      try { db.exec('ALTER TABLE budget_category_order ADD COLUMN currency TEXT DEFAULT NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -190,6 +190,7 @@ export function buildBudgetItem(overrides: Partial<BudgetItem> = {}): BudgetItem
     persons: 1,
     members: [],
     expense_date: null,
+    category_currency: null,
     ...overrides,
   };
 }
@@ -254,7 +255,7 @@ export function buildSettings(overrides: Partial<Settings> = {}): Settings {
     default_lng: 2.3522,
     default_zoom: 10,
     dark_mode: false,
-    default_currency: 'USD',
+    default_currency: 'NOK',
     language: 'en',
     temperature_unit: 'fahrenheit',
     time_format: '12h',

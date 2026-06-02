@@ -122,6 +122,43 @@ describe('Tool: create_budget_item', () => {
   });
 });
 
+  it('persists currency to budget_category_order for new category', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Oslo Ferry', category: 'Transport', total_price: 120, currency: 'NOK' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.category).toBe('Transport');
+      // Verify category_currency was stored in budget_category_order
+      const catRow = testDb.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(trip.id, 'Transport') as any;
+      expect(catRow?.currency).toBe('NOK');
+    });
+  });
+
+  it('does not override existing category currency when adding another item', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    // Create first item with NOK currency
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Ferry', category: 'Transport', total_price: 80, currency: 'NOK' },
+      });
+    });
+    // Add second item to same category with different currency (should NOT override)
+    await withHarness(user.id, async (h) => {
+      await h.client.callTool({
+        name: 'create_budget_item',
+        arguments: { tripId: trip.id, name: 'Bus', category: 'Transport', total_price: 30, currency: 'EUR' },
+      });
+    });
+    const catRow = testDb.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(trip.id, 'Transport') as any;
+    expect(catRow?.currency).toBe('NOK'); // First currency wins
+  });
+
 // ---------------------------------------------------------------------------
 // update_budget_item
 // ---------------------------------------------------------------------------
@@ -150,6 +187,22 @@ describe('Tool: update_budget_item', () => {
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'update_budget_item', arguments: { tripId: trip.id, itemId: item.id, name: 'Updated' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:updated', expect.any(Object));
+    });
+  });
+
+  it('sets currency on new category when updating category', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createBudgetItem(testDb, trip.id, { name: 'Item', category: 'Food', total_price: 50 });
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'update_budget_item',
+        arguments: { tripId: trip.id, itemId: item.id, category: 'NewCat', currency: 'HUF' },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.item.category).toBe('NewCat');
+      const catRow = testDb.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(trip.id, 'NewCat') as any;
+      expect(catRow?.currency).toBe('HUF');
     });
   });
 

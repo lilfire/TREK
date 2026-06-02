@@ -2,7 +2,6 @@ import nodemailer from 'nodemailer';
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
 import { logInfo, logDebug, logError } from './auditLog';
-import { checkSsrf, createPinnedDispatcher } from '../utils/ssrfGuard';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,7 +43,7 @@ function getSmtpConfig(): SmtpConfig | null {
   return { host, port: parseInt(port, 10), user: user || '', pass: pass || '', from, secure: parseInt(port, 10) === 465 };
 }
 
-// Exported for use by notificationService
+// Exported for use by notificationService and others
 export function getAppUrl(): string {
   if (process.env.APP_URL) {
     try {
@@ -68,9 +67,7 @@ export function getAppUrl(): string {
   return `http://localhost:${port}`;
 }
 
-/** Returns a URL guaranteed to satisfy the MCP SDK's issuer requirements (HTTPS or localhost).
- *  Falls back to http://localhost:{PORT} when APP_URL/ALLOWED_ORIGINS use a non-HTTPS, non-localhost scheme
- *  that would cause checkIssuerUrl to throw "Issuer URL must be HTTPS". */
+/** Returns a URL guaranteed to satisfy the MCP SDK's issuer requirements (HTTPS or localhost). */
 export function getMcpSafeUrl(): string {
   const candidate = getAppUrl();
   try {
@@ -79,7 +76,7 @@ export function getMcpSafeUrl(): string {
       return candidate;
     }
   } catch {
-    // candidate was somehow invalid — fall through to localhost
+    // fall through to localhost
   }
   const port = Number(process.env.PORT) || 3001;
   return `http://localhost:${port}`;
@@ -358,111 +355,27 @@ export function buildEmailHtml(subject: string, body: string, lang: string, navi
 </html>`;
 }
 
-// ── Send functions ─────────────────────────────────────────────────────────
+// ── Email send functions ───────────────────────────────────────────────────
 
-// ── Password reset email ───────────────────────────────────────────────────
-
-interface PasswordResetStrings { subject: string; greeting: string; body: string; ctaIntro: string; expiry: string; ignore: string }
-
-const PASSWORD_RESET_I18N: Record<string, PasswordResetStrings> = {
-  en: { subject: 'Reset your password', greeting: 'Hi', body: 'We received a request to reset the password for your TREK account. Click the button below to set a new password.', ctaIntro: 'Reset password', expiry: 'This link expires in 60 minutes.', ignore: "If you didn't request this, you can safely ignore this email — your password won't change." },
-  de: { subject: 'Passwort zurücksetzen', greeting: 'Hallo', body: 'Wir haben eine Anfrage erhalten, das Passwort für dein TREK-Konto zurückzusetzen. Klicke auf den Button unten, um ein neues Passwort festzulegen.', ctaIntro: 'Passwort zurücksetzen', expiry: 'Dieser Link ist 60 Minuten gültig.', ignore: 'Wenn du das nicht warst, ignoriere diese E-Mail — dein Passwort bleibt unverändert.' },
-  fr: { subject: 'Réinitialisez votre mot de passe', greeting: 'Bonjour', body: 'Nous avons reçu une demande de réinitialisation du mot de passe de votre compte TREK. Cliquez sur le bouton ci-dessous pour définir un nouveau mot de passe.', ctaIntro: 'Réinitialiser le mot de passe', expiry: 'Ce lien expire dans 60 minutes.', ignore: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail — votre mot de passe ne changera pas." },
-  es: { subject: 'Restablecer tu contraseña', greeting: 'Hola', body: 'Recibimos una solicitud para restablecer la contraseña de tu cuenta de TREK. Haz clic en el botón de abajo para establecer una nueva contraseña.', ctaIntro: 'Restablecer contraseña', expiry: 'Este enlace caduca en 60 minutos.', ignore: 'Si no solicitaste esto, puedes ignorar este correo — tu contraseña no cambiará.' },
-  it: { subject: 'Reimposta la tua password', greeting: 'Ciao', body: 'Abbiamo ricevuto una richiesta di reimpostazione della password per il tuo account TREK. Clicca il pulsante qui sotto per impostare una nuova password.', ctaIntro: 'Reimposta password', expiry: 'Questo link scade tra 60 minuti.', ignore: 'Se non hai richiesto questa operazione, ignora questa email — la tua password non cambierà.' },
-  nl: { subject: 'Reset je wachtwoord', greeting: 'Hallo', body: 'We hebben een verzoek ontvangen om het wachtwoord voor je TREK-account te resetten. Klik op de knop hieronder om een nieuw wachtwoord in te stellen.', ctaIntro: 'Wachtwoord resetten', expiry: 'Deze link verloopt over 60 minuten.', ignore: 'Als jij dit niet hebt aangevraagd, kun je deze e-mail negeren — je wachtwoord blijft ongewijzigd.' },
-  ru: { subject: 'Сброс пароля', greeting: 'Здравствуйте', body: 'Мы получили запрос на сброс пароля вашего аккаунта TREK. Нажмите кнопку ниже, чтобы установить новый пароль.', ctaIntro: 'Сбросить пароль', expiry: 'Ссылка действительна 60 минут.', ignore: 'Если вы не запрашивали сброс — просто проигнорируйте это письмо, пароль останется прежним.' },
-  zh: { subject: '重置您的密码', greeting: '您好', body: '我们收到了重置您的 TREK 账户密码的请求。点击下方按钮设置新密码。', ctaIntro: '重置密码', expiry: '此链接将在 60 分钟后失效。', ignore: '如果这不是您本人的请求，可以忽略本邮件 — 您的密码不会改变。' },
-  'zh-TW': { subject: '重設您的密碼', greeting: '您好', body: '我們收到了重設您 TREK 帳號密碼的請求。點擊下方按鈕以設定新密碼。', ctaIntro: '重設密碼', expiry: '此連結將於 60 分鐘後失效。', ignore: '若非您本人發起的請求，請忽略此郵件 — 您的密碼不會變更。' },
-  hu: { subject: 'Jelszó visszaállítása', greeting: 'Szia', body: 'Kérést kaptunk a TREK-fiókod jelszavának visszaállítására. Kattints az alábbi gombra az új jelszó beállításához.', ctaIntro: 'Jelszó visszaállítása', expiry: 'Ez a link 60 perc után lejár.', ignore: 'Ha nem te kérted ezt, nyugodtan hagyd figyelmen kívül ezt az e-mailt — a jelszavad változatlan marad.' },
-  ar: { subject: 'إعادة تعيين كلمة المرور', greeting: 'مرحبا', body: 'تلقينا طلبًا لإعادة تعيين كلمة المرور لحسابك في TREK. انقر على الزر أدناه لتعيين كلمة مرور جديدة.', ctaIntro: 'إعادة تعيين كلمة المرور', expiry: 'تنتهي صلاحية هذا الرابط خلال 60 دقيقة.', ignore: 'إذا لم تطلب هذا، يمكنك تجاهل هذه الرسالة — لن تتغير كلمة المرور الخاصة بك.' },
-  br: { subject: 'Redefinir sua senha', greeting: 'Olá', body: 'Recebemos um pedido para redefinir a senha da sua conta TREK. Clique no botão abaixo para definir uma nova senha.', ctaIntro: 'Redefinir senha', expiry: 'Este link expira em 60 minutos.', ignore: 'Se você não solicitou isto, pode ignorar este e-mail — sua senha não será alterada.' },
-  cs: { subject: 'Obnovení hesla', greeting: 'Ahoj', body: 'Obdrželi jsme žádost o obnovení hesla k tvému účtu TREK. Klikni na tlačítko níže a nastav nové heslo.', ctaIntro: 'Obnovit heslo', expiry: 'Odkaz vyprší za 60 minut.', ignore: 'Pokud jsi o obnovení nežádal/a, tento e-mail ignoruj — heslo zůstane beze změny.' },
-  pl: { subject: 'Zresetuj hasło', greeting: 'Cześć', body: 'Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta TREK. Kliknij przycisk poniżej, aby ustawić nowe hasło.', ctaIntro: 'Zresetuj hasło', expiry: 'Link wygaśnie za 60 minut.', ignore: 'Jeśli to nie Ty, zignoruj tę wiadomość — Twoje hasło pozostanie bez zmian.' },
-};
-
-function buildPasswordResetHtml(subject: string, strings: PasswordResetStrings, recipient: string, resetUrl: string, lang: string): string {
-  const safeGreeting = escapeHtml(`${strings.greeting}, ${recipient}`);
-  const safeBody = escapeHtml(strings.body);
-  const safeExpiry = escapeHtml(strings.expiry);
-  const safeIgnore = escapeHtml(strings.ignore);
-  const safeCta = escapeHtml(strings.ctaIntro);
-  const block = `
-    <p style="margin:0 0 16px 0; font-size:16px;">${safeGreeting},</p>
-    <p style="margin:0 0 20px 0; font-size:15px; line-height:1.6;">${safeBody}</p>
-    <p style="margin:28px 0;">
-      <a href="${resetUrl}" style="display:inline-block;padding:14px 28px;background:#111827;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;">${safeCta}</a>
-    </p>
-    <p style="margin:0 0 10px 0; font-size:13px; color:#6B7280;">${safeExpiry}</p>
-    <p style="margin:0; font-size:13px; color:#6B7280;">${safeIgnore}</p>
-  `;
-  return buildEmailHtml(subject, block, lang, undefined, true);
-}
-
-/**
- * Delivers a password-reset link. When SMTP is configured the user
- * receives an email. When it isn't, the link is logged to stdout in a
- * clearly-fenced block so the self-hosting admin can hand it off by
- * other means. In both cases the caller always gets a boolean that
- * indicates only whether the caller should treat delivery as
- * best-effort done — the API response to the user must NOT leak it.
- */
-export async function sendPasswordResetEmail(
-  to: string,
-  resetUrl: string,
-  userId: number | null,
-): Promise<{ delivered: 'email' | 'log' | 'failed' }> {
-  const lang = userId ? getUserLanguage(userId) : 'en';
-  const strings = PASSWORD_RESET_I18N[lang] || PASSWORD_RESET_I18N.en;
-  const smtpCfg = getSmtpConfig();
-
-  if (!smtpCfg) {
-    // No SMTP configured — log the link in a visually distinct block so
-    // the admin can relay it. Never log the associated user id/email
-    // content at a lower level, only what's needed.
-    // eslint-disable-next-line no-console
-    console.log(
-      `\n===== PASSWORD RESET LINK =====\n` +
-      `to: ${to}\n` +
-      `url: ${resetUrl}\n` +
-      `expires: 60 minutes\n` +
-      `(SMTP is not configured — deliver this link to the user manually.)\n` +
-      `================================\n`,
-    );
-    logInfo(`Password reset link issued (no SMTP) for=${to}`);
-    return { delivered: 'log' };
-  }
-
+function resolveFromAddress(): string {
+  if (process.env.SMTP_FROM) return process.env.SMTP_FROM;
+  const fromSetting = getAppSetting('smtp_from');
+  if (fromSetting) return fromSetting;
   try {
-    const skipTls = process.env.SMTP_SKIP_TLS_VERIFY === 'true' || getAppSetting('smtp_skip_tls_verify') === 'true';
-    const transporter = nodemailer.createTransport({
-      host: smtpCfg.host,
-      port: smtpCfg.port,
-      secure: smtpCfg.secure,
-      auth: smtpCfg.user ? { user: smtpCfg.user, pass: smtpCfg.pass } : undefined,
-      ...(skipTls ? { tls: { rejectUnauthorized: false } } : {}),
-    });
-    await transporter.sendMail({
-      from: smtpCfg.from,
-      to,
-      subject: `TREK — ${strings.subject}`,
-      text: `${strings.greeting}, ${to}\n\n${strings.body}\n\n${strings.ctaIntro}: ${resetUrl}\n\n${strings.expiry}\n${strings.ignore}`,
-      html: buildPasswordResetHtml(strings.subject, strings, to, resetUrl, lang),
-    });
-    logInfo(`Password reset email sent to=${to}`);
-    return { delivered: 'email' };
-  } catch (err) {
-    logError(`Password reset email failed to=${to}: ${err instanceof Error ? err.message : err}`);
-    return { delivered: 'failed' };
+    const hostname = new URL(getAppUrl()).hostname;
+    const addr = `noreply@${hostname}`;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      logInfo(`resolveFromAddress: derived ${addr} from localhost URL — email will be dropped`);
+    }
+    return addr;
+  } catch {
+    return 'noreply@localhost';
   }
 }
 
-export async function sendEmail(to: string, subject: string, body: string, userId?: number, navigateTarget?: string): Promise<boolean> {
-  const config = getSmtpConfig();
-  if (!config) return false;
-
-  const lang = userId ? getUserLanguage(userId) : 'en';
-
+async function sendViaSMTP(
+  to: string, subject: string, text: string, html: string, from: string, config: SmtpConfig,
+): Promise<boolean> {
   try {
     const skipTls = process.env.SMTP_SKIP_TLS_VERIFY === 'true' || getAppSetting('smtp_skip_tls_verify') === 'true';
     const transporter = nodemailer.createTransport({
@@ -472,14 +385,7 @@ export async function sendEmail(to: string, subject: string, body: string, userI
       auth: config.user ? { user: config.user, pass: config.pass } : undefined,
       ...(skipTls ? { tls: { rejectUnauthorized: false } } : {}),
     });
-
-    await transporter.sendMail({
-      from: config.from,
-      to,
-      subject: `TREK — ${subject}`,
-      text: body,
-      html: buildEmailHtml(subject, body, lang, navigateTarget),
-    });
+    await transporter.sendMail({ from: config.from, to, subject: `TREK — ${subject}`, text, html });
     logInfo(`Email sent to=${to} subject="${subject}"`);
     logDebug(`Email smtp=${config.host}:${config.port} from=${config.from} to=${to}`);
     return true;
@@ -489,65 +395,33 @@ export async function sendEmail(to: string, subject: string, body: string, userI
   }
 }
 
-export function buildWebhookBody(url: string, payload: { event: string; title: string; body: string; tripName?: string; link?: string }): string {
-  const isDiscord = /discord(?:app)?\.com\/api\/webhooks\//.test(url);
-  const isSlack = /hooks\.slack\.com\//.test(url);
-
-  if (isDiscord) {
-    return JSON.stringify({
-      embeds: [{
-        title: `📍 ${payload.title}`,
-        description: payload.body,
-        url: payload.link,
-        color: 0x3b82f6,
-        footer: { text: payload.tripName ? `Trip: ${payload.tripName}` : 'TREK' },
-        timestamp: new Date().toISOString(),
-      }],
-    });
-  }
-
-  if (isSlack) {
-    const trip = payload.tripName ? `  •  _${payload.tripName}_` : '';
-    const link = payload.link ? `\n<${payload.link}|Open in TREK>` : '';
-    return JSON.stringify({
-      text: `*${payload.title}*\n${payload.body}${trip}${link}`,
-    });
-  }
-
-  return JSON.stringify({ ...payload, timestamp: new Date().toISOString(), source: 'TREK' });
-}
-
-export async function sendWebhook(url: string, payload: { event: string; title: string; body: string; tripName?: string; link?: string }): Promise<boolean> {
-  if (!url) return false;
-
-  const ssrf = await checkSsrf(url);
-  if (!ssrf.allowed) {
-    logError(`Webhook blocked by SSRF guard event=${payload.event} url=${url} reason=${ssrf.error}`);
-    return false;
-  }
-
+async function sendViaDirect(
+  to: string, subject: string, text: string, html: string, from: string, hostname: string,
+): Promise<boolean> {
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: buildWebhookBody(url, payload),
-      signal: AbortSignal.timeout(10000),
-      dispatcher: createPinnedDispatcher(ssrf.resolvedIp!),
-    } as any);
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      logError(`Webhook HTTP ${res.status}: ${errBody}`);
-      return false;
-    }
-
-    logInfo(`Webhook sent event=${payload.event} trip=${payload.tripName || '-'}`);
-    logDebug(`Webhook url=${url} payload=${buildWebhookBody(url, payload).substring(0, 500)}`);
+    const transporter = nodemailer.createTransport({ direct: true, name: hostname } as any);
+    await transporter.sendMail({ from, to, subject: `TREK — ${subject}`, text, html });
+    logInfo(`Email sent (direct) to=${to} subject="${subject}"`);
     return true;
   } catch (err) {
-    logError(`Webhook failed event=${payload.event}: ${err instanceof Error ? err.message : err}`);
+    logError(`Email send (direct) failed to=${to}: ${err instanceof Error ? err.message : err}`);
     return false;
   }
+}
+
+export async function sendEmail(to: string, subject: string, body: string, userId?: number, navigateTarget?: string): Promise<boolean> {
+  const lang = userId ? getUserLanguage(userId) : 'en';
+  const html = buildEmailHtml(subject, body, lang, navigateTarget);
+  const from = resolveFromAddress();
+  const config = getSmtpConfig();
+  if (config) return sendViaSMTP(to, subject, body, html, from, config);
+  let hostname: string;
+  try { hostname = new URL(getAppUrl()).hostname; } catch { return false; }
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    logInfo(`Email dropped (localhost URL) to=${to} subject="${subject}"`);
+    return false;
+  }
+  return sendViaDirect(to, subject, body, html, from, hostname);
 }
 
 export async function testSmtp(to: string): Promise<{ success: boolean; error?: string }> {
@@ -573,153 +447,3 @@ export async function testSmtp(to: string): Promise<{ success: boolean; error?: 
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
   }
 }
-
-export async function testWebhook(url: string): Promise<{ success: boolean; error?: string }> {
-  try {
-    const sent = await sendWebhook(url, { event: 'test', title: 'Test Notification', body: 'This is a test webhook from TREK. If you received this, your webhook configuration is working correctly.' });
-    return sent ? { success: true } : { success: false, error: 'Failed to send webhook' };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-  }
-}
-
-// ── Ntfy ──────────────────────────────────────────────────────────────────
-
-export interface NtfyConfig {
-  server: string | null;
-  topic: string | null;
-  token: string | null;
-}
-
-/** Priority and tags mapped to each notification event type. */
-const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 | 5; tags: string[] }>> = {
-  trip_invite:              { priority: 4, tags: ['loudspeaker'] },
-  booking_change:           { priority: 3, tags: ['calendar'] },
-  trip_reminder:            { priority: 4, tags: ['bell', 'alarm_clock'] },
-  vacay_invite:             { priority: 4, tags: ['palm_tree'] },
-  photos_shared:            { priority: 3, tags: ['camera'] },
-  collab_message:           { priority: 3, tags: ['speech_balloon'] },
-  packing_tagged:           { priority: 3, tags: ['luggage'] },
-  version_available:        { priority: 4, tags: ['package'] },
-  synology_session_cleared: { priority: 3, tags: ['warning'] },
-};
-const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };
-
-export function getUserNtfyConfig(userId: number): NtfyConfig | null {
-  const rows = db.prepare(
-    "SELECT key, value FROM settings WHERE user_id = ? AND key IN ('ntfy_topic', 'ntfy_server', 'ntfy_token')"
-  ).all(userId) as { key: string; value: string }[];
-  if (rows.length === 0) return null;
-  const map: Record<string, string> = {};
-  for (const r of rows) map[r.key] = r.value;
-  return {
-    topic: map['ntfy_topic'] || null,
-    server: map['ntfy_server'] || null,
-    token: map['ntfy_token'] ? decrypt_api_key(map['ntfy_token']) : null,
-  };
-}
-
-export function getAdminNtfyConfig(): NtfyConfig {
-  const topic = getAppSetting('admin_ntfy_topic') || null;
-  const server = getAppSetting('admin_ntfy_server') || null;
-  const rawToken = getAppSetting('admin_ntfy_token') || null;
-  return {
-    topic,
-    server,
-    token: rawToken ? decrypt_api_key(rawToken) : null,
-  };
-}
-
-/**
- * Resolve the ntfy POST URL from admin base config + user override.
- * Returns null if topic cannot be determined.
- */
-export function resolveNtfyUrl(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string | null {
-  const topic = userCfg?.topic || adminCfg.topic;
-  if (!topic) return null;
-  const base = (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
-  return `${base}/${encodeURIComponent(topic)}`;
-}
-
-export function isNtfyConfiguredForUser(userId: number): boolean {
-  const cfg = getUserNtfyConfig(userId);
-  return !!(cfg?.topic);
-}
-
-export function isNtfyConfiguredAdmin(): boolean {
-  return !!(getAppSetting('admin_ntfy_topic'));
-}
-
-function encodeHeaderValue(value: string): string {
-  for (let i = 0; i < value.length; i++) {
-    if (value.charCodeAt(i) > 0xFF) {
-      return `=?UTF-8?B?${Buffer.from(value, 'utf8').toString('base64')}?=`;
-    }
-  }
-  return value;
-}
-
-export async function sendNtfy(
-  url: string,
-  token: string | null,
-  payload: { event: string; title: string; body: string; link?: string },
-): Promise<boolean> {
-  if (!url) return false;
-
-  const ssrf = await checkSsrf(url);
-  if (!ssrf.allowed) {
-    logError(`Ntfy blocked by SSRF guard event=${payload.event} url=${url} reason=${ssrf.error}`);
-    return false;
-  }
-
-  const meta = NTFY_EVENT_META[payload.event as NotifEventType] ?? NTFY_DEFAULT_META;
-
-  // ntfy header-based API: POST to topic URL, body = plain text message, metadata in headers
-  const headers: Record<string, string> = {
-    'Title': encodeHeaderValue(payload.title),
-    'Priority': String(meta.priority),
-  };
-  if (meta.tags.length > 0) headers['Tags'] = meta.tags.join(',');
-  if (payload.link) headers['Click'] = encodeHeaderValue(payload.link);
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: payload.body,
-      signal: AbortSignal.timeout(10000),
-      dispatcher: createPinnedDispatcher(ssrf.resolvedIp!),
-    } as any);
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      logError(`Ntfy HTTP ${res.status}: ${errBody}`);
-      return false;
-    }
-
-    logInfo(`Ntfy sent event=${payload.event}`);
-    logDebug(`Ntfy url=${url} priority=${meta.priority} tags=${meta.tags.join(',')}`);
-    return true;
-  } catch (err) {
-    logError(`Ntfy failed event=${payload.event}: ${err instanceof Error ? err.message : err}`);
-    return false;
-  }
-}
-
-export async function testNtfy(cfg: { topic: string; server?: string | null; token?: string | null }): Promise<{ success: boolean; error?: string }> {
-  const adminCfg = getAdminNtfyConfig();
-  const url = resolveNtfyUrl(adminCfg, { topic: cfg.topic, server: cfg.server ?? null, token: cfg.token ?? null });
-  if (!url) return { success: false, error: 'Could not resolve ntfy URL — missing topic' };
-  try {
-    const sent = await sendNtfy(url, cfg.token ?? null, {
-      event: 'test',
-      title: 'Test Notification',
-      body: 'This is a test notification from TREK. If you received this, your ntfy configuration is working correctly.',
-    });
-    return sent ? { success: true } : { success: false, error: 'Failed to send ntfy notification' };
-  } catch (err) {
-    return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
-  }
-}
-

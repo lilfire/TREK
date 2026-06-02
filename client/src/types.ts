@@ -25,6 +25,13 @@ export interface Trip {
   is_public: boolean
   reminder_days: number
   owner_id: number
+  registration_fee?: number | null
+  fee_mode?: 'deadline' | 'rsvp' | null
+  fee_deadline?: string | null
+  rsvp_deadline?: string | null
+  currency?: string
+  fee_currency?: string | null
+  country?: string | null
   created_at: string
   updated_at: string
 }
@@ -64,6 +71,8 @@ export interface Place {
   website: string | null
   phone: string | null
   created_at: string
+  budget_item_id?: number | null
+  budget_category?: string | null
 }
 
 export interface Assignment {
@@ -132,6 +141,7 @@ export interface BudgetItem {
   persons: number
   members: BudgetMember[]
   expense_date: string | null
+  category_currency?: string | null
 }
 
 export interface BudgetMember {

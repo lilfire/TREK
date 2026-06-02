@@ -1,7 +1,9 @@
 import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
-import { testSmtp, testWebhook, testNtfy, getAdminWebhookUrl, getUserWebhookUrl, getUserNtfyConfig, getAdminNtfyConfig } from '../services/notifications';
+import { testSmtp, getAdminWebhookUrl, getUserWebhookUrl } from '../services/notifications';
+import { testWebhook } from '../services/webhookService';
+import { testNtfy, getUserNtfyConfig, getAdminNtfyConfig } from '../services/ntfyService';
 import {
   getNotifications,
   getUnreadCount,

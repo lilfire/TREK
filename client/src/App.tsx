@@ -177,16 +177,11 @@ export default function App() {
   }, [])
 
   const location = useLocation()
-  const isSharedPage = location.pathname.startsWith('/shared/')
+  const isPublicRoute = location.pathname.startsWith('/shared/') || location.pathname.startsWith('/public/')
 
   useEffect(() => {
-    // Shared page always forces light mode
-    if (isSharedPage) {
-      document.documentElement.classList.remove('dark')
-      const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', '#ffffff')
-      return
-    }
+    // Public/shared pages manage dark mode themselves via PublicThemeToggle
+    if (isPublicRoute) return
 
     const mode = settings.dark_mode
     const applyDark = (isDark: boolean) => {
@@ -203,7 +198,7 @@ export default function App() {
       return () => mq.removeEventListener('change', handler)
     }
     applyDark(mode === true || mode === 'dark')
-  }, [settings.dark_mode, isSharedPage])
+  }, [settings.dark_mode, isPublicRoute])
 
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')
@@ -303,6 +298,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <InAppNotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/explore"
+          element={
+            <ProtectedRoute>
+              <PublicTripsPage />
             </ProtectedRoute>
           }
         />
