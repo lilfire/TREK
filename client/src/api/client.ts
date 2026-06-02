@@ -466,6 +466,8 @@ export const budgetApi = {
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories }).then(r => r.data),
   categories: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/categories`).then(r => r.data),
+  updateCategoryCurrency: (tripId: number | string, category: string, currency: string | null) =>
+    apiClient.patch(`/trips/${tripId}/budget/categories/${encodeURIComponent(category)}/currency`, { currency }).then(r => r.data),
 }
 
 export const filesApi = {

@@ -190,6 +190,7 @@ export function buildBudgetItem(overrides: Partial<BudgetItem> = {}): BudgetItem
     persons: 1,
     members: [],
     expense_date: null,
+    category_currency: null,
     ...overrides,
   };
 }

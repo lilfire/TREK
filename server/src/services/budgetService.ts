@@ -323,3 +323,10 @@ export function reorderBudgetCategories(tripId: string | number, orderedCategori
     orderedCategories.forEach((cat, index) => upsert.run(tripId, cat, index));
   })();
 }
+
+export function updateCategoryCurrency(tripId: string | number, category: string, currency: string | null): boolean {
+  const result = db.prepare(
+    'INSERT INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, 0, ?) ON CONFLICT(trip_id, category) DO UPDATE SET currency = excluded.currency'
+  ).run(tripId, category, currency);
+  return result.changes > 0;
+}

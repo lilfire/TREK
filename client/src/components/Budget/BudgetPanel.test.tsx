@@ -1,5 +1,5 @@
 // FE-COMP-BUDGET-001 to FE-COMP-BUDGET-040
-import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
@@ -479,6 +479,69 @@ describe('BudgetPanel', () => {
     // Avatar image should be rendered for alice
     const avatarImg = screen.getAllByRole('img');
     expect(avatarImg.length).toBeGreaterThan(0);
+  });
+
+  it('FE-COMP-BUDGET-037: category header shows per-category currency combobox when editable', async () => {
+    const item = buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Room' });
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
+    );
+    render(<BudgetPanel tripId={1} />);
+    await screen.findByText('Hotels');
+    // The category header should contain a currency selector identified by data-testid
+    expect(screen.getByTestId('cat-currency-Hotels')).toBeInTheDocument();
+    // It renders a button (CustomSelect trigger)
+    expect(within(screen.getByTestId('cat-currency-Hotels')).getByRole('button')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-BUDGET-038: changing category currency calls PATCH API with correct payload', async () => {
+    const user = userEvent.setup();
+    const item = buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Hotel Room', category_currency: null });
+    let patchBody: Record<string, unknown> | null = null;
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] })),
+      http.patch('/api/trips/1/budget/categories/Hotels/currency', async ({ request }) => {
+        patchBody = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ success: true });
+      })
+    );
+    render(<BudgetPanel tripId={1} />);
+    await screen.findByText('Hotel Room');
+    // Open the category-level currency selector
+    const catCurrencySelector = screen.getByTestId('cat-currency-Hotels');
+    const triggerBtn = within(catCurrencySelector).getByRole('button');
+    await user.click(triggerBtn);
+    // Type to search for USD in the searchable dropdown (placeholder is "...")
+    const searchInput = screen.getByPlaceholderText('...');
+    await user.type(searchInput, 'USD');
+    // Click the USD option
+    const usdOption = await screen.findByText(/^USD/);
+    await user.click(usdOption);
+    await waitFor(() => expect(patchBody).not.toBeNull());
+    expect(patchBody?.currency).toBe('USD');
+  });
+
+  it('FE-COMP-BUDGET-039: category subtotal uses category currency when set', async () => {
+    const item = { ...buildBudgetItem({ trip_id: 1, category: 'Hotels', name: 'Room' }), total_price: 100, category_currency: 'USD' };
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
+    );
+    render(<BudgetPanel tripId={1} />);
+    await screen.findByText('Room');
+    // Category subtotal should use USD formatting, not EUR (trip default)
+    expect(screen.getAllByText(/\$/).length).toBeGreaterThan(0);
+  });
+
+  it('FE-COMP-BUDGET-040: category with no category_currency falls back to trip currency', async () => {
+    seedStore(useTripStore, { trip: buildTrip({ id: 1, currency: 'NOK' }) });
+    const item = { ...buildBudgetItem({ trip_id: 1, category: 'Food', name: 'Dinner' }), total_price: 50, category_currency: null };
+    server.use(
+      http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [item] }))
+    );
+    render(<BudgetPanel tripId={1} />);
+    await screen.findByText('Dinner');
+    // With NOK as trip currency and null category_currency, should show NOK symbol
+    expect(screen.getAllByText(/NOK/).length).toBeGreaterThan(0);
   });
 
   it('FE-COMP-BUDGET-036: expense_date shows dash when not set in read-only mode', async () => {

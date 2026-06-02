@@ -17,6 +17,7 @@ export interface BudgetSlice {
   toggleBudgetMemberPaid: (tripId: number | string, itemId: number, userId: number, paid: boolean) => Promise<void>
   reorderBudgetItems: (tripId: number | string, orderedIds: number[]) => Promise<void>
   reorderBudgetCategories: (tripId: number | string, orderedCategories: string[]) => Promise<void>
+  updateBudgetCategoryCurrency: (tripId: number | string, category: string, currency: string | null) => Promise<void>
 }
 
 export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => ({
@@ -132,5 +133,14 @@ export const createBudgetSlice = (set: SetState, get: GetState): BudgetSlice => 
       const data = await budgetApi.list(tripId)
       set({ budgetItems: data.items })
     }
+  },
+
+  updateBudgetCategoryCurrency: async (tripId, category, currency) => {
+    await budgetApi.updateCategoryCurrency(tripId, category, currency)
+    set(state => ({
+      budgetItems: state.budgetItems.map(item =>
+        item.category === category ? { ...item, category_currency: currency } : item
+      )
+    }))
   },
 })
