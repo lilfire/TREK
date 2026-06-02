@@ -419,7 +419,10 @@ export async function sendEmail(to: string, subject: string, body: string, userI
   const html = buildEmailHtml(subject, body, lang, navigateTarget);
   const from = resolveFromAddress();
   const config = getSmtpConfig();
-  if (config) return sendViaSMTP(to, subject, body, html, from, config);
+  if (config) {
+    logInfo(`sendEmail dispatch transport=smtp host=${config.host}:${config.port} from=${from} to=${to} subject="${subject}"`);
+    return sendViaSMTP(to, subject, body, html, from, config);
+  }
   let hostname: string;
   try { hostname = new URL(getAppUrl()).hostname; } catch { return false; }
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -429,6 +432,7 @@ export async function sendEmail(to: string, subject: string, body: string, userI
     );
     return false;
   }
+  logInfo(`sendEmail dispatch transport=direct host=${hostname} from=${from} to=${to} subject="${subject}"`);
   return sendViaDirect(to, subject, body, html, from, hostname);
 }
 

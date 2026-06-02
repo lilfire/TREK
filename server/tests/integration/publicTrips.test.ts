@@ -638,8 +638,6 @@ describe('POST /api/public/trips/:id/rsvp', () => {
       .post(`/api/public/trips/${trip.id}/rsvp`)
       .send({ name: 'Carol', email: 'carol@example.com' });
 
-    // Give the fire-and-forget promise time to settle
-    await new Promise(r => setTimeout(r, 10));
     expect(mockSendRsvpEmail).toHaveBeenCalledWith(
       expect.any(String),
       'Carol',
@@ -647,6 +645,86 @@ describe('POST /api/public/trips/:id/rsvp', () => {
       trip.id,
       expect.any(Number),
     );
+  });
+
+  it('RSVP-018 — unauthenticated 201 response body includes emailSent: true on successful delivery', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Unauth Send OK' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    mockSendRsvpEmail.mockResolvedValueOnce(true);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Dora', email: 'dora@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.emailSent).toBe(true);
+  });
+
+  it('RSVP-019 — unauthenticated 201 response body includes emailSent: false when sendRsvpConfirmationEmail throws', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Unauth Send Throws' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    mockSendRsvpEmail.mockRejectedValueOnce(new Error('SMTP timeout'));
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Eve', email: 'eve@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.emailSent).toBe(false);
+    expect(typeof res.body.rsvpId).toBe('number');
+  });
+
+  it('RSVP-020 — unauthenticated 201 response body includes emailSent: false when sendRsvpConfirmationEmail resolves false', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Unauth Send Returns False' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    mockSendRsvpEmail.mockResolvedValueOnce(false);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Frank', email: 'frank@example.com' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.emailSent).toBe(false);
+  });
+
+  it('RSVP-021 — authenticated 201 response body includes emailSent: true on successful delivery', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: rsvpUser } = createUser(testDb, { email: 'auth-ok@example.com' });
+    const trip = createTrip(testDb, owner.id, { title: 'Auth Send OK' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    mockSendRsvpEmail.mockResolvedValueOnce(true);
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .set(authHeader(rsvpUser.id));
+
+    expect(res.status).toBe(201);
+    expect(res.body.emailSent).toBe(true);
+    expect(res.body.userId).toBe(rsvpUser.id);
+  });
+
+  it('RSVP-022 — authenticated 201 response body includes emailSent: false when sendRsvpConfirmationEmail throws', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: rsvpUser } = createUser(testDb, { email: 'auth-fail@example.com' });
+    const trip = createTrip(testDb, owner.id, { title: 'Auth Send Throws' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    mockSendRsvpEmail.mockRejectedValueOnce(new Error('SMTP down'));
+
+    const res = await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .set(authHeader(rsvpUser.id));
+
+    expect(res.status).toBe(201);
+    expect(res.body.emailSent).toBe(false);
+    expect(res.body.userId).toBe(rsvpUser.id);
   });
 
   it('RSVP-013 — duplicate RSVP (same email + trip) returns 409 with duplicate_rsvp error code', async () => {
