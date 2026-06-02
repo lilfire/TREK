@@ -31,14 +31,15 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         name: z.string().min(1).max(200),
         category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
         total_price: z.number().nonnegative(),
+        currency: z.string().length(3).optional().describe("ISO 4217 currency code for this item. When omitted, inherits the category's currency (or the trip's base currency if the category is new). Once a category's currency is set, all items in that category must use it."),
         note: z.string().max(500).optional(),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, category, total_price, note }) => {
+    async ({ tripId, name, category, total_price, currency, note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const item = createBudgetItem(tripId, { category, name, total_price, note });
+      const item = createBudgetItem(tripId, { category, name, total_price, currency, note });
       safeBroadcast(tripId, 'budget:created', { item });
       return ok({ item });
     }
@@ -76,16 +77,17 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         name: z.string().min(1).max(200).optional(),
         category: z.string().max(100).optional(),
         total_price: z.number().nonnegative().optional(),
+        currency: z.string().length(3).optional().describe("ISO 4217 currency code. Changing currency on an item will only succeed if the item is the sole entry in its category, or if the new currency matches the category's established currency."),
         persons: z.number().int().positive().nullable().optional(),
         days: z.number().int().positive().nullable().optional(),
         note: z.string().max(500).nullable().optional(),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, itemId, name, category, total_price, persons, days, note }) => {
+    async ({ tripId, itemId, name, category, total_price, currency, persons, days, note }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const item = updateBudgetItem(itemId, tripId, { name, category, total_price, persons, days, note });
+      const item = updateBudgetItem(itemId, tripId, { name, category, total_price, currency, persons, days, note });
       if (!item) return { content: [{ type: 'text' as const, text: 'Budget item not found.' }], isError: true };
       safeBroadcast(tripId, 'budget:updated', { item });
       return ok({ item });
@@ -103,18 +105,19 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
         name: z.string().min(1).max(200),
         category: z.string().max(100).optional().describe('Budget category (e.g. Accommodation, Food, Transport)'),
         total_price: z.number().nonnegative(),
+        currency: z.string().length(3).optional().describe("ISO 4217 currency code for this item. When omitted, inherits the category's currency (or the trip's base currency if the category is new). Once a category's currency is set, all items in that category must use it."),
         note: z.string().max(500).optional(),
         userIds: z.array(z.number().int().positive()).optional().describe('User IDs splitting this item; omit or pass empty array to skip member assignment'),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, category, total_price, note, userIds }) => {
+    async ({ tripId, name, category, total_price, currency, note, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       const hasMembers = userIds && userIds.length > 0;
       try {
         const run = db.transaction(() => {
-          const item = createBudgetItem(tripId, { category, name, total_price, note });
+          const item = createBudgetItem(tripId, { category, name, total_price, currency, note });
           if (hasMembers) {
             return updateBudgetMembers(item.id, tripId, userIds!);
           }

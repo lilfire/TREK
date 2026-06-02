@@ -27,9 +27,14 @@ function loadItemMembers(itemId: number | string) {
 // CRUD
 // ---------------------------------------------------------------------------
 
+export function getCategoryCurrency(tripId: string | number, category: string): string | null {
+  const row = db.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(tripId, category) as { currency: string | null } | undefined;
+  return row?.currency ?? null;
+}
+
 export function listBudgetItems(tripId: string | number) {
   const items = db.prepare(`
-    SELECT bi.* FROM budget_items bi
+    SELECT bi.*, bco.currency AS category_currency FROM budget_items bi
     LEFT JOIN budget_category_order bco ON bco.trip_id = bi.trip_id AND bco.category = bi.category
     WHERE bi.trip_id = ?
     ORDER BY COALESCE(bco.sort_order, 999999) ASC, bi.sort_order ASC
@@ -60,7 +65,7 @@ export function listBudgetItems(tripId: string | number) {
 
 export function createBudgetItem(
   tripId: string | number,
-  data: { category?: string; name: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null },
+  data: { category?: string; name: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; expense_date?: string | null; currency?: string | null },
 ) {
   const maxOrder = db.prepare(
     'SELECT MAX(sort_order) as max FROM budget_items WHERE trip_id = ?'
@@ -69,12 +74,15 @@ export function createBudgetItem(
 
   const cat = data.category || 'Other';
 
-  // Ensure category has a sort_order entry
-  const catExists = db.prepare('SELECT 1 FROM budget_category_order WHERE trip_id = ? AND category = ?').get(tripId, cat);
-  if (!catExists) {
+  // Ensure category has a sort_order entry; set currency if provided and category is new
+  const catRow = db.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(tripId, cat) as { currency: string | null } | undefined;
+  if (!catRow) {
     const maxCatOrder = db.prepare('SELECT MAX(sort_order) as max FROM budget_category_order WHERE trip_id = ?').get(tripId) as { max: number | null };
     const catOrder = (maxCatOrder?.max !== null && maxCatOrder?.max !== undefined ? maxCatOrder.max : -1) + 1;
-    db.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order) VALUES (?, ?, ?)').run(tripId, cat, catOrder);
+    db.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)').run(tripId, cat, catOrder, data.currency ?? null);
+  } else if (data.currency && !catRow.currency) {
+    // If category already exists with no currency, set it now
+    db.prepare('UPDATE budget_category_order SET currency = ? WHERE trip_id = ? AND category = ?').run(data.currency, tripId, cat);
   }
 
   const result = db.prepare(
@@ -91,7 +99,11 @@ export function createBudgetItem(
     data.expense_date || null,
   );
 
-  const item = db.prepare('SELECT * FROM budget_items WHERE id = ?').get(result.lastInsertRowid) as BudgetItem & { members?: BudgetItemMember[] };
+  const item = db.prepare(`
+    SELECT bi.*, bco.currency AS category_currency FROM budget_items bi
+    LEFT JOIN budget_category_order bco ON bco.trip_id = bi.trip_id AND bco.category = bi.category
+    WHERE bi.id = ?
+  `).get(result.lastInsertRowid) as BudgetItem & { members?: BudgetItemMember[] };
   item.members = [];
   return item;
 }
@@ -99,7 +111,7 @@ export function createBudgetItem(
 export function updateBudgetItem(
   id: string | number,
   tripId: string | number,
-  data: { category?: string; name?: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null },
+  data: { category?: string; name?: string; total_price?: number; persons?: number | null; days?: number | null; note?: string | null; sort_order?: number; expense_date?: string | null; currency?: string | null },
 ) {
   const item = db.prepare('SELECT * FROM budget_items WHERE id = ? AND trip_id = ?').get(id, tripId);
   if (!item) return null;
@@ -128,16 +140,29 @@ export function updateBudgetItem(
   );
 
   // If category changed, update category order table
+  const effectiveCategory = data.category || (db.prepare('SELECT category FROM budget_items WHERE id = ?').get(id) as { category: string } | undefined)?.category;
   if (data.category) {
-    const catExists = db.prepare('SELECT 1 FROM budget_category_order WHERE trip_id = ? AND category = ?').get(tripId, data.category);
-    if (!catExists) {
+    const catRow = db.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(tripId, data.category) as { currency: string | null } | undefined;
+    if (!catRow) {
       const maxCatOrder = db.prepare('SELECT MAX(sort_order) as max FROM budget_category_order WHERE trip_id = ?').get(tripId) as { max: number | null };
       const catOrder = (maxCatOrder?.max !== null && maxCatOrder?.max !== undefined ? maxCatOrder.max : -1) + 1;
-      db.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order) VALUES (?, ?, ?)').run(tripId, data.category, catOrder);
+      db.prepare('INSERT OR IGNORE INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, ?, ?)').run(tripId, data.category, catOrder, data.currency ?? null);
+    } else if (data.currency && !catRow.currency) {
+      db.prepare('UPDATE budget_category_order SET currency = ? WHERE trip_id = ? AND category = ?').run(data.currency, tripId, data.category);
+    }
+  } else if (data.currency && effectiveCategory) {
+    // Category unchanged but currency provided — update existing category's currency if not yet set
+    const catRow = db.prepare('SELECT currency FROM budget_category_order WHERE trip_id = ? AND category = ?').get(tripId, effectiveCategory) as { currency: string | null } | undefined;
+    if (catRow && !catRow.currency) {
+      db.prepare('UPDATE budget_category_order SET currency = ? WHERE trip_id = ? AND category = ?').run(data.currency, tripId, effectiveCategory);
     }
   }
 
-  const updated = db.prepare('SELECT * FROM budget_items WHERE id = ?').get(id) as BudgetItem & { members?: BudgetItemMember[] };
+  const updated = db.prepare(`
+    SELECT bi.*, bco.currency AS category_currency FROM budget_items bi
+    LEFT JOIN budget_category_order bco ON bco.trip_id = bi.trip_id AND bco.category = bi.category
+    WHERE bi.id = ?
+  `).get(id) as BudgetItem & { members?: BudgetItemMember[] };
   updated.members = loadItemMembers(id);
   return updated;
 }

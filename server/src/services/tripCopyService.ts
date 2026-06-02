@@ -155,13 +155,13 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
       insertTodo.run(newTripId, t.name, t.category, t.sort_order, t.due_date, t.description, t.priority);
     }
 
-    const oldCategoryOrder = db.prepare('SELECT category, sort_order FROM budget_category_order WHERE trip_id = ?').all(sourceTripId) as any[];
+    const oldCategoryOrder = db.prepare('SELECT category, sort_order, currency FROM budget_category_order WHERE trip_id = ?').all(sourceTripId) as any[];
     const insertCategoryOrder = db.prepare(`
-      INSERT INTO budget_category_order (trip_id, category, sort_order)
-      VALUES (?, ?, ?)
+      INSERT INTO budget_category_order (trip_id, category, sort_order, currency)
+      VALUES (?, ?, ?, ?)
     `);
     for (const o of oldCategoryOrder) {
-      insertCategoryOrder.run(newTripId, o.category, o.sort_order);
+      insertCategoryOrder.run(newTripId, o.category, o.sort_order, o.currency ?? null);
     }
 
     return Number(newTripId);
