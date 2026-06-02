@@ -2393,6 +2393,12 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Dołącz do tej wycieczki",
   'publicTrip.rsvp.subheading': "Wpisz swoje dane poniżej, a zarezerwujemy Twoje miejsce.",
+  'publicTrip.rsvp.headingMember': "Jesteś na tej wycieczce",
+  'publicTrip.rsvp.subheadingMember': "Potwierdzono — sprawdź swój panel, aby zobaczyć pełne itinerarium.",
+  'publicTrip.rsvp.headingClosed': "Rejestracja zamknięta",
+  'publicTrip.rsvp.subheadingClosed': "Ta wycieczka nie przyjmuje już nowych rejestracji.",
+  'rsvp.toastPaymentSuccess': "🎉 Dołączyłeś/aś! Witamy w TREK — sprawdź swoją skrzynkę pocztową w poszukiwaniu e-maila z potwierdzeniem.",
+  'rsvp.authFailedAfterPayment': "Twoja płatność została odebrana, ale nie udało nam się zalogować Cię automatycznie. Zaloguj się, aby zobaczyć swoją wycieczkę.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Pomysły i niezaplanowane',

@@ -2197,6 +2197,12 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "انضم إلى هذه الرحلة",
   'publicTrip.rsvp.subheading': "أدخل تفاصيلك أدناه وسنحجز مكانك.",
+  'publicTrip.rsvp.headingMember': "أنت في هذه الرحلة",
+  'publicTrip.rsvp.subheadingMember': "تم تأكيدك — تحقق من لوحة التحكم لعرض البرنامج الكامل.",
+  'publicTrip.rsvp.headingClosed': "التسجيل مغلق",
+  'publicTrip.rsvp.subheadingClosed': "لم تعد هذه الرحلة تقبل تسجيلات جديدة.",
+  'rsvp.toastPaymentSuccess': "🎉 أنت في الداخل! مرحباً بك في TREK — تحقق من صندوق بريدك للحصول على بريد تأكيد.",
+  'rsvp.authFailedAfterPayment': "تم استلام دفعتك ولكن لم نتمكن من تسجيل دخولك تلقائياً. يرجى تسجيل الدخول لعرض رحلتك.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'أفكار وغير مجدول',

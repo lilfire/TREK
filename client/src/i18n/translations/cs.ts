@@ -2404,6 +2404,12 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Přidat se k této cestě",
   'publicTrip.rsvp.subheading': "Vyplňte své údaje níže a zarezervujeme vám místo.",
+  'publicTrip.rsvp.headingMember': "Jste na této cestě",
+  'publicTrip.rsvp.subheadingMember': "Jste potvrzeni — zkontrolujte svůj panel pro celý itinerář.",
+  'publicTrip.rsvp.headingClosed': "Registrace uzavřena",
+  'publicTrip.rsvp.subheadingClosed': "Tato cesta již nepřijímá nové registrace.",
+  'rsvp.toastPaymentSuccess': "🎉 Jste přihlášeni! Vítejte v TREK — zkontrolujte svou poštu pro potvrzovací e-mail.",
+  'rsvp.authFailedAfterPayment': "Vaše platba byla přijata, ale nepodařilo se nám vás automaticky přihlásit. Přihlaste se prosím a zobrazte svou cestu.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Nápady a neplánované',

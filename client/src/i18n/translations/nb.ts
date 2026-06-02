@@ -2419,6 +2419,12 @@ const nb: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': 'Bli med på turen',
   'publicTrip.rsvp.subheading': 'Fyll inn opplysningene nedenfor, så reserverer vi plassen din.',
+  'publicTrip.rsvp.headingMember': 'Du er med på turen',
+  'publicTrip.rsvp.subheadingMember': 'Du er bekreftet — sjekk oversikten din for å se hele reiseplanen.',
+  'publicTrip.rsvp.headingClosed': 'Påmelding stengt',
+  'publicTrip.rsvp.subheadingClosed': 'Denne turen tar ikke lenger imot nye påmeldinger.',
+  'rsvp.toastPaymentSuccess': '🎉 Du er med! Velkommen til TREK — sjekk innboksen din for en bekreftelsesmail.',
+  'rsvp.authFailedAfterPayment': 'Betalingen din er mottatt, men vi kunne ikke logge deg inn automatisk. Logg inn for å se reisen din.',
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Ideer og uplanlagte aktiviteter',

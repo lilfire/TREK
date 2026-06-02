@@ -2401,6 +2401,12 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Csatlakozz ehhez az utazáshoz",
   'publicTrip.rsvp.subheading': "Add meg az adataidat, és fenntartjuk a helyed.",
+  'publicTrip.rsvp.headingMember': "Részt veszel ezen az utazáson",
+  'publicTrip.rsvp.subheadingMember': "Megerősítve — tekintsd meg az irányítópulton a teljes útitervet.",
+  'publicTrip.rsvp.headingClosed': "A regisztráció lezárult",
+  'publicTrip.rsvp.subheadingClosed': "Ez az utazás már nem fogad új regisztrációkat.",
+  'rsvp.toastPaymentSuccess': "🎉 Csatlakoztál! Üdvözlünk a TREK-en — ellenőrizd a postaládádat a visszaigazoló e-mailért.",
+  'rsvp.authFailedAfterPayment': "Befizetésedet megkaptuk, de nem tudtunk automatikusan bejelentkeztetni. Kérjük, jelentkezz be az utazásod megtekintéséhez.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Ötletek & Nem tervezett',

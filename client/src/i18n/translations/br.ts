@@ -2400,6 +2400,12 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   // Public trip page — RSVP section
   'publicTrip.rsvp.heading': "Participar desta viagem",
   'publicTrip.rsvp.subheading': "Preencha seus dados abaixo e reservaremos seu lugar.",
+  'publicTrip.rsvp.headingMember': "Você está nesta viagem",
+  'publicTrip.rsvp.subheadingMember': "Confirmado — acesse seu painel para ver o itinerário completo.",
+  'publicTrip.rsvp.headingClosed': "Inscrições encerradas",
+  'publicTrip.rsvp.subheadingClosed': "Esta viagem não está mais aceitando novas inscrições.",
+  'rsvp.toastPaymentSuccess': "🎉 Você entrou! Bem-vindo ao TREK — verifique sua caixa de entrada para o e-mail de confirmação.",
+  'rsvp.authFailedAfterPayment': "Seu pagamento foi recebido, mas não conseguimos conectar você automaticamente. Faça login para ver sua viagem.",
 
   // Public trip page — Unplanned Activities section
   'publicTrip.unplanned.heading': 'Ideias & Não Planejado',
