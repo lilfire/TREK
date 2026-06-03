@@ -1,33 +1,5 @@
-import nodemailer from 'nodemailer';
-import { db } from '../db/database';
-import { decrypt_api_key } from './apiKeyCrypto';
-import { logInfo, logError } from './auditLog';
-import { buildEmailHtml, getUserLanguage } from './notifications';
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function getAppSetting(key: string): string | null {
-  return (db.prepare('SELECT value FROM app_settings WHERE key = ?').get(key) as { value: string } | undefined)?.value || null;
-}
-
-interface SmtpConfig {
-  host: string;
-  port: number;
-  user: string;
-  pass: string;
-  from: string;
-  secure: boolean;
-}
-
-function getSmtpConfig(): SmtpConfig | null {
-  const host = process.env.SMTP_HOST || getAppSetting('smtp_host');
-  const port = process.env.SMTP_PORT || getAppSetting('smtp_port');
-  const user = process.env.SMTP_USER || getAppSetting('smtp_user');
-  const pass = process.env.SMTP_PASS || decrypt_api_key(getAppSetting('smtp_pass')) || '';
-  const from = process.env.SMTP_FROM || getAppSetting('smtp_from');
-  if (!host || !port || !from) return null;
-  return { host, port: parseInt(port, 10), user: user || '', pass: pass || '', from, secure: parseInt(port, 10) === 465 };
-}
+import { logInfo } from './auditLog';
+import { getAppUrl, getUserLanguage, sendEmail } from './notifications';
 
 // ── Password reset i18n ────────────────────────────────────────────────────
 
@@ -50,83 +22,50 @@ const PASSWORD_RESET_I18N: Record<string, PasswordResetStrings> = {
   pl: { subject: 'Zresetuj hasło', greeting: 'Cześć', body: 'Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta TREK. Kliknij przycisk poniżej, aby ustawić nowe hasło.', ctaIntro: 'Zresetuj hasło', expiry: 'Link wygaśnie za 60 minut.', ignore: 'Jeśli to nie Ty, zignoruj tę wiadomość — Twoje hasło pozostanie bez zmian.' },
 };
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function buildPasswordResetHtml(subject: string, strings: PasswordResetStrings, recipient: string, resetUrl: string, lang: string): string {
-  const safeGreeting = escapeHtml(`${strings.greeting}, ${recipient}`);
-  const safeBody = escapeHtml(strings.body);
-  const safeExpiry = escapeHtml(strings.expiry);
-  const safeIgnore = escapeHtml(strings.ignore);
-  const safeCta = escapeHtml(strings.ctaIntro);
-  const block = `
-    <p style="margin:0 0 16px 0; font-size:16px;">${safeGreeting},</p>
-    <p style="margin:0 0 20px 0; font-size:15px; line-height:1.6;">${safeBody}</p>
-    <p style="margin:28px 0;">
-      <a href="${resetUrl}" style="display:inline-block;padding:14px 28px;background:#111827;color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;">${safeCta}</a>
-    </p>
-    <p style="margin:0 0 10px 0; font-size:13px; color:#6B7280;">${safeExpiry}</p>
-    <p style="margin:0; font-size:13px; color:#6B7280;">${safeIgnore}</p>
-  `;
-  return buildEmailHtml(subject, block, lang, undefined, true);
-}
-
 // ── sendPasswordResetEmail ─────────────────────────────────────────────────
 
 /**
- * Delivers a password-reset link. When SMTP is configured the user
- * receives an email. When it isn't, the link is logged to stdout so
+ * Delivers a password-reset link. Routes through sendEmail(), which handles
+ * the SMTP → direct-MX fallback chain. If neither transport is usable
+ * (e.g. no SMTP and APP_URL is localhost), the link is logged to stdout so
  * the self-hosting admin can hand it off by other means.
  */
 export async function sendPasswordResetEmail(
   to: string,
   resetUrl: string,
   userId: number | null,
-): Promise<{ delivered: 'email' | 'log' | 'failed' }> {
+): Promise<{ delivered: 'email' | 'log' }> {
   const lang = userId ? getUserLanguage(userId) : 'en';
   const strings = PASSWORD_RESET_I18N[lang] || PASSWORD_RESET_I18N.en;
-  const smtpCfg = getSmtpConfig();
 
-  if (!smtpCfg) {
-    // eslint-disable-next-line no-console
-    console.log(
-      `\n===== PASSWORD RESET LINK =====\n` +
-      `to: ${to}\n` +
-      `url: ${resetUrl}\n` +
-      `expires: 60 minutes\n` +
-      `(SMTP is not configured — deliver this link to the user manually.)\n` +
-      `================================\n`,
-    );
-    logInfo(`Password reset link issued (no SMTP) for=${to}`);
-    return { delivered: 'log' };
-  }
+  const plainTextBody =
+    `${strings.greeting}, ${to}\n\n` +
+    `${strings.body}\n\n` +
+    `${strings.ctaIntro}: ${resetUrl}\n\n` +
+    `${strings.expiry}\n${strings.ignore}`;
 
-  try {
-    const skipTls = process.env.SMTP_SKIP_TLS_VERIFY === 'true' || getAppSetting('smtp_skip_tls_verify') === 'true';
-    const transporter = nodemailer.createTransport({
-      host: smtpCfg.host,
-      port: smtpCfg.port,
-      secure: smtpCfg.secure,
-      auth: smtpCfg.user ? { user: smtpCfg.user, pass: smtpCfg.pass } : undefined,
-      ...(skipTls ? { tls: { rejectUnauthorized: false } } : {}),
-    });
-    await transporter.sendMail({
-      from: smtpCfg.from,
-      to,
-      subject: `TREK — ${strings.subject}`,
-      text: `${strings.greeting}, ${to}\n\n${strings.body}\n\n${strings.ctaIntro}: ${resetUrl}\n\n${strings.expiry}\n${strings.ignore}`,
-      html: buildPasswordResetHtml(strings.subject, strings, to, resetUrl, lang),
-    });
+  // Express the reset URL as a path relative to APP_URL so the standard
+  // email template's CTA button links to it. When the URL was built against
+  // a different origin, fall back to no CTA target (the URL still appears
+  // inline in the plain-text body).
+  const appUrl = getAppUrl();
+  const navigateTarget = resetUrl.startsWith(appUrl) ? resetUrl.slice(appUrl.length) : undefined;
+
+  const sent = await sendEmail(to, strings.subject, plainTextBody, userId ?? undefined, navigateTarget);
+  if (sent) {
     logInfo(`Password reset email sent to=${to}`);
     return { delivered: 'email' };
-  } catch (err) {
-    logError(`Password reset email failed to=${to}: ${err instanceof Error ? err.message : err}`);
-    return { delivered: 'failed' };
   }
+
+  // eslint-disable-next-line no-console
+  console.log(
+    `\n===== PASSWORD RESET LINK =====\n` +
+    `to: ${to}\n` +
+    `url: ${resetUrl}\n` +
+    `expires: 60 minutes\n` +
+    `(Email delivery unavailable — deliver this link to the user manually.)\n` +
+    `================================\n`,
+  );
+  logInfo(`Password reset link issued (fallback log) for=${to}`);
+  return { delivered: 'log' };
 }
