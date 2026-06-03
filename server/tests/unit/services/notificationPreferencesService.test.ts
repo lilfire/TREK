@@ -45,6 +45,7 @@ import {
   getActiveChannels,
   getAvailableChannels,
   isWebhookConfigured,
+  isEmailDeliveryAvailable,
 } from '../../../src/services/notificationPreferencesService';
 
 beforeAll(() => {
@@ -332,5 +333,71 @@ describe('isWebhookConfigured', () => {
   it('NPREF-027 — returns true when webhook is in active channels', () => {
     setNotificationChannels(testDb, 'webhook');
     expect(isWebhookConfigured()).toBe(true);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// isEmailDeliveryAvailable (LSO-1611)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('isEmailDeliveryAvailable', () => {
+  const originalSmtpHost = process.env.SMTP_HOST;
+  const originalAppUrl = process.env.APP_URL;
+  const originalAllowedOrigins = process.env.ALLOWED_ORIGINS;
+  const originalPort = process.env.PORT;
+
+  beforeEach(() => {
+    delete process.env.SMTP_HOST;
+    delete process.env.APP_URL;
+    delete process.env.ALLOWED_ORIGINS;
+    delete process.env.PORT;
+  });
+
+  afterAll(() => {
+    if (originalSmtpHost === undefined) delete process.env.SMTP_HOST;
+    else process.env.SMTP_HOST = originalSmtpHost;
+    if (originalAppUrl === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = originalAppUrl;
+    if (originalAllowedOrigins === undefined) delete process.env.ALLOWED_ORIGINS;
+    else process.env.ALLOWED_ORIGINS = originalAllowedOrigins;
+    if (originalPort === undefined) delete process.env.PORT;
+    else process.env.PORT = originalPort;
+  });
+
+  it('NPREF-028 — returns true when SMTP_HOST env var is set (regardless of APP_URL)', () => {
+    process.env.SMTP_HOST = 'smtp.example.com';
+    process.env.APP_URL = 'http://localhost:3001';
+    expect(isEmailDeliveryAvailable()).toBe(true);
+  });
+
+  it('NPREF-029 — returns true when smtp_host is set in app_settings', () => {
+    setAppSetting(testDb, 'smtp_host', 'mail.example.com');
+    process.env.APP_URL = 'http://localhost:3001';
+    expect(isEmailDeliveryAvailable()).toBe(true);
+  });
+
+  it('NPREF-030 — returns false for localhost APP_URL without SMTP config', () => {
+    process.env.APP_URL = 'http://localhost:3001';
+    expect(isEmailDeliveryAvailable()).toBe(false);
+  });
+
+  it('NPREF-031 — returns false for 127.0.0.1 APP_URL without SMTP config', () => {
+    process.env.APP_URL = 'http://127.0.0.1:3001';
+    expect(isEmailDeliveryAvailable()).toBe(false);
+  });
+
+  it('NPREF-032 — returns true for non-localhost APP_URL without SMTP config (direct transport)', () => {
+    process.env.APP_URL = 'https://trip.lsoft.no';
+    expect(isEmailDeliveryAvailable()).toBe(true);
+  });
+
+  it('NPREF-033 — returns false when APP_URL is unset and no SMTP (defaults to localhost)', () => {
+    // getAppUrl() falls back to http://localhost:${PORT}
+    expect(isEmailDeliveryAvailable()).toBe(false);
+  });
+
+  it('NPREF-034 — falls back to non-localhost ALLOWED_ORIGINS hostname for direct transport', () => {
+    process.env.ALLOWED_ORIGINS = 'https://app.example.org';
+    expect(isEmailDeliveryAvailable()).toBe(true);
   });
 });

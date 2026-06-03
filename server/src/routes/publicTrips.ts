@@ -52,7 +52,22 @@ router.get('/:id', (req: Request, res: Response) => {
   res.json(data);
 });
 
-router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, (req: Request, res: Response) => {
+async function attemptRsvpEmail(
+  to: string,
+  recipientName: string,
+  tripTitle: string,
+  tripId: number,
+  userId: number,
+): Promise<boolean> {
+  try {
+    return await sendRsvpConfirmationEmail(to, recipientName, tripTitle, tripId, userId);
+  } catch (err) {
+    logError(`RSVP confirmation email failed: ${err}`);
+    return false;
+  }
+}
+
+router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, async (req: Request, res: Response) => {
   const tripId = Number(req.params.id);
   if (!Number.isFinite(tripId)) return res.status(404).json({ error: 'Trip not found' });
 
@@ -89,11 +104,8 @@ router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, (req: Request, res: Resp
     }
 
     const result = createRsvp({ tripId, userId, name, email });
-    res.status(201).json(result);
-
-    sendRsvpConfirmationEmail(email, name, trip.title, trip.id, userId)
-      .catch((err) => logError(`RSVP confirmation email failed: ${err}`));
-    return;
+    const emailSent = await attemptRsvpEmail(email, name, trip.title, trip.id, userId);
+    return res.status(201).json({ ...result, emailSent });
   }
 
   // Unauthenticated path — validate name + email from body
@@ -139,10 +151,8 @@ router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, (req: Request, res: Resp
     throw err;
   }
 
-  res.status(201).json(result);
-
-  sendRsvpConfirmationEmail(storedEmail, trimmedName, trip.title, trip.id, userId)
-    .catch((err) => logError(`RSVP confirmation email failed: ${err}`));
+  const emailSent = await attemptRsvpEmail(storedEmail, trimmedName, trip.title, trip.id, userId);
+  return res.status(201).json({ ...result, emailSent });
 });
 
 // ── PayPal: create order ──────────────────────────────────────────────────

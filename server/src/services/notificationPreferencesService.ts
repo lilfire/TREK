@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
+import { getAppUrl } from './notifications';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -269,6 +270,23 @@ export function setAdminPreferences(
 
 export function isSmtpConfigured(): boolean {
   return !!(process.env.SMTP_HOST || getAppSetting('smtp_host'));
+}
+
+/**
+ * Returns true when email can be delivered via any available transport:
+ * explicit SMTP config, OR a non-localhost APP_URL (direct MX transport).
+ * Use this for feature-availability gates (UI warnings, notification routing).
+ * Use isSmtpConfigured() only where explicit SMTP is strictly required
+ * (e.g. admin test-SMTP button, password-reset delivery).
+ */
+export function isEmailDeliveryAvailable(): boolean {
+  if (process.env.SMTP_HOST || getAppSetting('smtp_host')) return true;
+  try {
+    const hostname = new URL(getAppUrl()).hostname;
+    return hostname !== 'localhost' && hostname !== '127.0.0.1';
+  } catch {
+    return false;
+  }
 }
 
 export function isWebhookConfigured(): boolean {
