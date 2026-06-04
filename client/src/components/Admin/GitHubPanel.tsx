@@ -14,7 +14,8 @@ interface GithubRelease {
 export default function GitHubPanel({
   isPrerelease = false,
   githubRepo = 'mauriceboe/TREK',
-}: { isPrerelease?: boolean; githubRepo?: string }) {
+  versionSource,
+}: { isPrerelease?: boolean; githubRepo?: string; versionSource?: string }) {
   const { t, language } = useTranslation()
   const [releases, setReleases] = useState<GithubRelease[]>([])
   const [loading, setLoading] = useState(true)
@@ -259,8 +260,8 @@ export default function GitHubPanel({
       <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
         <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-secondary)' }}>
           <div>
-            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.github.title')}</h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{t('admin.github.subtitle').replace('{repo}', githubRepo)}</p>
+            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{versionSource === 'packages' ? 'Packages' : t('admin.github.title')}</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{versionSource === 'packages' ? `Latest container images from ${githubRepo}` : t('admin.github.subtitle').replace('{repo}', githubRepo)}</p>
           </div>
           <a
             href={`https://github.com/${githubRepo}/releases`}
