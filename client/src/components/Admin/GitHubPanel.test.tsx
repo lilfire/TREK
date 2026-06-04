@@ -1,4 +1,4 @@
-// FE-ADMIN-GH-001 to FE-ADMIN-GH-016
+// FE-ADMIN-GH-001 to FE-ADMIN-GH-020
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -348,6 +348,36 @@ describe('GitHubPanel', () => {
 
     // Subtitle reflects the configured repo.
     expect(screen.getByText(/lilfire\/TREK/)).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-GH-019: when versionSource="packages", header shows "Packages"', async () => {
+    server.use(
+      http.get('/api/admin/github-releases', () => HttpResponse.json([])),
+    );
+    render(<GitHubPanel versionSource="packages" />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+    const heading = await screen.findByRole('heading', { level: 2 });
+    expect(heading).toHaveTextContent('Packages');
+    expect(screen.queryByText('Release History')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-GH-020: when versionSource unset or "releases", header shows existing releases label (no regression)', async () => {
+    server.use(
+      http.get('/api/admin/github-releases', () => HttpResponse.json([])),
+    );
+    const { unmount } = render(<GitHubPanel />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+    const unsetHeading = await screen.findByRole('heading', { level: 2 });
+    expect(unsetHeading).toHaveTextContent('Release History');
+    expect(screen.queryByRole('heading', { name: 'Packages' })).not.toBeInTheDocument();
+    unmount();
+
+    render(<GitHubPanel versionSource="releases" />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+    const releasesHeading = await screen.findByRole('heading', { level: 2 });
+    expect(releasesHeading).toHaveTextContent('Release History');
+    expect(screen.queryByRole('heading', { name: 'Packages' })).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-GH-012: clicking "Load more" appends next page', async () => {

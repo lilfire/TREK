@@ -354,6 +354,7 @@ export interface AppConfig {
   oidc_registration?: boolean
   env_override_oidc_only?: boolean
   github_repo?: string
+  github_version_source?: string
 }
 
 // Translation function type

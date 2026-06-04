@@ -278,6 +278,7 @@ export default function AdminPage(): React.ReactElement {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false)
   const [githubRepo, setLocalGithubRepo] = useState<string>('mauriceboe/TREK')
+  const [versionSource, setVersionSource] = useState<string | undefined>(undefined)
 
   const { user: currentUser, updateApiKeys, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -330,6 +331,7 @@ export default function AdminPage(): React.ReactElement {
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
       if (config.github_repo) setLocalGithubRepo(config.github_repo)
+      if (config.github_version_source) setVersionSource(config.github_version_source)
     } catch (err: unknown) {
       // ignore
     }
@@ -1800,7 +1802,7 @@ export default function AdminPage(): React.ReactElement {
 
           {activeTab === 'mcp-tokens' && <AdminMcpTokensPanel />}
 
-          {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} githubRepo={githubRepo} />}
+          {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} githubRepo={githubRepo} versionSource={versionSource} />}
 
           {activeTab === 'defaults' && <DefaultUserSettingsTab />}
 
