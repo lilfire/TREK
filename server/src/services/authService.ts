@@ -300,6 +300,10 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
     version,
     is_prerelease: version.includes('-pre.'),
     github_repo: GITHUB_REPO,
+    // Read straight from process.env (same evaluation as config.ts) so the
+    // ~50 existing `vi.mock('../config')` test fixtures that pre-date this
+    // export don't have to add GITHUB_VERSION_SOURCE just to keep passing.
+    github_version_source: (process.env.GITHUB_VERSION_SOURCE === 'packages' ? 'packages' : 'releases') as 'releases' | 'packages',
     has_maps_key: hasGoogleKey,
     oidc_configured: oidcConfigured,
     oidc_display_name: oidcConfigured ? (oidcDisplayName || 'SSO') : undefined,

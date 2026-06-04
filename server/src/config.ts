@@ -115,3 +115,16 @@ export const DEFAULT_LANGUAGE = SUPPORTED_LANG_CODES.includes(rawDefaultLang) ? 
 // "view source" link surfaced in the admin UI. Defaults to upstream; forks set
 // the GITHUB_REPO env var so update checks point at their own release feed.
 export const GITHUB_REPO = process.env.GITHUB_REPO || 'mauriceboe/TREK';
+
+// GITHUB_VERSION_SOURCE picks the API the server polls for update checks.
+// "releases" reads tags from the GitHub Releases API (default — matches the
+// historical behaviour). "packages" reads container image tags from the GHCR
+// Container Registry API, which is what forks publishing Docker images via
+// GitHub Packages will want.
+export const GITHUB_VERSION_SOURCE: 'releases' | 'packages' =
+  process.env.GITHUB_VERSION_SOURCE === 'packages' ? 'packages' : 'releases';
+
+// GITHUB_TOKEN is optional. When set, it is passed as a Bearer token on the
+// GHCR versions API request so private packages (and higher rate limits) work.
+// Public releases and public packages do not require it.
+export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
