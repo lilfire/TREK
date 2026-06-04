@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
+import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { getLocaleForLanguage } from '../i18n'
 import { shareApi } from '../api/client'
@@ -56,6 +57,7 @@ function FitBoundsToPlaces({ places }: { places: any[] }) {
 export default function SharedTripPage() {
   const { token } = useParams<{ token: string }>()
   const { t, locale } = useTranslation()
+  const githubRepo = useAuthStore(state => state.githubRepo)
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState(false)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
@@ -411,7 +413,7 @@ export default function SharedTripPage() {
             <img src="/icons/icon.svg" alt="TREK" width="18" height="18" style={{ borderRadius: 4 }} />
             <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('shared.sharedVia')} <strong style={{ color: 'var(--text-muted)' }}>TREK</strong></span>
           </div>
-          <div style={{ marginTop: 8, fontSize: 10, color: 'var(--border-primary)' }}>Made with <span style={{ color: '#ef4444' }}>&hearts;</span> by Maurice · <a href="https://github.com/mauriceboe/TREK" style={{ color: 'var(--text-faint)', textDecoration: 'none' }}>GitHub</a></div>
+          <div style={{ marginTop: 8, fontSize: 10, color: 'var(--border-primary)' }}>Made with <span style={{ color: '#ef4444' }}>&hearts;</span> by Maurice · <a href={`https://github.com/${githubRepo}`} style={{ color: 'var(--text-faint)', textDecoration: 'none' }}>GitHub</a></div>
         </div>
       </div>
     </div>

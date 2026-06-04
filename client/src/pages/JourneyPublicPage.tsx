@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { journeyApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
+import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import {
   List, Grid, MapPin, Camera, BookOpen, Image, Clock,
@@ -104,6 +105,7 @@ export default function JourneyPublicPage() {
   const [view, setView] = useState<'timeline' | 'gallery' | 'map'>('timeline')
   const [lightbox, setLightbox] = useState<{ photos: { id: string; src: string; caption?: string | null }[]; index: number } | null>(null)
   const { t } = useTranslation()
+  const githubRepo = useAuthStore(state => state.githubRepo)
   const [showLangPicker, setShowLangPicker] = useState(false)
   const locale = useSettingsStore(s => s.settings.language) || 'en'
   const mapRef = useRef<JourneyMapHandle>(null)
@@ -606,7 +608,7 @@ export default function JourneyPublicPage() {
           <span style={{ fontSize: 11, color: '#9ca3af' }}>{t('journey.public.sharedVia')} <strong style={{ color: '#6b7280' }}>TREK</strong></span>
         </div>
         <div style={{ fontSize: 10, color: '#d1d5db' }}>
-          Made with <span style={{ color: '#ef4444' }}>♥</span> by Maurice · <a href="https://github.com/mauriceboe/TREK" style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
+          Made with <span style={{ color: '#ef4444' }}>♥</span> by Maurice · <a href={`https://github.com/${githubRepo}`} style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
         </div>
       </div>
 

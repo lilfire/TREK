@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
+import { useAuthStore } from '../../store/authStore';
 import AboutTab from './AboutTab';
 
 beforeEach(() => {
@@ -37,27 +38,35 @@ describe('AboutTab', () => {
     expect(link).toHaveAttribute('href', 'https://discord.gg/NhZBDSd4qW');
   });
 
-  it('FE-COMP-ABOUT-006: displays bug report link', () => {
+  it('FE-COMP-ABOUT-006: bug report link uses configured githubRepo', () => {
+    useAuthStore.setState({ githubRepo: 'lilfire/TREK' });
     render(<AboutTab appVersion="2.9.10" />);
     const link = document.querySelector('a[href*="issues/new"]');
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/mauriceboe/TREK/issues/new?template=bug_report.yml',
+      'https://github.com/lilfire/TREK/issues/new?template=bug_report.yml',
     );
   });
 
-  it('FE-COMP-ABOUT-007: displays feature request link', () => {
+  it('FE-COMP-ABOUT-007: feature request link uses configured githubRepo', () => {
+    useAuthStore.setState({ githubRepo: 'lilfire/TREK' });
     render(<AboutTab appVersion="2.9.10" />);
     const link = document.querySelector('a[href*="discussions/new"]');
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute(
+      'href',
+      'https://github.com/lilfire/TREK/discussions/new?category=feature-requests',
+    );
   });
 
-  it('FE-COMP-ABOUT-008: displays wiki link', () => {
+  it('FE-COMP-ABOUT-008: wiki link uses configured githubRepo', () => {
+    useAuthStore.setState({ githubRepo: 'lilfire/TREK' });
     render(<AboutTab appVersion="2.9.10" />);
     const link = document.querySelector('a[href*="wiki"]');
     expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute('href', 'https://github.com/lilfire/TREK/wiki');
   });
 
   it('FE-COMP-ABOUT-009: all external links have rel="noopener noreferrer"', () => {
