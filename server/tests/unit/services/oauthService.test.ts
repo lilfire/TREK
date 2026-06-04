@@ -28,6 +28,7 @@ vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  GITHUB_REPO: process.env.GITHUB_REPO || 'mauriceboe/TREK',
 }));
 vi.mock('../../../src/services/apiKeyCrypto', () => ({
   encrypt_api_key: (v: string) => v,

@@ -110,3 +110,8 @@ if (!SUPPORTED_LANG_CODES.includes(rawDefaultLang)) {
   console.warn(`DEFAULT_LANGUAGE="${rawDefaultLang}" is not supported. Falling back to "en". Supported: ${SUPPORTED_LANG_CODES.join(', ')}`);
 }
 export const DEFAULT_LANGUAGE = SUPPORTED_LANG_CODES.includes(rawDefaultLang) ? rawDefaultLang : 'en';
+
+// GITHUB_REPO is the "owner/name" slug used for release/version checks and the
+// "view source" link surfaced in the admin UI. Defaults to upstream; forks set
+// the GITHUB_REPO env var so update checks point at their own release feed.
+export const GITHUB_REPO = process.env.GITHUB_REPO || 'mauriceboe/TREK';
