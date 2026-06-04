@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Info, Github, Shield, Key, Users, Database, Upload, Clock, Puzzle, CalendarDays, Globe, ArrowRightLeft, Map, Briefcase, ListChecks, Wallet, FileText, Plane } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useAuthStore } from '../../store/authStore'
 
 interface DemoTexts {
   titleBefore: string
@@ -256,6 +257,7 @@ export default function DemoBanner(): React.ReactElement | null {
   const [minutesLeft, setMinutesLeft] = useState<number>(59 - new Date().getMinutes())
   const { language } = useTranslation()
   const t = texts[language] || texts.en
+  const githubRepo = useAuthStore(state => state.githubRepo)
 
   useEffect(() => {
     const interval = setInterval(() => setMinutesLeft(59 - new Date().getMinutes()), 10000)
@@ -380,7 +382,7 @@ export default function DemoBanner(): React.ReactElement | null {
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#9ca3af' }}>
             <Github size={13} />
             <span>{t.selfHost}</span>
-            <a href="https://github.com/mauriceboe/TREK" target="_blank" rel="noopener noreferrer"
+            <a href={`https://github.com/${githubRepo}`} target="_blank" rel="noopener noreferrer"
               style={{ color: '#111827', fontWeight: 600, textDecoration: 'none' }}>
               {t.selfHostLink}
             </a>

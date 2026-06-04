@@ -233,6 +233,40 @@ describe('App — on-mount effects', () => {
     await waitFor(() => expect(setDemoMode).toHaveBeenCalledWith(true))
   })
 
+  it('FE-COMP-APP-026: setGithubRepo is called with config.github_repo when present', async () => {
+    server.use(
+      http.get('/api/auth/app-config', () =>
+        HttpResponse.json({ github_repo: 'lilfire/TREK' })
+      )
+    )
+    const setGithubRepo = vi.fn()
+    useAuthStore.setState({
+      isLoading: false,
+      isAuthenticated: false,
+      loadUser: vi.fn().mockResolvedValue(undefined),
+      setGithubRepo,
+    })
+    renderApp('/')
+    await waitFor(() => expect(setGithubRepo).toHaveBeenCalledWith('lilfire/TREK'))
+  })
+
+  it('FE-COMP-APP-027: setGithubRepo is NOT called when config omits github_repo', async () => {
+    server.use(
+      http.get('/api/auth/app-config', () => HttpResponse.json({}))
+    )
+    const setGithubRepo = vi.fn()
+    useAuthStore.setState({
+      isLoading: false,
+      isAuthenticated: false,
+      loadUser: vi.fn().mockResolvedValue(undefined),
+      setGithubRepo,
+    })
+    renderApp('/')
+    // Give the app-config promise a chance to resolve before asserting.
+    await new Promise(r => setTimeout(r, 0))
+    expect(setGithubRepo).not.toHaveBeenCalled()
+  })
+
   it('FE-COMP-APP-019: loadSettings is called once the user is authenticated', async () => {
     const loadSettings = vi.fn().mockResolvedValue(undefined)
     seedAuth({ isAuthenticated: true, user: buildUser() })

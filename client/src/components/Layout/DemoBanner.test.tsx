@@ -2,11 +2,14 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { act, fireEvent } from '@testing-library/react';
 import { render, screen } from '../../../tests/helpers/render';
+import { resetAllStores } from '../../../tests/helpers/store';
+import { useAuthStore } from '../../store/authStore';
 import DemoBanner from './DemoBanner';
 
 describe('DemoBanner', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetAllStores();
   });
 
   afterEach(() => {
@@ -91,11 +94,20 @@ describe('DemoBanner', () => {
   });
 
   // FE-COMP-DEMOBANNER-012
-  it('self-host link points to GitHub', () => {
+  it('self-host link points to default GitHub repo', () => {
     render(<DemoBanner />);
     const link = screen.getByText('self-host it').closest('a')!;
     expect(link).toHaveAttribute('href', 'https://github.com/mauriceboe/TREK');
     expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  // FE-COMP-DEMOBANNER-013
+  it('self-host link uses configured githubRepo from auth store', () => {
+    useAuthStore.setState({ githubRepo: 'lilfire/TREK' });
+    render(<DemoBanner />);
+    const link = screen.getByText('self-host it').closest('a')!;
+    expect(link).toHaveAttribute('href', 'https://github.com/lilfire/TREK');
+    expect(link.getAttribute('href')).toContain('lilfire/TREK');
   });
 
   // Timer update test
