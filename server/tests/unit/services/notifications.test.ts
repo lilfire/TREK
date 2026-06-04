@@ -202,6 +202,38 @@ describe('buildEmailHtml', () => {
     // Both should have the same footer text
     expect(unknown).toContain('notifications enabled in TREK');
   });
+
+  it('footer GitHub link uses GITHUB_REPO from config (default mauriceboe/TREK)', () => {
+    const html = buildEmailHtml('Subject', 'Body', 'en');
+    // The config module is loaded with default GITHUB_REPO since no GITHUB_REPO env was set.
+    expect(html).toContain('https://github.com/mauriceboe/TREK"');
+  });
+});
+
+// ── Footer GitHub link uses configured GITHUB_REPO ───────────────────────────
+
+describe('buildEmailHtml footer GitHub link (LSO-1638)', () => {
+  it('renders the footer GitHub link wrapped in escapeHtml of GITHUB_REPO', async () => {
+    vi.resetModules();
+    vi.doMock('../../../src/config', () => ({ GITHUB_REPO: 'lilfire/TREK' }));
+    const mod = await import('../../../src/services/notifications');
+    const html = mod.buildEmailHtml('Subject', 'Body', 'en');
+    expect(html).toContain('https://github.com/lilfire/TREK"');
+    expect(html).not.toContain('https://github.com/mauriceboe/TREK"');
+    vi.doUnmock('../../../src/config');
+    vi.resetModules();
+  });
+
+  it('escapes special characters in GITHUB_REPO to prevent HTML injection', async () => {
+    vi.resetModules();
+    vi.doMock('../../../src/config', () => ({ GITHUB_REPO: 'evil/<script>alert(1)</script>' }));
+    const mod = await import('../../../src/services/notifications');
+    const html = mod.buildEmailHtml('Subject', 'Body', 'en');
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('&lt;script&gt;');
+    vi.doUnmock('../../../src/config');
+    vi.resetModules();
+  });
 });
 
 // ── SEC: XSS escaping in buildEmailHtml ──────────────────────────────────────

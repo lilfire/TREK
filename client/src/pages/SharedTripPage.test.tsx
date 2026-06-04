@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores } from '../../tests/helpers/store';
+import { useAuthStore } from '../store/authStore';
 import SharedTripPage from './SharedTripPage';
 
 // Mock react-leaflet (SharedTripPage renders a map)
@@ -365,6 +366,20 @@ describe('SharedTripPage', () => {
       });
 
       expect(screen.getByText(/shared via/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-SHARED-018: Footer GitHub link uses configured githubRepo', () => {
+    it('renders the footer GitHub link with the auth store githubRepo value', async () => {
+      useAuthStore.setState({ githubRepo: 'lilfire/TREK' });
+      renderSharedTrip('test-token');
+
+      await waitFor(() => {
+        expect(screen.getByText('Shared Paris Trip')).toBeInTheDocument();
+      });
+
+      const githubLink = screen.getByText('GitHub').closest('a');
+      expect(githubLink).toHaveAttribute('href', 'https://github.com/lilfire/TREK');
     });
   });
 
