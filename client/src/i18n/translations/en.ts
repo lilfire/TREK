@@ -845,6 +845,11 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'admin.update.dockerText': 'Your TREK instance runs in Docker. To update to {version}, run the following commands on your server:',
   'admin.update.reloadHint': 'Please reload the page in a few seconds.',
 
+  'admin.version.unknown': 'Version unknown',
+  'admin.version.upToDate': 'Up to date',
+  'admin.version.updateAvailable': 'Update: {version}',
+  'admin.version.releaseNotes': 'Release notes',
+
   // Vacay addon
   'vacay.subtitle': 'Plan and manage vacation days',
   'vacay.settings': 'Settings',
