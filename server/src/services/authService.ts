@@ -7,7 +7,7 @@ import { authenticator } from 'otplib';
 import QRCode from 'qrcode';
 import { randomBytes, createHash } from 'crypto';
 import { db } from '../db/database';
-import { JWT_SECRET } from '../config';
+import { JWT_SECRET, GITHUB_REPO } from '../config';
 import { validatePassword } from './passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from './mfaCrypto';
 import { getAllPermissions } from './permissions';
@@ -299,6 +299,7 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
     setup_complete: setupComplete,
     version,
     is_prerelease: version.includes('-pre.'),
+    github_repo: GITHUB_REPO,
     has_maps_key: hasGoogleKey,
     oidc_configured: oidcConfigured,
     oidc_display_name: oidcConfigured ? (oidcDisplayName || 'SSO') : undefined,

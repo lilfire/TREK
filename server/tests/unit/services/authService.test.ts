@@ -4,7 +4,7 @@ vi.mock('../../../src/db/database', () => ({
   db: { prepare: () => ({ get: vi.fn(), all: vi.fn(), run: vi.fn() }) },
   canAccessTrip: vi.fn(),
 }));
-vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64) }));
+vi.mock('../../../src/config', () => ({ JWT_SECRET: 'test-secret', ENCRYPTION_KEY: '0'.repeat(64), GITHUB_REPO: 'mauriceboe/TREK' }));
 vi.mock('../../../src/services/mfaCrypto', () => ({ encryptMfaSecret: vi.fn(), decryptMfaSecret: vi.fn() }));
 vi.mock('../../../src/services/apiKeyCrypto', () => ({
   decrypt_api_key: vi.fn((v) => v),

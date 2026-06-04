@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { db } from '../db/database';
 import { User, Addon } from '../types';
-import { updateJwtSecret } from '../config';
+import { updateJwtSecret, GITHUB_REPO } from '../config';
 import { maybe_encrypt_api_key, decrypt_api_key } from './apiKeyCrypto';
 import { getAllPermissions, savePermissions as savePerms, PERMISSION_ACTIONS } from './permissions';
 import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
@@ -308,7 +308,7 @@ export function saveDemoBaseline(): { error?: string; status?: number; message?:
 export async function getGithubReleases(perPage: string = '10', page: string = '1') {
   try {
     const resp = await fetch(
-      `https://api.github.com/repos/mauriceboe/TREK/releases?per_page=${perPage}&page=${page}`,
+      `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=${perPage}&page=${page}`,
       { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
     );
     if (!resp.ok) return [];
@@ -349,7 +349,7 @@ export async function checkVersion(): Promise<VersionInfo> {
     if (isPrerelease) {
       // Fetch release list and find the newest prerelease
       const resp = await fetch(
-        'https://api.github.com/repos/mauriceboe/TREK/releases?per_page=100',
+        `https://api.github.com/repos/${GITHUB_REPO}/releases?per_page=100`,
         { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
       );
       if (!resp.ok) {
@@ -368,7 +368,7 @@ export async function checkVersion(): Promise<VersionInfo> {
       result = { current: currentVersion, latest, update_available, release_url: tagged[0].r.html_url || '', is_docker: isDocker, is_prerelease: true };
     } else {
       const resp = await fetch(
-        'https://api.github.com/repos/mauriceboe/TREK/releases/latest',
+        `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`,
         { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
       );
       if (!resp.ok) {
