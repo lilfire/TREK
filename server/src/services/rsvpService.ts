@@ -19,13 +19,13 @@ export interface CreateRsvpResult {
 export function findOrCreateUserForRsvp(
   name: string,
   email: string,
-): { userId: number; storedEmail: string } {
+): { userId: number; storedEmail: string; isNewUser: boolean } {
   const normalizedEmail = email.toLowerCase();
   const existing = db.prepare(
     'SELECT id, email FROM users WHERE LOWER(email) = ?',
   ).get(normalizedEmail) as { id: number; email: string } | undefined;
 
-  if (existing) return { userId: existing.id, storedEmail: existing.email };
+  if (existing) return { userId: existing.id, storedEmail: existing.email, isNewUser: false };
 
   // Derive a unique username from the submitted name
   const base = name.trim()
@@ -51,7 +51,7 @@ export function findOrCreateUserForRsvp(
     'INSERT INTO users (username, email, password_hash, role) VALUES (?, ?, ?, ?)',
   ).run(username, normalizedEmail, password_hash, 'user');
 
-  return { userId: Number(result.lastInsertRowid), storedEmail: normalizedEmail };
+  return { userId: Number(result.lastInsertRowid), storedEmail: normalizedEmail, isNewUser: true };
 }
 
 export function createRsvp(params: {

@@ -645,7 +645,55 @@ describe('POST /api/public/trips/:id/rsvp', () => {
       'My Test Trip',
       trip.id,
       expect.any(Number),
+      expect.stringContaining('/reset-password?token='),
     );
+  });
+
+  it('RSVP-012c — new user RSVP creates a single account-setup token expiring in ~7 days', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Token TTL Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Erin', email: 'erin@example.com' });
+
+    const newUser = testDb.prepare('SELECT id FROM users WHERE email = ?').get('erin@example.com') as { id: number };
+    const tokens = testDb.prepare(
+      'SELECT expires_at FROM password_reset_tokens WHERE user_id = ? AND consumed_at IS NULL',
+    ).all(newUser.id) as { expires_at: string }[];
+
+    expect(tokens).toHaveLength(1);
+    const ttlMs = new Date(tokens[0].expires_at).getTime() - Date.now();
+    const sixDays = 6 * 24 * 60 * 60 * 1000;
+    const eightDays = 8 * 24 * 60 * 60 * 1000;
+    expect(ttlMs).toBeGreaterThan(sixDays);
+    expect(ttlMs).toBeLessThan(eightDays);
+  });
+
+  it('RSVP-012b — does not include a set-password link for an existing user', async () => {
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Existing User Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+
+    const { user: existing } = createUser(testDb, { email: 'dave@example.com' });
+
+    await request(app)
+      .post(`/api/public/trips/${trip.id}/rsvp`)
+      .send({ name: 'Dave', email: 'dave@example.com' });
+
+    expect(mockSendRsvpEmail).toHaveBeenCalledWith(
+      'dave@example.com',
+      'Dave',
+      'Existing User Trip',
+      trip.id,
+      existing.id,
+      undefined,
+    );
+    const tokenCount = testDb.prepare(
+      'SELECT COUNT(*) AS c FROM password_reset_tokens WHERE user_id = ?',
+    ).get(existing.id) as { c: number };
+    expect(tokenCount.c).toBe(0);
   });
 
   it('RSVP-018 — unauthenticated 201 response body includes emailSent: true on successful delivery', async () => {

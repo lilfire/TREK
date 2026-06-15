@@ -1074,6 +1074,7 @@ export function verifyMfaLogin(body: {
 // that a leaked link is unlikely to still be valid when someone tries it.
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const PASSWORD_RESET_TOKEN_BYTES = 32; // 256-bit entropy
+const ACCOUNT_SETUP_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * Returns the SHA-256 hex hash of a reset token. Raw tokens are never
@@ -1165,6 +1166,22 @@ export function requestPasswordReset(rawEmail: string, createdIp: string | null)
   ).run(user.id, token_hash, expires_at, createdIp);
 
   return { tokenForDelivery: raw, userId: user.id, userEmail: user.email, reason: 'issued' };
+}
+
+export function issueAccountSetupToken(userId: number, createdIp: string | null): string {
+  db.prepare(
+    "UPDATE password_reset_tokens SET consumed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND consumed_at IS NULL"
+  ).run(userId);
+
+  const raw = randomBytes(PASSWORD_RESET_TOKEN_BYTES).toString('base64url');
+  const token_hash = hashResetToken(raw);
+  const expires_at = new Date(Date.now() + ACCOUNT_SETUP_TTL_MS).toISOString();
+
+  db.prepare(
+    'INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_ip) VALUES (?, ?, ?, ?)'
+  ).run(userId, token_hash, expires_at, createdIp);
+
+  return raw;
 }
 
 export interface ResetPasswordOutcome {
