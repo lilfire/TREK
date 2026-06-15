@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
-import { testSmtp, getAdminWebhookUrl, getUserWebhookUrl } from '../services/notifications';
+import { testSmtp, testBrevo, getAdminWebhookUrl, getUserWebhookUrl } from '../services/notifications';
 import { testWebhook } from '../services/webhookService';
 import { testNtfy, getUserNtfyConfig, getAdminNtfyConfig } from '../services/ntfyService';
 import {
@@ -34,6 +34,13 @@ router.post('/test-smtp', authenticate, async (req: Request, res: Response) => {
   if (authReq.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
   const { email } = req.body;
   res.json(await testSmtp(email || authReq.user.email));
+});
+
+router.post('/test-brevo', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  if (authReq.user.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+  const { email } = req.body;
+  res.json(await testBrevo(email || authReq.user.email));
 });
 
 router.post('/test-webhook', authenticate, async (req: Request, res: Response) => {

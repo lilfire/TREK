@@ -18,6 +18,12 @@ interface SmtpConfig {
   secure: boolean;
 }
 
+interface BrevoConfig {
+  apiKey: string;
+  from: string;
+  fromName: string;
+}
+
 // ── HTML escaping ──────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {
@@ -397,6 +403,47 @@ async function sendViaSMTP(
   }
 }
 
+function getBrevoConfig(): BrevoConfig | null {
+  const apiKey = decrypt_api_key(getAppSetting('brevo_api_key')) || '';
+  if (!apiKey) return null;
+  const from = getAppSetting('brevo_from') || resolveFromAddress();
+  const fromName = getAppSetting('brevo_from_name') || 'TREK';
+  return { apiKey, from, fromName };
+}
+
+async function sendViaBrevo(
+  to: string, subject: string, text: string, html: string, config: BrevoConfig,
+): Promise<boolean> {
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': config.apiKey,
+        'content-type': 'application/json',
+        'accept': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { email: config.from, name: config.fromName },
+        to: [{ email: to }],
+        subject: `TREK — ${subject}`,
+        htmlContent: html,
+        textContent: text,
+      }),
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      logError(`Email send (brevo) failed to=${to}: HTTP ${res.status} ${detail}`);
+      return false;
+    }
+    logInfo(`Email sent (brevo) to=${to} subject="${subject}"`);
+    logDebug(`Email brevo from=${config.from} to=${to}`);
+    return true;
+  } catch (err) {
+    logError(`Email send (brevo) failed to=${to}: ${err instanceof Error ? err.message : err}`);
+    return false;
+  }
+}
+
 async function resolveMailHosts(domain: string): Promise<string[]> {
   try {
     const records = await resolveMx(domain);
@@ -455,6 +502,11 @@ export async function sendEmail(to: string, subject: string, body: string, userI
   const lang = userId ? getUserLanguage(userId) : 'en';
   const html = buildEmailHtml(subject, body, lang, navigateTarget);
   const from = resolveFromAddress();
+  const brevo = getBrevoConfig();
+  if (brevo) {
+    logInfo(`sendEmail dispatch transport=brevo from=${brevo.from} to=${to} subject="${subject}"`);
+    return sendViaBrevo(to, subject, body, html, brevo);
+  }
   const config = getSmtpConfig();
   if (config) {
     logInfo(`sendEmail dispatch transport=smtp host=${config.host}:${config.port} from=${from} to=${to} subject="${subject}"`);
@@ -495,4 +547,13 @@ export async function testSmtp(to: string): Promise<{ success: boolean; error?: 
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
   }
+}
+
+export async function testBrevo(to: string): Promise<{ success: boolean; error?: string }> {
+  const config = getBrevoConfig();
+  if (!config) return { success: false, error: 'Brevo not configured' };
+  const text = 'This is a test email from TREK. If you received this, your Brevo configuration is working correctly.';
+  const html = buildEmailHtml('Test Notification', text, 'en');
+  const ok = await sendViaBrevo(to, 'Test Notification', text, html, config);
+  return ok ? { success: true } : { success: false, error: 'Brevo send failed — check the server logs' };
 }

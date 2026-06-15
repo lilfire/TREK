@@ -1465,9 +1465,10 @@ export default function AdminPage(): React.ReactElement {
             }
 
             const smtpConfigured = !!(smtpValues.smtp_host?.trim())
+            const brevoConfigured = !!(smtpValues.brevo_api_key?.trim())
             const saveNotifications = async () => {
               // Saves credentials only — channel activation is auto-saved by the toggle
-              const notifKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify']
+              const notifKeys = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify', 'brevo_api_key', 'brevo_from', 'brevo_from_name']
               const payload: Record<string, string> = {}
               for (const k of notifKeys) { if (smtpValues[k] !== undefined) payload[k] = smtpValues[k] }
               try {
@@ -1531,6 +1532,28 @@ export default function AdminPage(): React.ReactElement {
                           style={{ transform: smtpValues.smtp_skip_tls_verify === 'true' ? 'translateX(20px)' : 'translateX(0)' }} />
                       </button>
                     </div>
+                    <div className="pt-4 mt-2 border-t border-slate-100 space-y-3">
+                      <div>
+                        <p className="text-sm font-medium text-slate-700">Brevo (HTTP API)</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Alternative to SMTP — sends through Brevo's servers, no mail server or DNS needed. Takes priority over SMTP when an API key is set.</p>
+                      </div>
+                      {[
+                        { key: 'brevo_api_key', label: 'Brevo API Key', placeholder: '••••••••', type: 'password' },
+                        { key: 'brevo_from', label: 'From Address', placeholder: 'noreply@yourbrevosender.com' },
+                        { key: 'brevo_from_name', label: 'From Name', placeholder: 'TREK' },
+                      ].map(field => (
+                        <div key={field.key}>
+                          <label className="block text-xs font-medium text-slate-500 mb-1">{field.label}</label>
+                          <input
+                            type={field.type || 'text'}
+                            value={smtpValues[field.key] || ''}
+                            onChange={e => setSmtpValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                            placeholder={field.placeholder}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                   <div className="px-6 pb-4 flex items-center gap-2 border-t border-slate-100 pt-4">
                     <button onClick={saveNotifications}
@@ -1552,7 +1575,24 @@ export default function AdminPage(): React.ReactElement {
                       disabled={!smtpConfigured}
                       className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-40"
                     >
-                      {t('admin.smtp.testButton')}
+                      {t('admin.smtp.testButton')} (SMTP)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const brevoKeys = ['brevo_api_key', 'brevo_from', 'brevo_from_name']
+                        const payload: Record<string, string> = {}
+                        for (const k of brevoKeys) { if (smtpValues[k] !== undefined) payload[k] = smtpValues[k] }
+                        await authApi.updateAppSettings(payload).catch(() => {})
+                        try {
+                          const result = await notificationsApi.testBrevo()
+                          if (result.success) toast.success(t('admin.smtp.testSuccess'))
+                          else toast.error(result.error || t('admin.smtp.testFailed'))
+                        } catch { toast.error(t('admin.smtp.testFailed')) }
+                      }}
+                      disabled={!brevoConfigured}
+                      className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors disabled:opacity-40"
+                    >
+                      {t('admin.smtp.testButton')} (Brevo)
                     </button>
                   </div>
                 </div>
