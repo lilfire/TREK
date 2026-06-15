@@ -6,11 +6,12 @@ import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 
 // ── Module mocks (must be hoisted above imports) ──────────────────────────
 
+const { appSettings } = vi.hoisted(() => ({ appSettings: new Map<string, string>() }));
 vi.mock('../../../src/db/database', () => ({
   db: {
     prepare: () => ({
-      get: vi.fn(() => undefined),
-      all: vi.fn(() => []),
+      get: (key?: string) => (key !== undefined && appSettings.has(key)) ? { value: appSettings.get(key) } : undefined,
+      all: () => [],
     }),
   },
 }));
@@ -212,6 +213,63 @@ describe('sendEmail — direct transport path (no SMTP config)', () => {
     expect(transportLogIdx).toBeGreaterThanOrEqual(0);
     expect(sendLogIdx).toBeGreaterThanOrEqual(0);
     expect(transportLogIdx).toBeLessThan(sendLogIdx);
+  });
+});
+
+// ── sendEmail — Brevo HTTP transport ──────────────────────────────────────
+
+describe('sendEmail — Brevo HTTP transport', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    appSettings.set('brevo_api_key', 'xkeysib-test');
+    appSettings.set('brevo_from', 'noreply@brevo-sender.com');
+    fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 201, text: async () => '' });
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    appSettings.delete('brevo_api_key');
+    appSettings.delete('brevo_from');
+    appSettings.delete('brevo_from_name');
+    vi.unstubAllGlobals();
+  });
+
+  it('EMAIL-BREVO-001 — posts to the Brevo API with api-key header and recipient', async () => {
+    const result = await sendEmail('alice@gmail.com', 'Test', 'Body');
+    expect(result).toBe(true);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, opts] = fetchMock.mock.calls[0];
+    expect(url).toBe('https://api.brevo.com/v3/smtp/email');
+    expect(opts.method).toBe('POST');
+    expect((opts.headers as Record<string, string>)['api-key']).toBe('xkeysib-test');
+    const payload = JSON.parse(opts.body as string);
+    expect(payload.to).toEqual([{ email: 'alice@gmail.com' }]);
+    expect(payload.sender.email).toBe('noreply@brevo-sender.com');
+    expect(payload.subject).toContain('Test');
+  });
+
+  it('EMAIL-BREVO-002 — logs success with (brevo) marker on 2xx', async () => {
+    await sendEmail('alice@gmail.com', 'Test', 'Body');
+    expect(vi.mocked(logInfo)).toHaveBeenCalledWith(expect.stringContaining('(brevo)'));
+  });
+
+  it('EMAIL-BREVO-003 — returns false and logs error on non-2xx response', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 401, text: async () => 'Unauthorized' });
+    const result = await sendEmail('alice@gmail.com', 'Test', 'Body');
+    expect(result).toBe(false);
+    expect(vi.mocked(logError)).toHaveBeenCalledWith(expect.stringContaining('401'));
+  });
+
+  it('EMAIL-BREVO-004 — takes precedence over SMTP when both are configured', async () => {
+    setSmtpEnv();
+    try {
+      await sendEmail('alice@gmail.com', 'Test', 'Body');
+      expect(fetchMock).toHaveBeenCalledOnce();
+      expect(mockSendMail).not.toHaveBeenCalled();
+    } finally {
+      clearSmtpEnv();
+    }
   });
 });
 

@@ -39,6 +39,7 @@ const MFA_BACKUP_CODE_COUNT = 10;
 const ADMIN_SETTINGS_KEYS = [
   'allow_registration', 'allowed_file_types', 'require_mfa',
   'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from', 'smtp_skip_tls_verify',
+  'brevo_api_key', 'brevo_from', 'brevo_from_name',
   'notification_channels', 'admin_webhook_url', 'admin_ntfy_server', 'admin_ntfy_topic', 'admin_ntfy_token',
   'notify_trip_reminder',
   'password_login', 'password_registration', 'oidc_login', 'oidc_registration',
@@ -790,7 +791,7 @@ export function getAppSettings(userId: number): { error?: string; status?: numbe
   const result: Record<string, string> = {};
   for (const key of ADMIN_SETTINGS_KEYS) {
     const row = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined;
-    if (row) result[key] = (key === 'smtp_pass' || key === 'admin_webhook_url' || key === 'admin_ntfy_token') ? '••••••••' : row.value;
+    if (row) result[key] = (key === 'smtp_pass' || key === 'admin_webhook_url' || key === 'admin_ntfy_token' || key === 'brevo_api_key') ? '••••••••' : row.value;
   }
   return { data: result };
 }
@@ -842,6 +843,8 @@ export function updateAppSettings(
       }
       if (key === 'smtp_pass' && val === '••••••••') continue;
       if (key === 'smtp_pass') val = encrypt_api_key(val);
+      if (key === 'brevo_api_key' && val === '••••••••') continue;
+      if (key === 'brevo_api_key') val = encrypt_api_key(val);
       if (key === 'admin_webhook_url' && val === '••••••••') continue;
       if (key === 'admin_webhook_url' && val) val = maybe_encrypt_api_key(val) ?? val;
       if (key === 'admin_ntfy_token' && val === '••••••••') continue;
@@ -850,7 +853,7 @@ export function updateAppSettings(
     }
   }
 
-  const changedKeys = ADMIN_SETTINGS_KEYS.filter(k => body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
+  const changedKeys = ADMIN_SETTINGS_KEYS.filter(k => body[k] !== undefined && !((k === 'smtp_pass' || k === 'brevo_api_key') && String(body[k]) === '••••••••'));
 
   const summary: Record<string, unknown> = {};
   const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
@@ -858,13 +861,14 @@ export function updateAppSettings(
   if (changedKeys.includes('admin_webhook_url')) summary.admin_webhook_url_updated = true;
   if (changedKeys.some(k => k.startsWith('admin_ntfy_'))) summary.admin_ntfy_updated = true;
   if (smtpChanged) summary.smtp_settings_updated = true;
+  if (changedKeys.some(k => k.startsWith('brevo_'))) summary.brevo_settings_updated = true;
   if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
   if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
   if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
 
   const debugDetails: Record<string, unknown> = {};
   for (const k of changedKeys) {
-    debugDetails[k] = k === 'smtp_pass' ? '***' : body[k];
+    debugDetails[k] = (k === 'smtp_pass' || k === 'brevo_api_key') ? '***' : body[k];
   }
 
   const notifRelated = ['notification_channels', 'smtp_host'];

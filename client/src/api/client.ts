@@ -581,6 +581,7 @@ export const notificationsApi = {
   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),
   testSmtp: (email?: string) => apiClient.post('/notifications/test-smtp', { email }).then(r => r.data),
+  testBrevo: (email?: string) => apiClient.post('/notifications/test-brevo', { email }).then(r => r.data),
   testWebhook: (url?: string) => apiClient.post('/notifications/test-webhook', { url }).then(r => r.data),
   testNtfy: (payload: { topic?: string; server?: string | null; token?: string | null }) => apiClient.post('/notifications/test-ntfy', payload).then(r => r.data),
 }

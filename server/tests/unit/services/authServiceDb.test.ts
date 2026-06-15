@@ -76,6 +76,7 @@ import {
   getSettings,
   listUsers,
   getAppSettings,
+  updateAppSettings,
   validateKeys,
   isOidcOnlyMode,
   resolveAuthToggles,
@@ -90,6 +91,7 @@ import {
   createMcpToken,
   deleteMcpToken,
 } from '../../../src/services/authService';
+import { encrypt_api_key } from '../../../src/services/apiKeyCrypto';
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -237,6 +239,44 @@ describe('getAppSettings', () => {
     expect(result.status).toBeUndefined();
     expect(result.data).toBeDefined();
     expect(result.data).toHaveProperty('allow_registration', 'true');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateAppSettings — Brevo
+// ---------------------------------------------------------------------------
+
+describe('updateAppSettings — Brevo', () => {
+  const rawSetting = (key: string) =>
+    (testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined)?.value;
+
+  it('AUTH-DB-BREVO-001: routes brevo_api_key through encryption and stores from fields as plaintext', () => {
+    const { user } = createAdmin(testDb);
+    updateAppSettings(user.id, {
+      brevo_api_key: 'xkeysib-secret',
+      brevo_from: 'noreply@sender.com',
+      brevo_from_name: 'TREK',
+    });
+    expect(vi.mocked(encrypt_api_key)).toHaveBeenCalledWith('xkeysib-secret');
+    expect(rawSetting('brevo_from')).toBe('noreply@sender.com');
+    expect(rawSetting('brevo_from_name')).toBe('TREK');
+  });
+
+  it('AUTH-DB-BREVO-002: getAppSettings masks brevo_api_key and returns from fields plaintext', () => {
+    const { user } = createAdmin(testDb);
+    updateAppSettings(user.id, { brevo_api_key: 'xkeysib-secret', brevo_from: 'noreply@sender.com' });
+    const result = getAppSettings(user.id);
+    expect(result.data).toHaveProperty('brevo_api_key', '••••••••');
+    expect(result.data).toHaveProperty('brevo_from', 'noreply@sender.com');
+  });
+
+  it('AUTH-DB-BREVO-003: sending the masked sentinel leaves the stored key unchanged', () => {
+    const { user } = createAdmin(testDb);
+    updateAppSettings(user.id, { brevo_api_key: 'xkeysib-secret' });
+    const stored = rawSetting('brevo_api_key');
+    updateAppSettings(user.id, { brevo_api_key: '••••••••', brevo_from: 'changed@sender.com' });
+    expect(rawSetting('brevo_api_key')).toBe(stored);
+    expect(rawSetting('brevo_from')).toBe('changed@sender.com');
   });
 });
 
