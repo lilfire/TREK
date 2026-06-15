@@ -1,4 +1,4 @@
-// FE-ADMIN-GH-001 to FE-ADMIN-GH-016
+// FE-ADMIN-GH-001 to FE-ADMIN-GH-020
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -300,6 +300,84 @@ describe('GitHubPanel', () => {
 
     // All links still visible
     expect(screen.getByText('Ko-fi')).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-GH-017: default githubRepo renders mauriceboe/TREK links', async () => {
+    server.use(
+      http.get('/api/admin/github-releases', () => HttpResponse.json([])),
+    );
+    render(<GitHubPanel />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+    const bugLink = screen.getByText('Report a Bug').closest('a')!;
+    expect(bugLink).toHaveAttribute('href', 'https://github.com/mauriceboe/TREK/issues/new?template=bug_report.yml');
+
+    const featureLink = screen.getByText('Feature Request').closest('a')!;
+    expect(featureLink).toHaveAttribute('href', 'https://github.com/mauriceboe/TREK/discussions/new?category=feature-requests');
+
+    const wikiLink = screen.getByText('Wiki').closest('a')!;
+    expect(wikiLink).toHaveAttribute('href', 'https://github.com/mauriceboe/TREK/wiki');
+
+    const releasesLink = screen.getByRole('link', { name: /GitHub/i });
+    expect(releasesLink).toHaveAttribute('href', 'https://github.com/mauriceboe/TREK/releases');
+  });
+
+  it('FE-ADMIN-GH-018: custom githubRepo prop is applied to every GitHub link and subtitle', async () => {
+    server.use(
+      http.get('/api/admin/github-releases', () => HttpResponse.json([])),
+    );
+    render(<GitHubPanel githubRepo="lilfire/TREK" />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+    const bugLink = screen.getByText('Report a Bug').closest('a')!;
+    expect(bugLink.getAttribute('href')).toContain('github.com/lilfire/TREK');
+
+    const featureLink = screen.getByText('Feature Request').closest('a')!;
+    expect(featureLink.getAttribute('href')).toContain('github.com/lilfire/TREK');
+
+    const wikiLink = screen.getByText('Wiki').closest('a')!;
+    expect(wikiLink.getAttribute('href')).toContain('github.com/lilfire/TREK');
+
+    const releasesLink = screen.getByRole('link', { name: /GitHub/i });
+    expect(releasesLink.getAttribute('href')).toContain('github.com/lilfire/TREK');
+
+    // None of the GitHub links should still reference the default repo.
+    const allLinks = screen.getAllByRole('link');
+    const stillDefault = allLinks.filter(a => (a.getAttribute('href') ?? '').includes('github.com/mauriceboe/TREK'));
+    expect(stillDefault).toHaveLength(0);
+
+    // Subtitle reflects the configured repo.
+    expect(screen.getByText(/lilfire\/TREK/)).toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-GH-019: when versionSource="packages", header shows "Packages"', async () => {
+    server.use(
+      http.get('/api/admin/github-releases', () => HttpResponse.json([])),
+    );
+    render(<GitHubPanel versionSource="packages" />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+
+    const heading = await screen.findByRole('heading', { level: 2 });
+    expect(heading).toHaveTextContent('Packages');
+    expect(screen.queryByText('Release History')).not.toBeInTheDocument();
+  });
+
+  it('FE-ADMIN-GH-020: when versionSource unset or "releases", header shows existing releases label (no regression)', async () => {
+    server.use(
+      http.get('/api/admin/github-releases', () => HttpResponse.json([])),
+    );
+    const { unmount } = render(<GitHubPanel />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+    const unsetHeading = await screen.findByRole('heading', { level: 2 });
+    expect(unsetHeading).toHaveTextContent('Release History');
+    expect(screen.queryByRole('heading', { name: 'Packages' })).not.toBeInTheDocument();
+    unmount();
+
+    render(<GitHubPanel versionSource="releases" />);
+    await waitFor(() => expect(screen.queryByText('Loading...')).not.toBeInTheDocument());
+    const releasesHeading = await screen.findByRole('heading', { level: 2 });
+    expect(releasesHeading).toHaveTextContent('Release History');
+    expect(screen.queryByRole('heading', { name: 'Packages' })).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-GH-012: clicking "Load more" appends next page', async () => {

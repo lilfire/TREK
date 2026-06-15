@@ -29,6 +29,7 @@ vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-secret',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  GITHUB_REPO: 'mauriceboe/TREK',
 }));
 vi.mock('../../../src/services/apiKeyCrypto', () => ({
   encrypt_api_key: (v: string) => v,
@@ -695,3 +696,77 @@ describe('MCP Tokens', () => {
     expect(result.error).toBeDefined();
   });
 });
+
+// ── GITHUB_REPO env var (LSO-1633) ────────────────────────────────────────────
+
+describe('GITHUB_REPO env var', () => {
+  // Reload adminService with the config mock overridden so that GITHUB_REPO
+  // simulates a fork having set the env var on boot.
+  async function loadAdminServiceWithRepo(githubRepo: string) {
+    vi.doMock('../../../src/config', () => ({
+      JWT_SECRET: 'test-secret',
+      ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
+      updateJwtSecret: () => {},
+      GITHUB_REPO: githubRepo,
+    }));
+    vi.resetModules();
+    return import('../../../src/services/adminService');
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+    vi.doUnmock('../../../src/config');
+    vi.resetModules();
+  });
+
+  it('ADMIN-SVC-070 — getGithubReleases URL uses fork slug when GITHUB_REPO is overridden', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal('fetch', fetchMock);
+    const { getGithubReleases } = await loadAdminServiceWithRepo('myfork/TREK');
+    await getGithubReleases();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const calledUrl = String(fetchMock.mock.calls[0][0]);
+    expect(calledUrl).toContain('https://api.github.com/repos/myfork/TREK/releases');
+    expect(calledUrl).not.toContain('mauriceboe');
+  });
+
+  it('ADMIN-SVC-071 — getGithubReleases URL falls back to mauriceboe/TREK by default', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal('fetch', fetchMock);
+    const { getGithubReleases } = await loadAdminServiceWithRepo('mauriceboe/TREK');
+    await getGithubReleases();
+    const calledUrl = String(fetchMock.mock.calls[0][0]);
+    expect(calledUrl).toContain('https://api.github.com/repos/mauriceboe/TREK/releases');
+  });
+
+  it('ADMIN-SVC-072 — checkVersion (stable) hits the fork-specific releases/latest URL', async () => {
+    vi.stubEnv('APP_VERSION', '1.0.0');
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ tag_name: 'v1.0.0', html_url: 'https://example.com/r' }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { checkVersion, __clearVersionCacheForTests } = await loadAdminServiceWithRepo('myfork/TREK');
+    __clearVersionCacheForTests();
+    await checkVersion();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.github.com/repos/myfork/TREK/releases/latest',
+    );
+  });
+
+  it('ADMIN-SVC-073 — checkVersion (prerelease) hits the fork-specific paginated releases URL', async () => {
+    vi.stubEnv('APP_VERSION', '1.0.0-pre.1');
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => [] });
+    vi.stubGlobal('fetch', fetchMock);
+    const { checkVersion, __clearVersionCacheForTests } = await loadAdminServiceWithRepo('myfork/TREK');
+    __clearVersionCacheForTests();
+    await checkVersion();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      'https://api.github.com/repos/myfork/TREK/releases?per_page=100',
+    );
+  });
+});
+

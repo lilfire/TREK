@@ -1,6 +1,7 @@
 import React from 'react'
 import { Info, Coffee, Heart, ExternalLink, Bug, Lightbulb, BookOpen, Tent, Compass, Plane, Crown, Infinity as InfinityIcon } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useAuthStore } from '../../store/authStore'
 import Section from './Section'
 
 interface Props {
@@ -230,6 +231,7 @@ function SupporterSection({ t, locale }: { t: (key: string, vars?: Record<string
 
 export default function AboutTab({ appVersion }: Props): React.ReactElement {
   const { t, locale } = useTranslation()
+  const githubRepo = useAuthStore(state => state.githubRepo)
 
   return (
     <Section title={t('settings.about')} icon={Info}>
@@ -308,7 +310,7 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
         <a
-          href="https://github.com/mauriceboe/TREK/issues/new?template=bug_report.yml"
+          href={`https://github.com/${githubRepo}/issues/new?template=bug_report.yml`}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -326,7 +328,7 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>
         <a
-          href="https://github.com/mauriceboe/TREK/discussions/new?category=feature-requests"
+          href={`https://github.com/${githubRepo}/discussions/new?category=feature-requests`}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -344,7 +346,7 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>
         <a
-          href="https://github.com/mauriceboe/TREK/wiki"
+          href={`https://github.com/${githubRepo}/wiki`}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"

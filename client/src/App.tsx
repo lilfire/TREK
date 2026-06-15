@@ -108,7 +108,7 @@ function RootRedirect() {
 }
 
 export default function App() {
-  const { loadUser, isAuthenticated, demoMode, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled } = useAuthStore()
+  const { loadUser, isAuthenticated, demoMode, setDemoMode, setDevMode, setIsPrerelease, setAppVersion, setHasMapsKey, setServerTimezone, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, setGithubRepo } = useAuthStore()
   const { loadSettings } = useSettingsStore()
   const { loadAddons } = useAddonStore()
 
@@ -124,7 +124,7 @@ export default function App() {
         loadUser()
       }
     }
-    authApi.getAppConfig().then(async (config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; permissions?: Record<string, PermissionLevel> }) => {
+    authApi.getAppConfig().then(async (config: { demo_mode?: boolean; dev_mode?: boolean; is_prerelease?: boolean; has_maps_key?: boolean; version?: string; timezone?: string; require_mfa?: boolean; trip_reminders_enabled?: boolean; places_photos_enabled?: boolean; places_autocomplete_enabled?: boolean; places_details_enabled?: boolean; github_repo?: string; permissions?: Record<string, PermissionLevel> }) => {
       if (config?.demo_mode) setDemoMode(true)
       if (config?.dev_mode) setDevMode(true)
       if (config?.is_prerelease !== undefined) setIsPrerelease(config.is_prerelease)
@@ -136,6 +136,7 @@ export default function App() {
       if (config?.places_photos_enabled !== undefined) setPlacesPhotosEnabled(config.places_photos_enabled)
       if (config?.places_autocomplete_enabled !== undefined) setPlacesAutocompleteEnabled(config.places_autocomplete_enabled)
       if (config?.places_details_enabled !== undefined) setPlacesDetailsEnabled(config.places_details_enabled)
+      if (config?.github_repo) setGithubRepo(config.github_repo)
       if (config?.permissions) usePermissionsStore.getState().setPermissions(config.permissions)
 
       if (config?.version) {

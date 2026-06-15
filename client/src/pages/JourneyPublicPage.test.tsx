@@ -7,6 +7,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../tests/helpers/store';
 import { useSettingsStore } from '../store/settingsStore';
+import { useAuthStore } from '../store/authStore';
 import userEvent from '@testing-library/user-event';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
@@ -217,7 +218,8 @@ describe('JourneyPublicPage', () => {
     expect(readOnlyEl).toBeInTheDocument();
   });
 
-  it('FE-PAGE-PUBLICJOURNEY-007: shows footer with shared-via branding', async () => {
+  it('FE-PAGE-PUBLICJOURNEY-007: shows footer with shared-via branding and configured github link', async () => {
+    useAuthStore.setState({ githubRepo: 'lilfire/TREK' });
     setupSuccess();
     render(<JourneyPublicPage />);
     await waitFor(() => {
@@ -226,7 +228,8 @@ describe('JourneyPublicPage', () => {
     // Footer shows "TREK" brand and "Made with" text
     expect(screen.getByText('TREK')).toBeInTheDocument();
     expect(screen.getByText(/Made with/)).toBeInTheDocument();
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    const githubLink = screen.getByText('GitHub').closest('a');
+    expect(githubLink).toHaveAttribute('href', 'https://github.com/lilfire/TREK');
   });
 
   it('FE-PAGE-PUBLICJOURNEY-008: gallery tab switches view', async () => {

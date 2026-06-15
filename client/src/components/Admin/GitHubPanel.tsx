@@ -3,7 +3,6 @@ import { Tag, Calendar, ExternalLink, ChevronDown, ChevronUp, Loader2, Heart, Co
 import { getLocaleForLanguage, useTranslation } from '../../i18n'
 import apiClient from '../../api/client'
 
-const REPO = 'mauriceboe/TREK'
 const PER_PAGE = 10
 
 interface GithubRelease {
@@ -12,7 +11,11 @@ interface GithubRelease {
   [key: string]: unknown
 }
 
-export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: boolean }) {
+export default function GitHubPanel({
+  isPrerelease = false,
+  githubRepo = 'mauriceboe/TREK',
+  versionSource,
+}: { isPrerelease?: boolean; githubRepo?: string; versionSource?: string }) {
   const { t, language } = useTranslation()
   const [releases, setReleases] = useState<GithubRelease[]>([])
   const [loading, setLoading] = useState(true)
@@ -184,7 +187,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <a
-          href="https://github.com/mauriceboe/TREK/issues/new?template=bug_report.yml"
+          href={`https://github.com/${githubRepo}/issues/new?template=bug_report.yml`}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -202,7 +205,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>
         <a
-          href="https://github.com/mauriceboe/TREK/discussions/new?category=feature-requests"
+          href={`https://github.com/${githubRepo}/discussions/new?category=feature-requests`}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -220,7 +223,7 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>
         <a
-          href="https://github.com/mauriceboe/TREK/wiki"
+          href={`https://github.com/${githubRepo}/wiki`}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -257,11 +260,11 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
       <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
         <div className="px-5 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border-secondary)' }}>
           <div>
-            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('admin.github.title')}</h2>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{t('admin.github.subtitle').replace('{repo}', REPO)}</p>
+            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{versionSource === 'packages' ? 'Packages' : t('admin.github.title')}</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{versionSource === 'packages' ? `Latest container images from ${githubRepo}` : t('admin.github.subtitle').replace('{repo}', githubRepo)}</p>
           </div>
           <a
-            href={`https://github.com/${REPO}/releases`}
+            href={`https://github.com/${githubRepo}/releases`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"

@@ -3,16 +3,39 @@ import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import { db } from '../db/database';
-import { User, Addon } from '../types';
+import { User } from '../types';
 import { updateJwtSecret } from '../config';
 import { maybe_encrypt_api_key, decrypt_api_key } from './apiKeyCrypto';
 import { getAllPermissions, savePermissions as savePerms, PERMISSION_ACTIONS } from './permissions';
 import { revokeUserSessions, revokeUserSessionsForClient } from '../mcp';
 import { deleteUserCompletely } from './userCleanupService';
 import { validatePassword } from './passwordPolicy';
-import { getPhotoProviderConfig } from './memories/helpersService';
-import { send as sendNotification } from './notificationService';
 import { resolveAuthToggles } from './authService';
+
+// Re-exports keep the existing route handlers importing from adminService while
+// the underlying logic lives in focused per-concern modules.
+export {
+  compareVersions,
+  isDocker,
+  getGithubReleases,
+  checkVersion,
+  checkAndNotifyVersion,
+  __clearVersionCacheForTests,
+} from './versionCheckService';
+export {
+  listPackingTemplates,
+  getPackingTemplate,
+  createPackingTemplate,
+  updatePackingTemplate,
+  deletePackingTemplate,
+  createTemplateCategory,
+  updateTemplateCategory,
+  deleteTemplateCategory,
+  createTemplateItem,
+  updateTemplateItem,
+  deleteTemplateItem,
+} from './packingTemplateService';
+export { isAddonEnabled, listAddons, updateAddon } from './addonService';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -20,36 +43,6 @@ export function utcSuffix(ts: string | null | undefined): string | null {
   if (!ts) return null;
   return ts.endsWith('Z') ? ts : ts.replace(' ', 'T') + 'Z';
 }
-
-export function compareVersions(a: string, b: string): number {
-  const parse = (v: string) => {
-    const [base, pre] = v.split('-pre.');
-    const parts = base.split('.').map(Number);
-    const n = pre !== undefined ? parseInt(pre, 10) : null;
-    const preN = n !== null && Number.isFinite(n) ? n : null;
-    return { parts, preN };
-  };
-  const pa = parse(a), pb = parse(b);
-  for (let i = 0; i < Math.max(pa.parts.length, pb.parts.length); i++) {
-    const na = pa.parts[i] || 0, nb = pb.parts[i] || 0;
-    if (na > nb) return 1;
-    if (na < nb) return -1;
-  }
-  // Equal base: stable > prerelease; higher preN wins among prereleases
-  if (pa.preN === null && pb.preN !== null) return 1;
-  if (pa.preN !== null && pb.preN === null) return -1;
-  if (pa.preN !== null && pb.preN !== null) {
-    if (pa.preN > pb.preN) return 1;
-    if (pa.preN < pb.preN) return -1;
-  }
-  return 0;
-}
-
-export const isDocker = (() => {
-  try {
-    return fs.existsSync('/.dockerenv') || (fs.existsSync('/proc/1/cgroup') && fs.readFileSync('/proc/1/cgroup', 'utf8').includes('docker'));
-  } catch { return false; }
-})();
 
 // ── User CRUD ──────────────────────────────────────────────────────────────
 
@@ -303,112 +296,6 @@ export function saveDemoBaseline(): { error?: string; status?: number; message?:
   }
 }
 
-// ── GitHub Integration ─────────────────────────────────────────────────────
-
-export async function getGithubReleases(perPage: string = '10', page: string = '1') {
-  try {
-    const resp = await fetch(
-      `https://api.github.com/repos/mauriceboe/TREK/releases?per_page=${perPage}&page=${page}`,
-      { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
-    );
-    if (!resp.ok) return [];
-    const data = await resp.json();
-    return Array.isArray(data) ? data : [];
-  } catch {
-    return [];
-  }
-}
-
-interface VersionInfo {
-  current: string;
-  latest: string;
-  update_available: boolean;
-  release_url?: string;
-  is_docker: boolean;
-  is_prerelease: boolean;
-}
-
-const VERSION_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-let _versionCache: { data: VersionInfo; expiresAt: number } | null = null;
-
-/** Test-only: clear the in-memory version cache. */
-export function __clearVersionCacheForTests(): void {
-  _versionCache = null;
-}
-
-export async function checkVersion(): Promise<VersionInfo> {
-  if (_versionCache && Date.now() < _versionCache.expiresAt) {
-    return _versionCache.data;
-  }
-
-  const currentVersion: string = process.env.APP_VERSION || require('../../package.json').version;
-  const isPrerelease = currentVersion.includes('-pre.');
-  const fallback: VersionInfo = { current: currentVersion, latest: currentVersion, update_available: false, is_docker: isDocker, is_prerelease: isPrerelease };
-  let result: VersionInfo;
-  try {
-    if (isPrerelease) {
-      // Fetch release list and find the newest prerelease
-      const resp = await fetch(
-        'https://api.github.com/repos/mauriceboe/TREK/releases?per_page=100',
-        { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
-      );
-      if (!resp.ok) {
-        return fallback;
-      }
-      const data = await resp.json() as Array<{ tag_name?: string; html_url?: string; prerelease?: boolean }>;
-      const prereleases = Array.isArray(data) ? data.filter(r => r.prerelease) : [];
-      if (!prereleases.length) {
-        return fallback;
-      }
-      // Pre-compute stripped versions, then sort descending
-      const tagged = prereleases.map(r => ({ r, v: (r.tag_name || '').replace(/^v/, '') }));
-      tagged.sort((a, b) => compareVersions(b.v, a.v));
-      const latest = tagged[0].v;
-      const update_available = !!latest && latest !== currentVersion && compareVersions(latest, currentVersion) > 0;
-      result = { current: currentVersion, latest, update_available, release_url: tagged[0].r.html_url || '', is_docker: isDocker, is_prerelease: true };
-    } else {
-      const resp = await fetch(
-        'https://api.github.com/repos/mauriceboe/TREK/releases/latest',
-        { headers: { 'Accept': 'application/vnd.github.v3+json', 'User-Agent': 'TREK-Server' } }
-      );
-      if (!resp.ok) {
-        return fallback;
-      }
-      const data = await resp.json() as { tag_name?: string; html_url?: string };
-      const latest = (data.tag_name || '').replace(/^v/, '');
-      const update_available = !!latest && latest !== currentVersion && compareVersions(latest, currentVersion) > 0;
-      result = { current: currentVersion, latest, update_available, release_url: data.html_url || '', is_docker: isDocker, is_prerelease: false };
-    }
-  } catch {
-    return fallback;
-  }
-
-  _versionCache = { data: result, expiresAt: Date.now() + VERSION_CACHE_TTL };
-  return result;
-}
-
-export async function checkAndNotifyVersion(): Promise<void> {
-  try {
-    const result = await checkVersion();
-    if (!result.update_available) return;
-
-    const lastNotified = (db.prepare('SELECT value FROM app_settings WHERE key = ?').get('last_notified_version') as { value: string } | undefined)?.value;
-    if (lastNotified === result.latest) return;
-
-    db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run('last_notified_version', result.latest);
-
-    await sendNotification({
-      event: 'version_available',
-      actorId: null,
-      scope: 'admin',
-      targetId: 0,
-      params: { version: result.latest },
-    });
-  } catch {
-    // Silently ignore — version check is non-critical
-  }
-}
-
 // ── Invite Tokens ──────────────────────────────────────────────────────────
 
 export function listInvites() {
@@ -521,200 +408,6 @@ export function updateCollabFeatures(features: { chat?: boolean; notes?: boolean
     if (features[feat] !== undefined) stmt.run(key, features[feat] ? 'true' : 'false');
   }
   return getCollabFeatures();
-}
-
-// ── Packing Templates ──────────────────────────────────────────────────────
-
-export function listPackingTemplates() {
-  return db.prepare(`
-    SELECT pt.*, u.username as created_by_name,
-      (SELECT COUNT(*) FROM packing_template_items ti JOIN packing_template_categories tc ON ti.category_id = tc.id WHERE tc.template_id = pt.id) as item_count,
-      (SELECT COUNT(*) FROM packing_template_categories WHERE template_id = pt.id) as category_count
-    FROM packing_templates pt
-    JOIN users u ON pt.created_by = u.id
-    ORDER BY pt.created_at DESC
-  `).all();
-}
-
-export function getPackingTemplate(id: string) {
-  const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(id);
-  if (!template) return { error: 'Template not found', status: 404 };
-  const categories = db.prepare('SELECT * FROM packing_template_categories WHERE template_id = ? ORDER BY sort_order, id').all(id) as any[];
-  const items = db.prepare(`
-    SELECT ti.* FROM packing_template_items ti
-    JOIN packing_template_categories tc ON ti.category_id = tc.id
-    WHERE tc.template_id = ? ORDER BY ti.sort_order, ti.id
-  `).all(id);
-  return { template, categories, items };
-}
-
-export function createPackingTemplate(name: string, createdBy: number) {
-  if (!name?.trim()) return { error: 'Name is required', status: 400 };
-  const result = db.prepare('INSERT INTO packing_templates (name, created_by) VALUES (?, ?)').run(name.trim(), createdBy);
-  const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(result.lastInsertRowid);
-  return { template };
-}
-
-export function updatePackingTemplate(id: string, data: { name?: string }) {
-  const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(id);
-  if (!template) return { error: 'Template not found', status: 404 };
-  if (data.name?.trim()) db.prepare('UPDATE packing_templates SET name = ? WHERE id = ?').run(data.name.trim(), id);
-  return { template: db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(id) };
-}
-
-export function deletePackingTemplate(id: string) {
-  const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(id) as { name?: string } | undefined;
-  if (!template) return { error: 'Template not found', status: 404 };
-  db.prepare('DELETE FROM packing_templates WHERE id = ?').run(id);
-  return { name: template.name };
-}
-
-// Template categories
-
-export function createTemplateCategory(templateId: string, name: string) {
-  if (!name?.trim()) return { error: 'Category name is required', status: 400 };
-  const template = db.prepare('SELECT * FROM packing_templates WHERE id = ?').get(templateId);
-  if (!template) return { error: 'Template not found', status: 404 };
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_template_categories WHERE template_id = ?').get(templateId) as { max: number | null };
-  const result = db.prepare('INSERT INTO packing_template_categories (template_id, name, sort_order) VALUES (?, ?, ?)').run(templateId, name.trim(), (maxOrder.max ?? -1) + 1);
-  return { category: db.prepare('SELECT * FROM packing_template_categories WHERE id = ?').get(result.lastInsertRowid) };
-}
-
-export function updateTemplateCategory(templateId: string, catId: string, data: { name?: string }) {
-  const cat = db.prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?').get(catId, templateId);
-  if (!cat) return { error: 'Category not found', status: 404 };
-  if (data.name?.trim()) db.prepare('UPDATE packing_template_categories SET name = ? WHERE id = ?').run(data.name.trim(), catId);
-  return { category: db.prepare('SELECT * FROM packing_template_categories WHERE id = ?').get(catId) };
-}
-
-export function deleteTemplateCategory(templateId: string, catId: string) {
-  const cat = db.prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?').get(catId, templateId);
-  if (!cat) return { error: 'Category not found', status: 404 };
-  db.prepare('DELETE FROM packing_template_categories WHERE id = ?').run(catId);
-  return {};
-}
-
-// Template items
-
-export function createTemplateItem(templateId: string, catId: string, name: string) {
-  if (!name?.trim()) return { error: 'Item name is required', status: 400 };
-  const cat = db.prepare('SELECT * FROM packing_template_categories WHERE id = ? AND template_id = ?').get(catId, templateId);
-  if (!cat) return { error: 'Category not found', status: 404 };
-  const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_template_items WHERE category_id = ?').get(catId) as { max: number | null };
-  const result = db.prepare('INSERT INTO packing_template_items (category_id, name, sort_order) VALUES (?, ?, ?)').run(catId, name.trim(), (maxOrder.max ?? -1) + 1);
-  return { item: db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(result.lastInsertRowid) };
-}
-
-export function updateTemplateItem(itemId: string, data: { name?: string }) {
-  const item = db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(itemId);
-  if (!item) return { error: 'Item not found', status: 404 };
-  if (data.name?.trim()) db.prepare('UPDATE packing_template_items SET name = ? WHERE id = ?').run(data.name.trim(), itemId);
-  return { item: db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(itemId) };
-}
-
-export function deleteTemplateItem(itemId: string) {
-  const item = db.prepare('SELECT * FROM packing_template_items WHERE id = ?').get(itemId);
-  if (!item) return { error: 'Item not found', status: 404 };
-  db.prepare('DELETE FROM packing_template_items WHERE id = ?').run(itemId);
-  return {};
-}
-
-// ── Addons ─────────────────────────────────────────────────────────────────
-
-export function isAddonEnabled(addonId: string): boolean {
-  const addon = db.prepare('SELECT enabled FROM addons WHERE id = ?').get(addonId) as { enabled: number } | undefined;
-  return !!addon?.enabled;
-}
-
-export function listAddons() {
-  const addons = db.prepare('SELECT * FROM addons ORDER BY sort_order, id').all() as Addon[];
-  const providers = db.prepare(`
-    SELECT id, name, description, icon, enabled, sort_order
-    FROM photo_providers
-    ORDER BY sort_order, id
-  `).all() as Array<{ id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number }>;
-  const fields = db.prepare(`
-    SELECT provider_id, field_key, label, input_type, placeholder, required, secret, settings_key, payload_key, sort_order
-    FROM photo_provider_fields
-    ORDER BY sort_order, id
-  `).all() as Array<{
-    provider_id: string;
-    field_key: string;
-    label: string;
-    input_type: string;
-    placeholder?: string | null;
-    required: number;
-    secret: number;
-    settings_key?: string | null;
-    payload_key?: string | null;
-    sort_order: number;
-  }>;
-  const fieldsByProvider = new Map<string, typeof fields>();
-  for (const field of fields) {
-    const arr = fieldsByProvider.get(field.provider_id) || [];
-    arr.push(field);
-    fieldsByProvider.set(field.provider_id, arr);
-  }
-
-  return [
-    ...addons.map(a => ({ ...a, enabled: !!a.enabled, config: JSON.parse(a.config || '{}') })),
-    ...providers.map(p => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      type: 'photo_provider',
-      icon: p.icon,
-      enabled: !!p.enabled,
-      config: getPhotoProviderConfig(p.id),
-      fields: (fieldsByProvider.get(p.id) || []).map(f => ({
-        key: f.field_key,
-        label: f.label,
-        input_type: f.input_type,
-        placeholder: f.placeholder || '',
-        required: !!f.required,
-        secret: !!f.secret,
-        settings_key: f.settings_key || null,
-        payload_key: f.payload_key || null,
-        sort_order: f.sort_order,
-      })),
-      sort_order: p.sort_order,
-    })),
-  ];
-}
-
-export function updateAddon(id: string, data: { enabled?: boolean; config?: Record<string, unknown> }) {
-  const addon = db.prepare('SELECT * FROM addons WHERE id = ?').get(id) as Addon | undefined;
-  const provider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number } | undefined;
-  if (!addon && !provider) return { error: 'Addon not found', status: 404 };
-
-  if (addon) {
-    if (data.enabled !== undefined) db.prepare('UPDATE addons SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
-    if (data.config !== undefined) db.prepare('UPDATE addons SET config = ? WHERE id = ?').run(JSON.stringify(data.config), id);
-  } else {
-    if (data.enabled !== undefined) db.prepare('UPDATE photo_providers SET enabled = ? WHERE id = ?').run(data.enabled ? 1 : 0, id);
-  }
-
-  const updatedAddon = db.prepare('SELECT * FROM addons WHERE id = ?').get(id) as Addon | undefined;
-  const updatedProvider = db.prepare('SELECT * FROM photo_providers WHERE id = ?').get(id) as { id: string; name: string; description?: string | null; icon: string; enabled: number; sort_order: number } | undefined;
-  const updated = updatedAddon
-    ? { ...updatedAddon, enabled: !!updatedAddon.enabled, config: JSON.parse(updatedAddon.config || '{}') }
-    : updatedProvider
-      ? {
-        id: updatedProvider.id,
-        name: updatedProvider.name,
-        description: updatedProvider.description,
-        type: 'photo_provider',
-        icon: updatedProvider.icon,
-        enabled: !!updatedProvider.enabled,
-        config: getPhotoProviderConfig(updatedProvider.id),
-        sort_order: updatedProvider.sort_order,
-      }
-      : null;
-
-  return {
-    addon: updated,
-    auditDetails: { enabled: data.enabled !== undefined ? !!data.enabled : undefined, config_changed: data.config !== undefined },
-  };
 }
 
 // ── MCP Tokens ─────────────────────────────────────────────────────────────

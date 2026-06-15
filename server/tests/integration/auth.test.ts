@@ -46,6 +46,9 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
+  GITHUB_REPO: process.env.GITHUB_REPO || 'mauriceboe/TREK',
+  GITHUB_VERSION_SOURCE: process.env.GITHUB_VERSION_SOURCE === 'packages' ? 'packages' : 'releases',
+  GITHUB_TOKEN: process.env.GITHUB_TOKEN || '',
 }));
 
 import { createApp } from '../../src/app';
@@ -310,6 +313,27 @@ describe('App config', () => {
     expect(res.body).toHaveProperty('demo_mode');
     expect(res.body).toHaveProperty('has_users');
     expect(res.body).toHaveProperty('setup_complete');
+  });
+
+  it('AUTH-041 — GET /api/auth/app-config exposes github_repo from config (LSO-1633)', async () => {
+    const res = await request(app).get('/api/auth/app-config');
+    expect(res.status).toBe(200);
+    expect(typeof res.body.github_repo).toBe('string');
+    // The config module reads process.env.GITHUB_REPO at boot, falling back to
+    // mauriceboe/TREK. The integration test inherits the harness env, so we
+    // assert the value matches whichever owner/name slug config resolved.
+    expect(res.body.github_repo).toMatch(/^[^/]+\/[^/]+$/);
+    expect(res.body.github_repo).toBe(process.env.GITHUB_REPO || 'mauriceboe/TREK');
+  });
+
+  it('AUTH-042 — GET /api/auth/app-config exposes github_version_source from config (LSO-1642)', async () => {
+    const res = await request(app).get('/api/auth/app-config');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('github_version_source');
+    // The config module reads process.env.GITHUB_VERSION_SOURCE at boot and
+    // normalises anything that is not the string "packages" to "releases".
+    const expected = process.env.GITHUB_VERSION_SOURCE === 'packages' ? 'packages' : 'releases';
+    expect(res.body.github_version_source).toBe(expected);
   });
 
   it('AUTH-028 — allow_registration is false after admin disables it', async () => {

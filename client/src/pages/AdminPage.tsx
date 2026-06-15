@@ -277,6 +277,8 @@ export default function AdminPage(): React.ReactElement {
   // Version check & update
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
   const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false)
+  const [githubRepo, setLocalGithubRepo] = useState<string>('mauriceboe/TREK')
+  const [versionSource, setVersionSource] = useState<string | undefined>(undefined)
 
   const { user: currentUser, updateApiKeys, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, logout } = useAuthStore()
   const navigate = useNavigate()
@@ -295,7 +297,7 @@ export default function AdminPage(): React.ReactElement {
       setPaypalForm(f => ({ ...f, clientId: d.clientId, mode: d.mode }))
     }).catch(() => {})
     adminApi.checkVersion().then(data => {
-      if (data.update_available) setUpdateInfo(data)
+      setUpdateInfo(data)
     }).catch(() => {})
   }, [])
 
@@ -328,6 +330,8 @@ export default function AdminPage(): React.ReactElement {
       setOidcConfigured(config.oidc_configured ?? false)
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
+      if (config.github_repo) setLocalGithubRepo(config.github_repo)
+      if (config.github_version_source) setVersionSource(config.github_version_source)
     } catch (err: unknown) {
       // ignore
     }
@@ -525,7 +529,7 @@ export default function AdminPage(): React.ReactElement {
           </div>
 
           {/* Update Banner */}
-          {updateInfo && (
+          {updateInfo?.update_available && (
             <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700">
               <div className="flex items-center gap-4 flex-1 min-w-0">
                 <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-amber-500 dark:bg-amber-600">
@@ -560,6 +564,82 @@ export default function AdminPage(): React.ReactElement {
               </div>
             </div>
           )}
+
+          {/* Version Info Card */}
+          <div
+            className="mb-6 p-4 rounded-xl border"
+            style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}
+            data-testid="admin-version-card"
+          >
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--bg-secondary)' }}
+                >
+                  <GitBranch className="w-5 h-5" style={{ color: 'var(--text-muted)' }} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                    {updateInfo?.current ? `v${updateInfo.current}` : t('admin.version.unknown')}
+                  </p>
+                  <p className="text-xs mt-0.5 flex flex-wrap items-center gap-2" style={{ color: 'var(--text-faint)' }}>
+                    <a
+                      href={`https://github.com/${githubRepo}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:opacity-80"
+                      style={{ color: 'var(--text-muted)' }}
+                      data-testid="admin-version-repo-link"
+                    >
+                      {githubRepo}
+                    </a>
+                    {updateInfo?.is_prerelease && (
+                      <span
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                        style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706' }}
+                      >
+                        {t('admin.github.prerelease')}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {updateInfo?.update_available ? (
+                  <>
+                    <span
+                      className="text-xs font-medium px-2 py-1 rounded-full"
+                      style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}
+                    >
+                      {t('admin.version.updateAvailable').replace('{version}', `v${updateInfo.latest}`)}
+                    </span>
+                    {updateInfo.release_url && (
+                      <a
+                        href={updateInfo.release_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        {t('admin.version.releaseNotes')}
+                      </a>
+                    )}
+                  </>
+                ) : (
+                  updateInfo && (
+                    <span
+                      className="text-xs font-medium px-2 py-1 rounded-full"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+                    >
+                      {t('admin.version.upToDate')}
+                    </span>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Demo Baseline Button */}
           {demoMode && (
@@ -1722,7 +1802,7 @@ export default function AdminPage(): React.ReactElement {
 
           {activeTab === 'mcp-tokens' && <AdminMcpTokensPanel />}
 
-          {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} />}
+          {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} githubRepo={githubRepo} versionSource={versionSource} />}
 
           {activeTab === 'defaults' && <DefaultUserSettingsTab />}
 
