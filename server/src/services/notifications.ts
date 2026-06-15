@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { resolveMx } from 'dns/promises';
 import { db } from '../db/database';
 import { GITHUB_REPO } from '../config';
 import { decrypt_api_key } from './apiKeyCrypto';
@@ -396,6 +397,21 @@ async function sendViaSMTP(
   }
 }
 
+async function resolveMailHosts(domain: string): Promise<string[]> {
+  try {
+    const records = await resolveMx(domain);
+    if (records && records.length > 0) {
+      return records
+        .filter(r => r.exchange)
+        .sort((a, b) => a.priority - b.priority)
+        .map(r => r.exchange);
+    }
+  } catch {
+    return [domain];
+  }
+  return [domain];
+}
+
 async function sendViaDirect(
   to: string, subject: string, text: string, html: string, from: string, hostname: string,
 ): Promise<boolean> {
@@ -404,15 +420,35 @@ async function sendViaDirect(
     `without SPF/DKIM/DMARC records authorizing this server IP. Configure SMTP for reliable delivery. ` +
     `to=${to} subject="${subject}"`
   );
-  try {
-    const transporter = nodemailer.createTransport({ direct: true, name: hostname } as any);
-    await transporter.sendMail({ from, to, subject: `TREK — ${subject}`, text, html });
-    logInfo(`Email sent (direct) to=${to} subject="${subject}"`);
-    return true;
-  } catch (err) {
-    logError(`Email send (direct) failed to=${to}: ${err instanceof Error ? err.message : err}`);
+  const domain = to.split('@')[1]?.trim().toLowerCase();
+  if (!domain) {
+    logError(`Email send (direct) failed to=${to}: invalid recipient address`);
     return false;
   }
+  const mailHosts = await resolveMailHosts(domain);
+  let lastErr: unknown;
+  for (const host of mailHosts) {
+    try {
+      const transporter = nodemailer.createTransport({
+        host,
+        port: 25,
+        secure: false,
+        name: hostname,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 30000,
+        tls: { rejectUnauthorized: false, servername: host },
+      });
+      await transporter.sendMail({ from, to, subject: `TREK — ${subject}`, text, html });
+      logInfo(`Email sent (direct) to=${to} via mx=${host} subject="${subject}"`);
+      return true;
+    } catch (err) {
+      lastErr = err;
+      logWarn(`Email send (direct) to=${to} via mx=${host} failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+  logError(`Email send (direct) failed to=${to}: ${lastErr instanceof Error ? lastErr.message : lastErr}`);
+  return false;
 }
 
 export async function sendEmail(to: string, subject: string, body: string, userId?: number, navigateTarget?: string): Promise<boolean> {

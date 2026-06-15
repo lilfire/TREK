@@ -54,6 +54,9 @@ vi.mock('nodemailer', () => ({
   },
 }));
 
+const { resolveMxMock } = vi.hoisted(() => ({ resolveMxMock: vi.fn() }));
+vi.mock('dns/promises', () => ({ resolveMx: resolveMxMock }));
+
 vi.mock('../../../src/services/auditLog', () => ({
   logInfo: logInfoMock,
   logDebug: logDebugMock,
@@ -106,6 +109,8 @@ beforeEach(() => {
   logDebugMock.mockClear();
   logErrorMock.mockClear();
   logWarnMock.mockClear();
+  resolveMxMock.mockReset();
+  resolveMxMock.mockResolvedValue([{ exchange: 'mx.example.com', priority: 10 }]);
   clearEmailEnv();
   consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 });
