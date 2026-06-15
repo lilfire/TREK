@@ -33,6 +33,9 @@ vi.mock('nodemailer', () => ({
   },
 }));
 
+const { resolveMxMock } = vi.hoisted(() => ({ resolveMxMock: vi.fn() }));
+vi.mock('dns/promises', () => ({ resolveMx: resolveMxMock }));
+
 import { sendEmail } from '../../../src/services/notifications';
 import { logInfo, logError, logWarn } from '../../../src/services/auditLog';
 import nodemailer from 'nodemailer';
@@ -127,6 +130,8 @@ describe('sendEmail — direct transport path (no SMTP config)', () => {
   beforeEach(() => {
     process.env.APP_URL = 'https://trek.myserver.com';
     mockSendMail.mockResolvedValue({});
+    resolveMxMock.mockReset();
+    resolveMxMock.mockResolvedValue([{ exchange: 'mx.example.com', priority: 10 }]);
   });
 
   afterEach(() => {
@@ -139,11 +144,43 @@ describe('sendEmail — direct transport path (no SMTP config)', () => {
     expect(mockSendMail).toHaveBeenCalledOnce();
   });
 
-  it('EMAIL-DIRECT-002 — uses { direct: true } transport option', async () => {
+  it('EMAIL-DIRECT-002 — connects to the resolved MX host on port 25', async () => {
     await sendEmail('alice@example.com', 'Test', 'Body');
+    expect(resolveMxMock).toHaveBeenCalledWith('example.com');
     expect(nodemailer.createTransport).toHaveBeenCalledWith(
-      expect.objectContaining({ direct: true }),
+      expect.objectContaining({ host: 'mx.example.com', port: 25 }),
     );
+  });
+
+  it('EMAIL-DIRECT-002b — falls back to the next MX host when the first refuses the connection', async () => {
+    resolveMxMock.mockResolvedValue([
+      { exchange: 'mx1.example.com', priority: 10 },
+      { exchange: 'mx2.example.com', priority: 20 },
+    ]);
+    mockSendMail.mockReset();
+    mockSendMail.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    mockSendMail.mockResolvedValueOnce({});
+
+    const result = await sendEmail('alice@example.com', 'Test', 'Body');
+
+    expect(result).toBe(true);
+    const hosts = vi.mocked(nodemailer.createTransport).mock.calls.map((c) => (c[0] as any).host);
+    expect(hosts).toEqual(['mx1.example.com', 'mx2.example.com']);
+  });
+
+  it('EMAIL-DIRECT-002c — sorts MX hosts by ascending priority', async () => {
+    resolveMxMock.mockResolvedValue([
+      { exchange: 'low.example.com', priority: 50 },
+      { exchange: 'high.example.com', priority: 5 },
+    ]);
+    await sendEmail('alice@example.com', 'Test', 'Body');
+    expect((vi.mocked(nodemailer.createTransport).mock.calls[0][0] as any).host).toBe('high.example.com');
+  });
+
+  it('EMAIL-DIRECT-002d — falls back to the recipient domain when no MX records exist', async () => {
+    resolveMxMock.mockResolvedValue([]);
+    await sendEmail('alice@example.com', 'Test', 'Body');
+    expect((vi.mocked(nodemailer.createTransport).mock.calls[0][0] as any).host).toBe('example.com');
   });
 
   it('EMAIL-DIRECT-003 — logs success via logInfo with (direct) marker', async () => {
