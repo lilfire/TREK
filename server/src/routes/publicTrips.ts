@@ -6,6 +6,8 @@ import { resolveFilePath } from '../services/fileService';
 import { findOrCreateUserForRsvp, createRsvp, CreateRsvpResult } from '../services/rsvpService';
 import { addMember } from '../services/tripService';
 import { sendRsvpConfirmationEmail } from '../services/rsvpEmailService';
+import { issueAccountSetupToken } from '../services/authService';
+import { getAppUrl } from '../services/notifications';
 import { logError } from '../services/auditLog';
 import { optionalAuth } from '../middleware/auth';
 import { createPaypalOrder, capturePaypalOrder, recordPayment, updatePaymentStatus, getPaypalClientId } from '../services/paypalService';
@@ -58,9 +60,10 @@ async function attemptRsvpEmail(
   tripTitle: string,
   tripId: number,
   userId: number,
+  setPasswordUrl?: string,
 ): Promise<boolean> {
   try {
-    return await sendRsvpConfirmationEmail(to, recipientName, tripTitle, tripId, userId);
+    return await sendRsvpConfirmationEmail(to, recipientName, tripTitle, tripId, userId, setPasswordUrl);
   } catch (err) {
     logError(`RSVP confirmation email failed: ${err}`);
     return false;
@@ -119,7 +122,7 @@ router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, async (req: Request, res
   }
 
   const trimmedName = name.trim();
-  const { userId, storedEmail } = findOrCreateUserForRsvp(trimmedName, email.trim());
+  const { userId, storedEmail, isNewUser } = findOrCreateUserForRsvp(trimmedName, email.trim());
 
   // Skip addMember if submitter is the trip owner; catch "already a member" gracefully
   if (userId !== trip.user_id) {
@@ -151,7 +154,14 @@ router.post('/:id/rsvp', rsvpRateLimiter, optionalAuth, async (req: Request, res
     throw err;
   }
 
-  const emailSent = await attemptRsvpEmail(storedEmail, trimmedName, trip.title, trip.id, userId);
+  let setPasswordUrl: string | undefined;
+  if (isNewUser) {
+    const origin = getAppUrl().replace(/\/$/, '');
+    const token = issueAccountSetupToken(userId, req.ip ?? null);
+    setPasswordUrl = `${origin}/reset-password?token=${encodeURIComponent(token)}`;
+  }
+
+  const emailSent = await attemptRsvpEmail(storedEmail, trimmedName, trip.title, trip.id, userId, setPasswordUrl);
   return res.status(201).json({ ...result, emailSent });
 });
 

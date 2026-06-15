@@ -113,4 +113,29 @@ describe('sendRsvpConfirmationEmail', () => {
     const subject: string = mockSendEmail.mock.calls[0][1];
     expect(subject).toContain('My Trip');
   });
+
+  it('RSVP-EMAIL-013 — body includes the set-password link when setPasswordUrl is provided', async () => {
+    const url = 'https://trek.example.com/reset-password?token=abc123';
+    await sendRsvpConfirmationEmail('alice@example.com', 'Alice', 'My Trip', 7, 5, url);
+    const body: string = mockSendEmail.mock.calls[0][2];
+    expect(body).toContain(url);
+    expect(body).toContain('Set your password');
+    expect(body).toContain('7 days');
+  });
+
+  it('RSVP-EMAIL-014 — body has no set-password section when setPasswordUrl is omitted', async () => {
+    await sendRsvpConfirmationEmail('alice@example.com', 'Alice', 'My Trip', 7, 5);
+    const body: string = mockSendEmail.mock.calls[0][2];
+    expect(body).not.toContain('reset-password');
+    expect(body).not.toContain('Set your password');
+  });
+
+  it('RSVP-EMAIL-015 — set-password section is localized (German) when lang=de', async () => {
+    vi.mocked(getUserLanguage).mockReturnValue('de');
+    const url = 'https://trek.example.com/reset-password?token=de1';
+    await sendRsvpConfirmationEmail('alice@example.com', 'Alice', 'Reise', 7, 5, url);
+    const body: string = mockSendEmail.mock.calls[0][2];
+    expect(body).toContain(url);
+    expect(body).toContain('Passwort');
+  });
 });
