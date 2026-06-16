@@ -1,5 +1,5 @@
 /**
- * Unit tests for todoService — TODO-SVC-001 through TODO-SVC-020.
+ * Unit tests for todoService — TODO-SVC-001 through TODO-SVC-026.
  * Uses a real in-memory SQLite DB so SQL logic is exercised faithfully.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
@@ -49,6 +49,7 @@ import {
   getCategoryAssignees,
   updateCategoryAssignees,
   reorderItems,
+  canMemberAccessItem,
 } from '../../../src/services/todoService';
 
 beforeAll(() => {
@@ -283,5 +284,98 @@ describe('getCategoryAssignees / updateCategoryAssignees', () => {
     const assignees = getCategoryAssignees(trip.id) as any;
     expect(assignees['Food']).toHaveLength(1);
     expect(assignees['Food'][0].user_id).toBe(owner.id);
+  });
+});
+
+// ── listItems / canMemberAccessItem member visibility (LSO-1661) ─────────────
+
+describe('listItems / canMemberAccessItem member visibility', () => {
+  it('TODO-SVC-021: member sees all items when no category/item assignments exist (backwards compat)', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    createItem(trip.id, { name: 'Book hotel', category: 'Prep' });
+    createItem(trip.id, { name: 'Pack snacks', category: 'Prep' });
+
+    const rows = listItems(trip.id, member.id) as any[];
+    expect(rows).toHaveLength(2);
+  });
+
+  it('TODO-SVC-022: member only sees assigned-category items once a category has explicit assignees', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    createItem(trip.id, { name: 'Book hotel', category: 'Logistics' });
+    createItem(trip.id, { name: 'Buy souvenir', category: 'Shopping' });
+
+    updateCategoryAssignees(trip.id, 'Logistics', [alice.id]);
+
+    const aliceRows = listItems(trip.id, alice.id) as any[];
+    const bobRows = listItems(trip.id, bob.id) as any[];
+
+    expect(aliceRows.map(r => r.name).sort()).toEqual(['Book hotel', 'Buy souvenir']);
+    expect(bobRows.map(r => r.name)).toEqual(['Buy souvenir']);
+  });
+
+  it('TODO-SVC-023: NULL-category items with no assignee are visible to all members', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    // category defaults to null when omitted, assigned_user_id null
+    createItem(trip.id, { name: 'Loose end' });
+    // Categorised item with explicit assignee excluding member
+    createItem(trip.id, { name: 'Pack bag', category: 'Prep' });
+    updateCategoryAssignees(trip.id, 'Prep', [owner.id]);
+
+    const rows = listItems(trip.id, member.id) as any[];
+    expect(rows.map(r => r.name)).toEqual(['Loose end']);
+  });
+
+  it('TODO-SVC-024: NULL-category items with explicit assignee are only visible to that assignee', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    createItem(trip.id, { name: 'Personal task', assigned_user_id: alice.id });
+
+    expect((listItems(trip.id, alice.id) as any[]).map(r => r.name)).toEqual(['Personal task']);
+    expect(listItems(trip.id, bob.id)).toEqual([]);
+  });
+
+  it('TODO-SVC-025: canMemberAccessItem returns true for unassigned category (no 403 regression)', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createItem(trip.id, { name: 'Pack snacks', category: 'Prep' }) as any;
+
+    expect(canMemberAccessItem(trip.id, item.id, member.id)).toBe(true);
+  });
+
+  it('TODO-SVC-026: canMemberAccessItem honours explicit category assignment', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    const item = createItem(trip.id, { name: 'Book hotel', category: 'Logistics' }) as any;
+    updateCategoryAssignees(trip.id, 'Logistics', [alice.id]);
+
+    expect(canMemberAccessItem(trip.id, item.id, alice.id)).toBe(true);
+    expect(canMemberAccessItem(trip.id, item.id, bob.id)).toBe(false);
+    // Owner always allowed.
+    expect(canMemberAccessItem(trip.id, item.id, owner.id)).toBe(true);
   });
 });
