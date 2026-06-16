@@ -101,6 +101,9 @@ export interface PackingItem {
   category: string | null
   checked: number
   quantity: number
+  checked_by_user_id?: number | null
+  checked_by_username?: string | null
+  checked_by_avatar?: string | null
 }
 
 export interface TodoItem {
@@ -114,6 +117,9 @@ export interface TodoItem {
   description: string | null
   assigned_user_id: number | null
   priority: number
+  checked_by_user_id?: number | null
+  checked_by_username?: string | null
+  checked_by_avatar?: string | null
 }
 
 export interface Tag {

@@ -1171,7 +1171,7 @@ describe('AdminPage', () => {
       // Find the email panel and click its "Send test email" button (scoped to avoid admin webhook panel)
       const emailHeading = screen.getByRole('heading', { name: /email \(smtp\)/i });
       const emailPanel = emailHeading.closest('.bg-white');
-      const testBtn = within(emailPanel!).getByRole('button', { name: /send test email/i });
+      const testBtn = within(emailPanel!).getByRole('button', { name: /send test email \(smtp\)/i });
       fireEvent.click(testBtn);
 
       await waitFor(() => {

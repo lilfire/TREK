@@ -170,7 +170,7 @@ export function copyTripById(sourceTripId: string | number, newOwnerId: number, 
   return fn();
 }
 
-export function getTripSummary(tripId: number) {
+export function getTripSummary(tripId: number, userId: number) {
   const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Record<string, unknown> | undefined;
   if (!trip) return null;
 
@@ -191,7 +191,7 @@ export function getTripSummary(tripId: number) {
     currency: trip.currency,
   };
 
-  const packingItems = listPackingItems(tripId);
+  const packingItems = listPackingItems(tripId, userId);
   const packing = {
     items: packingItems,
     total: packingItems.length,
