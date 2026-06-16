@@ -98,7 +98,7 @@ describe('listItems and createItem', () => {
   it('TODO-SVC-004: listItems returns empty array for new trip', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    expect(listItems(trip.id)).toEqual([]);
+    expect(listItems(trip.id, user.id)).toEqual([]);
   });
 
   it('TODO-SVC-005: createItem inserts a todo with name only', () => {
@@ -140,7 +140,7 @@ describe('listItems and createItem', () => {
     createItem(trip.id, { name: 'First' });
     createItem(trip.id, { name: 'Second' });
     createItem(trip.id, { name: 'Third' });
-    const items = listItems(trip.id) as any[];
+    const items = listItems(trip.id, user.id) as any[];
     expect(items).toHaveLength(3);
     expect(items[0].sort_order).toBeLessThanOrEqual(items[1].sort_order);
     expect(items[1].sort_order).toBeLessThanOrEqual(items[2].sort_order);
@@ -198,7 +198,7 @@ describe('deleteItem', () => {
     const trip = createTrip(testDb, user.id);
     const item = createItem(trip.id, { name: 'Gone' }) as any;
     expect(deleteItem(trip.id, item.id)).toBe(true);
-    expect(listItems(trip.id)).toHaveLength(0);
+    expect(listItems(trip.id, user.id)).toHaveLength(0);
   });
 });
 

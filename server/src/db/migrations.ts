@@ -2327,6 +2327,11 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE budget_category_order ADD COLUMN currency TEXT DEFAULT NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    // LSO-1652 (LSO-1650): track which user toggled an item to checked for packing + todo lists
+    () => {
+      try { db.exec('ALTER TABLE packing_items ADD COLUMN checked_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec('ALTER TABLE todo_items ADD COLUMN checked_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {
