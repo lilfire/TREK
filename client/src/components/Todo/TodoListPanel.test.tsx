@@ -17,6 +17,9 @@ beforeEach(() => {
     http.get('/api/trips/:id/members', () =>
       HttpResponse.json({ owner: null, members: [], current_user_id: 1 })
     ),
+    http.get('/api/trips/:id/todo/category-assignees', () =>
+      HttpResponse.json({ assignees: {} })
+    ),
   );
   seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
@@ -415,5 +418,120 @@ describe('TodoListPanel', () => {
     })];
     render(<TodoListPanel tripId={1} items={items} />);
     expect(screen.getByText('This is a task description')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-030: empty items array renders without crashing or error UI', () => {
+    const { container } = render(<TodoListPanel tripId={1} items={[]} />);
+    // No error UI shown; sidebar still renders the All filter
+    expect(container.querySelector('h2')).toBeInTheDocument();
+    expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-031: checked_by badge hidden when category has only one assignee', async () => {
+    // Force mobile mode so the Done filter button has title="Done" — reliable selector.
+    Object.defineProperty(window, 'innerWidth', { value: 0, writable: true, configurable: true });
+    server.use(
+      http.get('/api/trips/:id/todo/category-assignees', () =>
+        HttpResponse.json({ assignees: { Shopping: [{ user_id: 5, username: 'alice', avatar: null }] } })
+      ),
+    );
+    const items = [buildTodoItem({
+      name: 'Buy milk', category: 'Shopping', checked: 1,
+      checked_by_user_id: 5, checked_by_username: 'alice', checked_by_avatar: null,
+    })];
+    render(<TodoListPanel tripId={1} items={items} />);
+    const doneBtn = screen.getByTitle('Done');
+    fireEvent.click(doneBtn);
+    await screen.findByText('Buy milk');
+    expect(screen.queryByTestId('checked-by-badge')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-032: checked_by badge shown when category has multiple assignees', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 0, writable: true, configurable: true });
+    server.use(
+      http.get('/api/trips/:id/todo/category-assignees', () =>
+        HttpResponse.json({
+          assignees: {
+            Shopping: [
+              { user_id: 5, username: 'alice', avatar: null },
+              { user_id: 6, username: 'bob', avatar: null },
+            ],
+          },
+        })
+      ),
+    );
+    const items = [buildTodoItem({
+      name: 'Buy milk', category: 'Shopping', checked: 1,
+      checked_by_user_id: 5, checked_by_username: 'alice', checked_by_avatar: null,
+    })];
+    render(<TodoListPanel tripId={1} items={items} />);
+    const doneBtn = screen.getByTitle('Done');
+    fireEvent.click(doneBtn);
+    await screen.findByText('Buy milk');
+    await waitFor(() => expect(screen.getByTestId('checked-by-badge')).toBeInTheDocument());
+    expect(screen.getByTestId('checked-by-badge')).toHaveAttribute('title', 'Checked by alice');
+  });
+
+  it('FE-COMP-TODO-TOGGLE-403: 403 from toggle PUT reverts optimistic update and does not crash', async () => {
+    const user = userEvent.setup();
+    let putCalled = false;
+    let putStatus = 0;
+    server.use(
+      http.put('/api/trips/1/todo/77', () => {
+        putCalled = true;
+        putStatus = 403;
+        return HttpResponse.json({ error: 'You do not have permission to toggle this task' }, { status: 403 });
+      }),
+    );
+    const item = buildTodoItem({ id: 77, name: 'Forbidden Task', checked: 0 });
+    // Seed the store so the slice action operates on a known initial state we can verify reverts.
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), todoItems: [item] });
+    const { container } = render(<TodoListPanel tripId={1} items={[item]} />);
+
+    // The first button in the task row is the checkbox.
+    const nameDiv = await screen.findByText('Forbidden Task');
+    const row = nameDiv.closest('[style*="cursor: pointer"]') as HTMLElement | null;
+    expect(row).toBeTruthy();
+    const checkboxBtn = row!.querySelector('button');
+    expect(checkboxBtn).toBeTruthy();
+    await user.click(checkboxBtn!);
+
+    await waitFor(() => expect(putCalled).toBe(true));
+    expect(putStatus).toBe(403);
+
+    // Store state reverted — item.checked back to 0 after the failed toggle.
+    await waitFor(() => {
+      const stored = useTripStore.getState().todoItems.find(i => i.id === 77);
+      expect(stored?.checked).toBe(0);
+    });
+
+    // No crash / no error UI: panel header still mounted, no live region appeared.
+    expect(container.querySelector('h2')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-TODO-033: checked_by badge hidden when checked_by_user_id is null', async () => {
+    Object.defineProperty(window, 'innerWidth', { value: 0, writable: true, configurable: true });
+    server.use(
+      http.get('/api/trips/:id/todo/category-assignees', () =>
+        HttpResponse.json({
+          assignees: {
+            Shopping: [
+              { user_id: 5, username: 'alice', avatar: null },
+              { user_id: 6, username: 'bob', avatar: null },
+            ],
+          },
+        })
+      ),
+    );
+    const items = [buildTodoItem({
+      name: 'Buy milk', category: 'Shopping', checked: 1,
+      checked_by_user_id: null, checked_by_username: null, checked_by_avatar: null,
+    })];
+    render(<TodoListPanel tripId={1} items={items} />);
+    const doneBtn = screen.getByTitle('Done');
+    fireEvent.click(doneBtn);
+    await screen.findByText('Buy milk');
+    expect(screen.queryByTestId('checked-by-badge')).not.toBeInTheDocument();
   });
 });
