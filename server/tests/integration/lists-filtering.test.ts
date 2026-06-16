@@ -467,3 +467,139 @@ describe('LSO-1652 todo — checked_by_user_id attribution', () => {
     expect(uncheckRes.body.item.checked_by_user_id).toBeNull();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LSO-1665 — `packing_check` decouples toggle-checked from `packing_edit`
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('LSO-1665 packing — packing_check permission decouples toggle from edit', () => {
+  // Helper: pin a permission in app_settings and clear the cache.
+  function setPerm(key: string, level: string) {
+    testDb
+      .prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)')
+      .run(`perm_${key}`, level);
+    invalidatePermissionsCache();
+  }
+
+  it('member can toggle checked when packing_edit is locked to trip_owner', async () => {
+    // Repro for the persistent 403: admin tightened packing_edit so the broad
+    // mutation check blocked members at packing.ts:103 before per-item access
+    // was even evaluated. The new check-only gate uses packing_check instead.
+    setPerm('packing_edit', 'trip_owner');
+
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Socks', category: 'Clothing' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ checked: true });
+    expect(res.status).toBe(200);
+    expect(res.body.item.checked).toBe(1);
+    expect(res.body.item.checked_by_user_id).toBe(member.id);
+  });
+
+  it('member cannot edit name when packing_edit is locked to trip_owner (regression)', async () => {
+    // Non-check mutations must still respect the broader packing_edit setting.
+    setPerm('packing_edit', 'trip_owner');
+
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Socks', category: 'Clothing' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ name: 'Wool socks' });
+    expect(res.status).toBe(403);
+  });
+
+  it('mixed body (checked + name) requires packing_edit (member blocked when locked)', async () => {
+    setPerm('packing_edit', 'trip_owner');
+
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Socks', category: 'Clothing' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ checked: true, name: 'Wool socks' });
+    expect(res.status).toBe(403);
+  });
+
+  it('packing_check=trip_owner blocks member from toggling (config respected)', async () => {
+    // Admin tightening the toggle action specifically should still work.
+    setPerm('packing_check', 'trip_owner');
+
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Socks', category: 'Clothing' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ checked: true });
+    expect(res.status).toBe(403);
+  });
+
+  it('owner can still toggle regardless of permission settings (regression)', async () => {
+    setPerm('packing_check', 'trip_owner');
+    setPerm('packing_edit', 'trip_owner');
+
+    const { user: owner } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Passport', category: 'Documents' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ checked: true });
+    expect(res.status).toBe(200);
+    expect(res.body.item.checked).toBe(1);
+  });
+
+  it('non-member still gets 404 when toggling (trip access denied)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: outsider } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Camera', category: 'Electronics' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(outsider.id))
+      .send({ checked: true });
+    expect(res.status).toBe(404);
+  });
+
+  it('member still blocked when item is hidden from them (per-item check still runs)', async () => {
+    // Even with the relaxed packing_check gate, members can't toggle items in
+    // categories they're explicitly excluded from. canMemberAccessItem still wins.
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const hidden = createPackingItem(testDb, trip.id, { name: 'Hidden', category: 'Toiletries' });
+
+    // Pin "Toiletries" to owner only so member is explicitly excluded.
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Toiletries`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${hidden.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ checked: true });
+    expect(res.status).toBe(403);
+  });
+});

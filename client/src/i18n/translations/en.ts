@@ -1869,6 +1869,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'perm.action.reservation_edit': 'Manage reservations',
   'perm.action.budget_edit': 'Manage budget',
   'perm.action.packing_edit': 'Manage packing lists',
+  'perm.action.packing_check': 'Check off packing items',
   'perm.action.collab_edit': 'Collaboration (notes, polls, chat)',
   'perm.action.share_manage': 'Manage share links',
   'perm.actionHint.trip_create': 'Who can create new trips',
@@ -1885,6 +1886,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'perm.actionHint.reservation_edit': 'Who can create, edit or delete reservations',
   'perm.actionHint.budget_edit': 'Who can create, edit or delete budget items',
   'perm.actionHint.packing_edit': 'Who can manage packing items and bags',
+  'perm.actionHint.packing_check': 'Who can toggle the checked state of packing items (independent of full edit access)',
   'perm.actionHint.collab_edit': 'Who can create notes, polls and send messages',
   'perm.actionHint.share_manage': 'Who can create or delete public share links',
 

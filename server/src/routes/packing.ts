@@ -100,7 +100,13 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   const trip = verifyTripAccess(tripId, authReq.user.id);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-  if (!checkPermission('packing_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+  // A "check-only" toggle (body has only `checked`) is gated by `packing_check`
+  // so admins who lock `packing_edit` down to trip_owner still let members tick
+  // their assigned items. Any other mutation requires the broader `packing_edit`.
+  const bodyKeys = Object.keys(req.body);
+  const isCheckOnly = bodyKeys.length === 1 && bodyKeys[0] === 'checked';
+  const permKey = isCheckOnly ? 'packing_check' : 'packing_edit';
+  if (!checkPermission(permKey, authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
     return res.status(403).json({ error: 'No permission' });
 
   if (!canMemberAccessItem(tripId, id, authReq.user.id)) {
