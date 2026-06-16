@@ -155,7 +155,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
     },
     async ({ tripId }) => {
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const summary = getTripSummary(tripId);
+      const summary = getTripSummary(tripId, userId);
       if (!summary) return noAccess();
       // Addon availability gates
       const packingEnabled = isAddonEnabled(ADDON_IDS.PACKING);
@@ -170,7 +170,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
       const canReadCollab  = collabEnabled  && canRead(scopes, 'collab');
       const canReadTodos   = packingEnabled && canRead(scopes, 'todos');
       const canReadRes     = canRead(scopes, 'reservations');
-      const todos = canReadTodos ? listTodoItems(tripId) : [];
+      const todos = canReadTodos ? listTodoItems(tripId, userId) : [];
       let pollCount = 0;
       let messageCount = 0;
       if (canReadCollab) {

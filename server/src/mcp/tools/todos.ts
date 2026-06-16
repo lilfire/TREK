@@ -35,7 +35,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     },
     async ({ tripId }) => {
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const items = listTodoItems(tripId);
+      const items = listTodoItems(tripId, userId);
       return ok({ items });
     }
   );
@@ -89,7 +89,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
       if (description !== undefined) bodyKeys.push('description');
       if (assigned_user_id !== undefined) bodyKeys.push('assigned_user_id');
       if (priority !== undefined) bodyKeys.push('priority');
-      const item = updateTodoItem(tripId, itemId, { name, category, due_date, description, assigned_user_id, priority }, bodyKeys);
+      const item = updateTodoItem(tripId, itemId, { name, category, due_date, description, assigned_user_id, priority }, bodyKeys, userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:updated', { item });
       return ok({ item });
@@ -110,7 +110,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId, checked }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const item = updateTodoItem(tripId, itemId, { checked: checked ? 1 : 0 }, []);
+      const item = updateTodoItem(tripId, itemId, { checked: checked ? 1 : 0 }, [], userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:updated', { item });
       return ok({ item });

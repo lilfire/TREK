@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { db } from '../db/database';
 import { authenticate } from '../middleware/auth';
 import { broadcast } from '../websocket';
 import { checkPermission } from '../services/permissions';
@@ -12,6 +13,7 @@ import {
   getCategoryAssignees,
   updateCategoryAssignees,
   reorderItems,
+  canMemberAccessItem,
 } from '../services/todoService';
 
 const router = express.Router({ mergeParams: true });
@@ -23,7 +25,7 @@ router.get('/', authenticate, (req: Request, res: Response) => {
   const trip = verifyTripAccess(tripId, authReq.user.id);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-  const items = listItems(tripId);
+  const items = listItems(tripId, authReq.user.id);
   res.json({ items });
 });
 
@@ -71,7 +73,12 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   if (!checkPermission('packing_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
     return res.status(403).json({ error: 'No permission' });
 
-  const updated = updateItem(tripId, id, { name, checked, category, due_date, description, assigned_user_id, priority }, Object.keys(req.body));
+  if (!canMemberAccessItem(tripId, id, authReq.user.id)) {
+    const exists = !!(db.prepare('SELECT 1 FROM todo_items WHERE id = ? AND trip_id = ?').get(id, tripId));
+    return res.status(exists ? 403 : 404).json({ error: exists ? 'No permission for this item' : 'Item not found' });
+  }
+
+  const updated = updateItem(tripId, id, { name, checked, category, due_date, description, assigned_user_id, priority }, Object.keys(req.body), authReq.user.id);
   if (!updated) return res.status(404).json({ error: 'Item not found' });
 
   res.json({ item: updated });

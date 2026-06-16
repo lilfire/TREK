@@ -62,7 +62,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, itemId, checked }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const item = updatePackingItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked']);
+      const item = updatePackingItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
       safeBroadcast(tripId, 'packing:updated', { item });
       return ok({ item });
@@ -107,7 +107,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       const bodyKeys = ['name', 'category'].filter(k => k === 'name' ? name !== undefined : category !== undefined);
-      const item = updatePackingItem(tripId, itemId, { name, category }, bodyKeys);
+      const item = updatePackingItem(tripId, itemId, { name, category }, bodyKeys, userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
       safeBroadcast(tripId, 'packing:updated', { item });
       return ok({ item });

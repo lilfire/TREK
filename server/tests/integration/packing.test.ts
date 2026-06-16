@@ -124,12 +124,19 @@ describe('List packing items', () => {
     expect(res.body.items).toHaveLength(2);
   });
 
-  it('PACK-002 — member can list packing items', async () => {
+  it('PACK-002 — member can list packing items they are assigned to (LSO-1650 filtering)', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
+    // createPackingItem defaults to category "Clothing"
     createPackingItem(testDb, trip.id, { name: 'Jacket' });
+
+    // Assign the member to the "Clothing" category so the item becomes visible.
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Clothing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [member.id] });
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/packing`)

@@ -318,8 +318,8 @@ router.get('/:id/bundle', authenticate, (req: Request, res: Response) => {
 
   const { days } = listDays(tripId);
   const places = listPlaces(String(tripId), {});
-  const packingItems = listPackingItems(tripId);
-  const todoItems = listTodoItems(tripId);
+  const packingItems = listPackingItems(tripId, authReq.user.id);
+  const todoItems = listTodoItems(tripId, authReq.user.id);
   const budgetItems = listBudgetItems(tripId);
   const reservations = listReservations(tripId);
   const files = listFiles(tripId, false);

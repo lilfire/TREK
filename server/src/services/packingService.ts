@@ -1,4 +1,4 @@
-import { db, canAccessTrip } from '../db/database';
+import { db, canAccessTrip, isOwner } from '../db/database';
 import { avatarUrl } from './authService';
 
 const BAG_COLORS = ['#6366f1', '#ec4899', '#f97316', '#10b981', '#06b6d4', '#8b5cf6', '#ef4444', '#f59e0b'];
@@ -9,37 +9,122 @@ export function verifyTripAccess(tripId: string | number, userId: number) {
 
 // ── Items ──────────────────────────────────────────────────────────────────
 
-export function listItems(tripId: string | number) {
-  return db.prepare(
-    'SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC'
-  ).all(tripId);
+const ITEM_SELECT_WITH_USER = `
+  SELECT pi.*,
+         u.username AS checked_by_username,
+         u.avatar   AS checked_by_avatar
+  FROM packing_items pi
+  LEFT JOIN users u ON u.id = pi.checked_by_user_id
+`;
+
+function decorateItem<T extends { checked_by_avatar?: string | null } | null | undefined>(item: T): T {
+  if (!item) return item;
+  return { ...item, checked_by_avatar: avatarUrl({ avatar: item.checked_by_avatar ?? null }) } as T;
 }
 
-export function createItem(tripId: string | number, data: { name: string; category?: string; checked?: boolean; quantity?: number }) {
+function fetchItemById(id: string | number) {
+  const row = db.prepare(`${ITEM_SELECT_WITH_USER} WHERE pi.id = ?`).get(id) as any;
+  return decorateItem(row);
+}
+
+/**
+ * Returns visible packing items for the requesting user.
+ * Owner sees all items. Members see items whose category is in
+ * `packing_category_assignees` OR whose bag is in `packing_bag_members`.
+ */
+export function listItems(tripId: string | number, userId: number) {
+  const owner = isOwner(tripId, userId);
+  if (owner) {
+    const rows = db.prepare(
+      `${ITEM_SELECT_WITH_USER} WHERE pi.trip_id = ? ORDER BY pi.sort_order ASC, pi.created_at ASC`
+    ).all(tripId) as any[];
+    return rows.map(decorateItem);
+  }
+  const rows = db.prepare(`
+    ${ITEM_SELECT_WITH_USER}
+    WHERE pi.trip_id = ?
+      AND (
+        EXISTS (
+          SELECT 1 FROM packing_category_assignees pca
+          WHERE pca.trip_id = pi.trip_id
+            AND pca.category_name = pi.category
+            AND pca.user_id = ?
+        )
+        OR (
+          pi.bag_id IS NOT NULL AND EXISTS (
+            SELECT 1 FROM packing_bag_members pbm
+            WHERE pbm.bag_id = pi.bag_id AND pbm.user_id = ?
+          )
+        )
+      )
+    ORDER BY pi.sort_order ASC, pi.created_at ASC
+  `).all(tripId, userId, userId) as any[];
+  return rows.map(decorateItem);
+}
+
+/**
+ * True iff the (non-owner) member is permitted to mutate this item.
+ * Mirrors the visibility rules in `listItems` so a member can only modify
+ * items they can see. Returns true for the owner.
+ */
+export function canMemberAccessItem(tripId: string | number, itemId: string | number, userId: number): boolean {
+  if (isOwner(tripId, userId)) return true;
+  const row = db.prepare(`
+    SELECT 1 FROM packing_items pi
+    WHERE pi.id = ? AND pi.trip_id = ?
+      AND (
+        EXISTS (
+          SELECT 1 FROM packing_category_assignees pca
+          WHERE pca.trip_id = pi.trip_id
+            AND pca.category_name = pi.category
+            AND pca.user_id = ?
+        )
+        OR (
+          pi.bag_id IS NOT NULL AND EXISTS (
+            SELECT 1 FROM packing_bag_members pbm
+            WHERE pbm.bag_id = pi.bag_id AND pbm.user_id = ?
+          )
+        )
+      )
+  `).get(itemId, tripId, userId, userId);
+  return !!row;
+}
+
+export function createItem(tripId: string | number, data: { name: string; category?: string; checked?: boolean; quantity?: number }, userId?: number) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
   const qty = Math.max(1, Math.min(999, Number(data.quantity) || 1));
+  const checkedByUserId = data.checked && userId ? userId : null;
 
   const result = db.prepare(
-    'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(tripId, data.name, data.checked ? 1 : 0, data.category || 'Allgemein', sortOrder, qty);
+    'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity, checked_by_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(tripId, data.name, data.checked ? 1 : 0, data.category || 'Allgemein', sortOrder, qty, checkedByUserId);
 
-  return db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid);
+  return fetchItemById(result.lastInsertRowid as number);
 }
 
 export function updateItem(
   tripId: string | number,
   id: string | number,
   data: { name?: string; checked?: number; category?: string; weight_grams?: number | null; bag_id?: number | null; quantity?: number },
-  bodyKeys: string[]
+  bodyKeys: string[],
+  userId?: number
 ) {
   const item = db.prepare('SELECT * FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId);
   if (!item) return null;
+
+  const checkedProvided = data.checked !== undefined;
+  const newChecked = data.checked ? 1 : 0;
+  // Set attribution only when checked toggles to 1 (and userId known); clear on uncheck.
+  const checkedBy = checkedProvided
+    ? (newChecked === 1 ? (userId ?? null) : null)
+    : null;
 
   db.prepare(`
     UPDATE packing_items SET
       name = COALESCE(?, name),
       checked = CASE WHEN ? IS NOT NULL THEN ? ELSE checked END,
+      checked_by_user_id = CASE WHEN ? THEN ? ELSE checked_by_user_id END,
       category = COALESCE(?, category),
       weight_grams = CASE WHEN ? THEN ? ELSE weight_grams END,
       bag_id = CASE WHEN ? THEN ? ELSE bag_id END,
@@ -47,8 +132,10 @@ export function updateItem(
     WHERE id = ?
   `).run(
     data.name || null,
-    data.checked !== undefined ? 1 : null,
-    data.checked ? 1 : 0,
+    checkedProvided ? 1 : null,
+    newChecked,
+    checkedProvided ? 1 : 0,
+    checkedBy,
     data.category || null,
     bodyKeys.includes('weight_grams') ? 1 : 0,
     data.weight_grams ?? null,
@@ -59,7 +146,7 @@ export function updateItem(
     id
   );
 
-  return db.prepare('SELECT * FROM packing_items WHERE id = ?').get(id);
+  return fetchItemById(id);
 }
 
 export function deleteItem(tripId: string | number, id: string | number) {
@@ -108,7 +195,7 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
       }
 
       const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++);
-      created.push(db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid));
+      created.push(fetchItemById(result.lastInsertRowid as number));
     }
   });
 
@@ -213,8 +300,7 @@ export function applyTemplate(tripId: string | number, templateId: string | numb
   const added: any[] = [];
   for (const ti of templateItems) {
     const result = insert.run(tripId, ti.name, ti.category, sortOrder++);
-    const item = db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid);
-    added.push(item);
+    added.push(fetchItemById(result.lastInsertRowid as number));
   }
 
   return added;

@@ -21,6 +21,7 @@ import {
   getCategoryAssignees,
   updateCategoryAssignees,
   reorderItems,
+  canMemberAccessItem,
 } from '../services/packingService';
 
 const router = express.Router({ mergeParams: true });
@@ -32,7 +33,7 @@ router.get('/', authenticate, (req: Request, res: Response) => {
   const trip = verifyTripAccess(tripId, authReq.user.id);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
 
-  const items = listItems(tripId);
+  const items = listItems(tripId, authReq.user.id);
   res.json({ items });
 });
 
@@ -71,7 +72,7 @@ router.post('/', authenticate, (req: Request, res: Response) => {
 
   if (!name) return res.status(400).json({ error: 'Item name is required' });
 
-  const item = createItem(tripId, { name, category, checked });
+  const item = createItem(tripId, { name, category, checked }, authReq.user.id);
   res.status(201).json({ item });
   broadcast(tripId, 'packing:created', { item }, req.headers['x-socket-id'] as string);
 });
@@ -102,7 +103,13 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   if (!checkPermission('packing_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
     return res.status(403).json({ error: 'No permission' });
 
-  const updated = updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity }, Object.keys(req.body));
+  if (!canMemberAccessItem(tripId, id, authReq.user.id)) {
+    // Distinguish "item exists but you can't see it" from "item missing".
+    const exists = !!(db.prepare('SELECT 1 FROM packing_items WHERE id = ? AND trip_id = ?').get(id, tripId));
+    return res.status(exists ? 403 : 404).json({ error: exists ? 'No permission for this item' : 'Item not found' });
+  }
+
+  const updated = updateItem(tripId, id, { name, checked, category, weight_grams, bag_id, quantity }, Object.keys(req.body), authReq.user.id);
   if (!updated) return res.status(404).json({ error: 'Item not found' });
 
   res.json({ item: updated });

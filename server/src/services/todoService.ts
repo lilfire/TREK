@@ -1,4 +1,5 @@
-import { db, canAccessTrip } from '../db/database';
+import { db, canAccessTrip, isOwner } from '../db/database';
+import { avatarUrl } from './authService';
 
 export function verifyTripAccess(tripId: string | number, userId: number) {
   return canAccessTrip(tripId, userId);
@@ -6,10 +7,93 @@ export function verifyTripAccess(tripId: string | number, userId: number) {
 
 // ── Items ──────────────────────────────────────────────────────────────────
 
-export function listItems(tripId: string | number) {
-  return db.prepare(
-    'SELECT * FROM todo_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC'
-  ).all(tripId);
+const ITEM_SELECT_WITH_USER = `
+  SELECT ti.*,
+         u.username AS checked_by_username,
+         u.avatar   AS checked_by_avatar
+  FROM todo_items ti
+  LEFT JOIN users u ON u.id = ti.checked_by_user_id
+`;
+
+function decorateItem<T extends { checked_by_avatar?: string | null } | null | undefined>(item: T): T {
+  if (!item) return item;
+  return { ...item, checked_by_avatar: avatarUrl({ avatar: item.checked_by_avatar ?? null }) } as T;
+}
+
+function fetchItemById(id: string | number) {
+  const row = db.prepare(`${ITEM_SELECT_WITH_USER} WHERE ti.id = ?`).get(id) as any;
+  return decorateItem(row);
+}
+
+/**
+ * Owner sees all items. Members see items where: the member is directly assigned,
+ * OR the item's category is "visible" (member assigned to the category, or member
+ * is `assigned_user_id` on any item in that category for this trip).
+ */
+export function listItems(tripId: string | number, userId: number) {
+  if (isOwner(tripId, userId)) {
+    const rows = db.prepare(
+      `${ITEM_SELECT_WITH_USER} WHERE ti.trip_id = ? ORDER BY ti.sort_order ASC, ti.created_at ASC`
+    ).all(tripId) as any[];
+    return rows.map(decorateItem);
+  }
+  const rows = db.prepare(`
+    ${ITEM_SELECT_WITH_USER}
+    WHERE ti.trip_id = ?
+      AND (
+        ti.assigned_user_id = ?
+        OR (
+          ti.category IS NOT NULL AND (
+            EXISTS (
+              SELECT 1 FROM todo_category_assignees tca
+              WHERE tca.trip_id = ti.trip_id
+                AND tca.category_name = ti.category
+                AND tca.user_id = ?
+            )
+            OR EXISTS (
+              SELECT 1 FROM todo_items sib
+              WHERE sib.trip_id = ti.trip_id
+                AND sib.category = ti.category
+                AND sib.assigned_user_id = ?
+            )
+          )
+        )
+      )
+    ORDER BY ti.sort_order ASC, ti.created_at ASC
+  `).all(tripId, userId, userId, userId) as any[];
+  return rows.map(decorateItem);
+}
+
+/**
+ * True iff the (non-owner) member is permitted to mutate this item.
+ * Mirrors the visibility rules in `listItems`.
+ */
+export function canMemberAccessItem(tripId: string | number, itemId: string | number, userId: number): boolean {
+  if (isOwner(tripId, userId)) return true;
+  const row = db.prepare(`
+    SELECT 1 FROM todo_items ti
+    WHERE ti.id = ? AND ti.trip_id = ?
+      AND (
+        ti.assigned_user_id = ?
+        OR (
+          ti.category IS NOT NULL AND (
+            EXISTS (
+              SELECT 1 FROM todo_category_assignees tca
+              WHERE tca.trip_id = ti.trip_id
+                AND tca.category_name = ti.category
+                AND tca.user_id = ?
+            )
+            OR EXISTS (
+              SELECT 1 FROM todo_items sib
+              WHERE sib.trip_id = ti.trip_id
+                AND sib.category = ti.category
+                AND sib.assigned_user_id = ?
+            )
+          )
+        )
+      )
+  `).get(itemId, tripId, userId, userId, userId);
+  return !!row;
 }
 
 export function createItem(tripId: string | number, data: {
@@ -25,22 +109,30 @@ export function createItem(tripId: string | number, data: {
     data.due_date || null, data.description || null, data.assigned_user_id || null, data.priority || 0
   );
 
-  return db.prepare('SELECT * FROM todo_items WHERE id = ?').get(result.lastInsertRowid);
+  return fetchItemById(result.lastInsertRowid as number);
 }
 
 export function updateItem(
   tripId: string | number,
   id: string | number,
   data: { name?: string; checked?: number; category?: string; due_date?: string | null; description?: string | null; assigned_user_id?: number | null; priority?: number | null },
-  bodyKeys: string[]
+  bodyKeys: string[],
+  userId?: number
 ) {
   const item = db.prepare('SELECT * FROM todo_items WHERE id = ? AND trip_id = ?').get(id, tripId);
   if (!item) return null;
+
+  const checkedProvided = data.checked !== undefined;
+  const newChecked = data.checked ? 1 : 0;
+  const checkedBy = checkedProvided
+    ? (newChecked === 1 ? (userId ?? null) : null)
+    : null;
 
   db.prepare(`
     UPDATE todo_items SET
       name = COALESCE(?, name),
       checked = CASE WHEN ? IS NOT NULL THEN ? ELSE checked END,
+      checked_by_user_id = CASE WHEN ? THEN ? ELSE checked_by_user_id END,
       category = COALESCE(?, category),
       due_date = CASE WHEN ? THEN ? ELSE due_date END,
       description = CASE WHEN ? THEN ? ELSE description END,
@@ -49,8 +141,10 @@ export function updateItem(
     WHERE id = ?
   `).run(
     data.name || null,
-    data.checked !== undefined ? 1 : null,
-    data.checked ? 1 : 0,
+    checkedProvided ? 1 : null,
+    newChecked,
+    checkedProvided ? 1 : 0,
+    checkedBy,
     data.category || null,
     bodyKeys.includes('due_date') ? 1 : 0,
     data.due_date ?? null,
@@ -63,7 +157,7 @@ export function updateItem(
     id
   );
 
-  return db.prepare('SELECT * FROM todo_items WHERE id = ?').get(id);
+  return fetchItemById(id);
 }
 
 export function deleteItem(tripId: string | number, id: string | number) {
