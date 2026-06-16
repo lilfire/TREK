@@ -75,10 +75,20 @@ describe('permissions', () => {
         trip_delete: 'trip_owner',
         day_edit: 'trip_member',
         budget_edit: 'trip_member',
+        packing_edit: 'trip_member',
+        packing_check: 'trip_member',
       };
       for (const [key, expected] of Object.entries(defaults)) {
         expect(getPermissionLevel(key)).toBe(expected);
       }
+    });
+
+    it('packing_check allows escalation to everybody (separate from packing_edit)', () => {
+      const action = PERMISSION_ACTIONS.find(a => a.key === 'packing_check');
+      expect(action).toBeDefined();
+      expect(action?.allowedLevels).toContain('everybody');
+      expect(action?.allowedLevels).toContain('trip_member');
+      expect(action?.allowedLevels).toContain('trip_owner');
     });
 
     it('returns trip_owner for unknown action key', () => {
