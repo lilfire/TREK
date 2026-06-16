@@ -1,6 +1,6 @@
 /**
  * Unit tests for packingService.ts — uncovered functions.
- * Covers PACK-SVC-001 to PACK-SVC-012.
+ * Covers PACK-SVC-001 to PACK-SVC-018.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -17,8 +17,14 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: () => null,
-    canAccessTrip: () => null,
-    isOwner: () => false,
+    canAccessTrip: (tripId: any, userId: number) =>
+      db.prepare(`
+        SELECT t.id, t.user_id FROM trips t
+        LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
+        WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)
+      `).get(userId, tripId, userId),
+    isOwner: (tripId: any, userId: number) =>
+      !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId),
   };
   return { testDb: db, dbMock: mock };
 });
@@ -33,7 +39,7 @@ vi.mock('../../../src/config', () => ({
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
-import { createUser, createTrip } from '../../helpers/factories';
+import { createUser, createTrip, createPackingItem, addTripMember } from '../../helpers/factories';
 import {
   saveAsTemplate,
   applyTemplate,
@@ -41,6 +47,9 @@ import {
   createBag,
   deleteBag,
   bulkImport,
+  listItems,
+  canMemberAccessItem,
+  updateCategoryAssignees,
 } from '../../../src/services/packingService';
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -251,5 +260,103 @@ describe('bulkImport with bag field', () => {
     expect(items).toHaveLength(2);
     expect(items[0].bag_id).toBe(bags[0].id);
     expect(items[1].bag_id).toBe(bags[0].id);
+  });
+});
+
+// ── listItems / canMemberAccessItem visibility (LSO-1661) ────────────────────
+
+describe('listItems / canMemberAccessItem member visibility', () => {
+  it('PACK-SVC-013: owner sees all items regardless of assignees', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    createPackingItem(testDb, trip.id, { name: 'Boots', category: 'Clothing' });
+    updateCategoryAssignees(trip.id, 'Clothing', [member.id]);
+
+    const rows = listItems(trip.id, owner.id) as any[];
+    expect(rows).toHaveLength(1);
+  });
+
+  it('PACK-SVC-014: member sees all items when no category assignees are configured (backwards compat)', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    createPackingItem(testDb, trip.id, { name: 'Tent', category: 'Camping' });
+    createPackingItem(testDb, trip.id, { name: 'Stove', category: 'Camping' });
+
+    const rows = listItems(trip.id, member.id) as any[];
+    expect(rows).toHaveLength(2);
+  });
+
+  it('PACK-SVC-015: member sees only assigned-category items once explicit assignees exist', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
+    createPackingItem(testDb, trip.id, { name: 'Tent', category: 'Camping' });
+
+    updateCategoryAssignees(trip.id, 'Clothing', [alice.id]);
+
+    const aliceRows = listItems(trip.id, alice.id) as any[];
+    const bobRows = listItems(trip.id, bob.id) as any[];
+
+    // Alice sees Clothing (assigned) + Camping (no assignees → fallback)
+    expect(aliceRows.map(r => r.name).sort()).toEqual(['Shirt', 'Tent']);
+    // Bob only sees Camping (no assignees on it); Clothing has an explicit
+    // assignee list that excludes him.
+    expect(bobRows.map(r => r.name)).toEqual(['Tent']);
+  });
+
+  it('PACK-SVC-016: items with NULL category are visible to all members', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    // Insert directly to bypass createPackingItem's category default.
+    testDb.prepare(
+      'INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, NULL, 0, 0)'
+    ).run(trip.id, 'Mystery');
+    // Also add a categorised item with an explicit assignee that excludes member
+    // to prove NULL-category visibility is independent of category filtering.
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
+    updateCategoryAssignees(trip.id, 'Clothing', [owner.id]);
+
+    const rows = listItems(trip.id, member.id) as any[];
+    expect(rows.map(r => r.name)).toEqual(['Mystery']);
+  });
+
+  it('PACK-SVC-017: canMemberAccessItem returns true for unassigned category (no 403 regression)', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Stove', category: 'Camping' });
+
+    expect(canMemberAccessItem(trip.id, item.id, member.id)).toBe(true);
+  });
+
+  it('PACK-SVC-018: canMemberAccessItem returns false for unassigned member on assigned category', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
+    updateCategoryAssignees(trip.id, 'Clothing', [alice.id]);
+
+    expect(canMemberAccessItem(trip.id, item.id, alice.id)).toBe(true);
+    expect(canMemberAccessItem(trip.id, item.id, bob.id)).toBe(false);
+    // Owner is always allowed.
+    expect(canMemberAccessItem(trip.id, item.id, owner.id)).toBe(true);
   });
 });

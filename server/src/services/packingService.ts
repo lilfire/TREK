@@ -27,10 +27,42 @@ function fetchItemById(id: string | number) {
   return decorateItem(row);
 }
 
+// Shared member-visibility predicate for packing items. A non-owner trip member
+// can see an item when:
+//   1. They are an explicit assignee of its category, OR
+//   2. They are a member of its bag, OR
+//   3. (Fallback) the category has zero assignees — preserves the pre-LSO-1652
+//      default where members saw every item, OR
+//   4. The item has no category at all.
+const PACKING_MEMBER_VISIBILITY_SQL = `
+  EXISTS (
+    SELECT 1 FROM packing_category_assignees pca
+    WHERE pca.trip_id = pi.trip_id
+      AND pca.category_name = pi.category
+      AND pca.user_id = ?
+  )
+  OR (
+    pi.bag_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM packing_bag_members pbm
+      WHERE pbm.bag_id = pi.bag_id AND pbm.user_id = ?
+    )
+  )
+  OR (
+    pi.category IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM packing_category_assignees pca
+      WHERE pca.trip_id = pi.trip_id
+        AND pca.category_name = pi.category
+    )
+  )
+  OR pi.category IS NULL
+`;
+
 /**
  * Returns visible packing items for the requesting user.
  * Owner sees all items. Members see items whose category is in
- * `packing_category_assignees` OR whose bag is in `packing_bag_members`.
+ * `packing_category_assignees` OR whose bag is in `packing_bag_members`,
+ * with a backwards-compatible fallback so unassigned categories remain
+ * visible to every member.
  */
 export function listItems(tripId: string | number, userId: number) {
   const owner = isOwner(tripId, userId);
@@ -43,20 +75,7 @@ export function listItems(tripId: string | number, userId: number) {
   const rows = db.prepare(`
     ${ITEM_SELECT_WITH_USER}
     WHERE pi.trip_id = ?
-      AND (
-        EXISTS (
-          SELECT 1 FROM packing_category_assignees pca
-          WHERE pca.trip_id = pi.trip_id
-            AND pca.category_name = pi.category
-            AND pca.user_id = ?
-        )
-        OR (
-          pi.bag_id IS NOT NULL AND EXISTS (
-            SELECT 1 FROM packing_bag_members pbm
-            WHERE pbm.bag_id = pi.bag_id AND pbm.user_id = ?
-          )
-        )
-      )
+      AND (${PACKING_MEMBER_VISIBILITY_SQL})
     ORDER BY pi.sort_order ASC, pi.created_at ASC
   `).all(tripId, userId, userId) as any[];
   return rows.map(decorateItem);
@@ -72,20 +91,7 @@ export function canMemberAccessItem(tripId: string | number, itemId: string | nu
   const row = db.prepare(`
     SELECT 1 FROM packing_items pi
     WHERE pi.id = ? AND pi.trip_id = ?
-      AND (
-        EXISTS (
-          SELECT 1 FROM packing_category_assignees pca
-          WHERE pca.trip_id = pi.trip_id
-            AND pca.category_name = pi.category
-            AND pca.user_id = ?
-        )
-        OR (
-          pi.bag_id IS NOT NULL AND EXISTS (
-            SELECT 1 FROM packing_bag_members pbm
-            WHERE pbm.bag_id = pi.bag_id AND pbm.user_id = ?
-          )
-        )
-      )
+      AND (${PACKING_MEMBER_VISIBILITY_SQL})
   `).get(itemId, tripId, userId, userId);
   return !!row;
 }

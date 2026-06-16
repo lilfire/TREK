@@ -3,7 +3,9 @@
  * 403 enforcement on hidden items, and checked_by_user_id attribution.
  *
  * Covers both packing and todo lists in one suite because they share the
- * same access-control model (owner sees all, member sees assigned only).
+ * same access-control model (owner sees all, member sees assigned items —
+ * with an LSO-1661 backwards-compat fallback so categories that have NO
+ * explicit assignees stay visible to every member).
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
@@ -82,7 +84,7 @@ describe('LSO-1652 packing — list filtering by membership role', () => {
     expect(res.body.items).toHaveLength(3);
   });
 
-  it('member with no assignments sees empty list', async () => {
+  it('member with no assignments sees every item (LSO-1661 backwards-compat fallback)', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -94,7 +96,7 @@ describe('LSO-1652 packing — list filtering by membership role', () => {
       .get(`/api/trips/${trip.id}/packing`)
       .set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
-    expect(res.body.items).toHaveLength(0);
+    expect(res.body.items).toHaveLength(2);
   });
 
   it('member sees only items in categories they are assigned to', async () => {
@@ -106,11 +108,20 @@ describe('LSO-1652 packing — list filtering by membership role', () => {
     createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
     createPackingItem(testDb, trip.id, { name: 'Camera', category: 'Electronics' });
 
-    // Assign member to only "Clothing"
+    // Assign member to "Clothing" and give Toiletries/Electronics explicit
+    // assignees (the owner) so the LSO-1661 fallback does not kick in.
     await request(app)
       .put(`/api/trips/${trip.id}/packing/category-assignees/Clothing`)
       .set('Cookie', authCookie(owner.id))
       .send({ user_ids: [member.id] });
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Toiletries`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Electronics`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/packing`)
@@ -136,6 +147,13 @@ describe('LSO-1652 packing — list filtering by membership role', () => {
       .put(`/api/trips/${trip.id}/packing/bags/${bagId}/members`)
       .set('Cookie', authCookie(owner.id))
       .send({ user_ids: [member.id] });
+
+    // Pin "Misc" to owner so the LSO-1661 fallback does NOT make every item
+    // visible — the bag membership path is what we're isolating here.
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Misc`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
 
     // Item in member's bag (but a category they're NOT assigned to)
     testDb.prepare(
@@ -165,6 +183,13 @@ describe('LSO-1652 packing — 403 enforcement on PUT', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
     const hidden = createPackingItem(testDb, trip.id, { name: 'Hidden', category: 'Toiletries' });
+
+    // Pin "Toiletries" to owner so the LSO-1661 fallback does NOT make it
+    // visible — member is explicitly excluded from this category.
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Toiletries`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/packing/${hidden.id}`)
@@ -272,7 +297,7 @@ describe('LSO-1652 todo — list filtering by membership role', () => {
     expect(res.body.items).toHaveLength(2);
   });
 
-  it('member with no assignments sees empty todo list', async () => {
+  it('member with no assignments sees every todo item (LSO-1661 backwards-compat fallback)', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const trip = createTrip(testDb, owner.id);
@@ -283,7 +308,7 @@ describe('LSO-1652 todo — list filtering by membership role', () => {
       .get(`/api/trips/${trip.id}/todo`)
       .set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
-    expect(res.body.items).toHaveLength(0);
+    expect(res.body.items).toHaveLength(1);
   });
 
   it('member sees items in categories they are assigned to', async () => {
@@ -298,6 +323,12 @@ describe('LSO-1652 todo — list filtering by membership role', () => {
       .put(`/api/trips/${trip.id}/todo/category-assignees/Prep`)
       .set('Cookie', authCookie(owner.id))
       .send({ user_ids: [member.id] });
+    // Pin "Logistics" to owner so the LSO-1661 fallback does not make it
+    // visible to the member.
+    await request(app)
+      .put(`/api/trips/${trip.id}/todo/category-assignees/Logistics`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/todo`)
@@ -339,8 +370,13 @@ describe('LSO-1652 todo — list filtering by membership role', () => {
     // other items in "Prep" — visible to member because they are assigned in this category
     createTodoItem(testDb, trip.id, { name: 'Sibling prep', category: 'Prep' });
 
-    // unrelated category — hidden
+    // unrelated category — hidden. Pin Logistics to owner so the LSO-1661
+    // fallback does not unhide it.
     createTodoItem(testDb, trip.id, { name: 'Hidden', category: 'Logistics' });
+    await request(app)
+      .put(`/api/trips/${trip.id}/todo/category-assignees/Logistics`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/todo`)
@@ -362,6 +398,12 @@ describe('LSO-1652 todo — 403 enforcement on PUT', () => {
     const trip = createTrip(testDb, owner.id);
     addTripMember(testDb, trip.id, member.id);
     const hidden = createTodoItem(testDb, trip.id, { name: 'Owner-only', category: 'Logistics' });
+
+    // Pin "Logistics" to owner so the LSO-1661 fallback does not unhide it.
+    await request(app)
+      .put(`/api/trips/${trip.id}/todo/category-assignees/Logistics`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [owner.id] });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/todo/${hidden.id}`)
