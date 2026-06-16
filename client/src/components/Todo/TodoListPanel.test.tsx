@@ -472,6 +472,44 @@ describe('TodoListPanel', () => {
     expect(screen.getByTestId('checked-by-badge')).toHaveAttribute('title', 'Checked by alice');
   });
 
+  it('FE-COMP-TODO-TOGGLE-403: 403 from toggle PUT reverts optimistic update and does not crash', async () => {
+    const user = userEvent.setup();
+    let putCalled = false;
+    let putStatus = 0;
+    server.use(
+      http.put('/api/trips/1/todo/77', () => {
+        putCalled = true;
+        putStatus = 403;
+        return HttpResponse.json({ error: 'You do not have permission to toggle this task' }, { status: 403 });
+      }),
+    );
+    const item = buildTodoItem({ id: 77, name: 'Forbidden Task', checked: 0 });
+    // Seed the store so the slice action operates on a known initial state we can verify reverts.
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), todoItems: [item] });
+    const { container } = render(<TodoListPanel tripId={1} items={[item]} />);
+
+    // The first button in the task row is the checkbox.
+    const nameDiv = await screen.findByText('Forbidden Task');
+    const row = nameDiv.closest('[style*="cursor: pointer"]') as HTMLElement | null;
+    expect(row).toBeTruthy();
+    const checkboxBtn = row!.querySelector('button');
+    expect(checkboxBtn).toBeTruthy();
+    await user.click(checkboxBtn!);
+
+    await waitFor(() => expect(putCalled).toBe(true));
+    expect(putStatus).toBe(403);
+
+    // Store state reverted — item.checked back to 0 after the failed toggle.
+    await waitFor(() => {
+      const stored = useTripStore.getState().todoItems.find(i => i.id === 77);
+      expect(stored?.checked).toBe(0);
+    });
+
+    // No crash / no error UI: panel header still mounted, no live region appeared.
+    expect(container.querySelector('h2')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
   it('FE-COMP-TODO-033: checked_by badge hidden when checked_by_user_id is null', async () => {
     Object.defineProperty(window, 'innerWidth', { value: 0, writable: true, configurable: true });
     server.use(

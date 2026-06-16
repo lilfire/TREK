@@ -1479,4 +1479,43 @@ describe('PackingListPanel', () => {
     expect(els.length).toBeGreaterThan(0);
     expect(screen.queryByText(/error/i)).not.toBeInTheDocument();
   });
+
+  it('FE-COMP-PACKING-TOGGLE-403: 403 from toggle PUT reverts optimistic update and does not crash', async () => {
+    const user = userEvent.setup();
+    let putCalled = false;
+    let putStatus = 0;
+    server.use(
+      http.put('/api/trips/1/packing/42', () => {
+        putCalled = true;
+        putStatus = 403;
+        return HttpResponse.json({ error: 'You do not have permission to toggle this item' }, { status: 403 });
+      }),
+    );
+    const item = buildPackingItem({ id: 42, name: 'Forbidden Item', category: 'Test', checked: 0 });
+    // Seed the store so the slice action operates on a known initial state we can verify reverts.
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), packingItems: [item] });
+    const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
+
+    // Click the checkbox (first button inside the item row).
+    const nameSpan = screen.getByText('Forbidden Item');
+    const row = nameSpan.closest('.group') as HTMLElement | null;
+    expect(row).toBeTruthy();
+    const checkboxBtn = row!.querySelector('button');
+    expect(checkboxBtn).toBeTruthy();
+    await user.click(checkboxBtn!);
+
+    // Assert the PUT fired and returned 403.
+    await waitFor(() => expect(putCalled).toBe(true));
+    expect(putStatus).toBe(403);
+
+    // Assert: store state reverted — item.checked back to 0 after the failed toggle.
+    await waitFor(() => {
+      const stored = useTripStore.getState().packingItems.find(i => i.id === 42);
+      expect(stored?.checked).toBe(0);
+    });
+
+    // Assert: no crash / no error UI surfaced (no rendered "error" text, panel still mounted).
+    expect(container.querySelector('h2')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });
