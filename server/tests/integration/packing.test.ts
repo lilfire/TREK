@@ -144,6 +144,21 @@ describe('List packing items', () => {
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
   });
+
+  it('PACK-018 — LSO-1661 regression: member sees all items when no category assignees configured', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    createPackingItem(testDb, trip.id, { name: 'Tent', category: 'Camping' });
+    createPackingItem(testDb, trip.id, { name: 'Stove', category: 'Camping' });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(member.id));
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(2);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -173,6 +188,49 @@ describe('Update packing item', () => {
       .set('Cookie', authCookie(user.id))
       .send({ name: 'Updated' });
     expect(res.status).toBe(404);
+  });
+
+  it('PACK-019 — LSO-1661 regression: member can toggle item in category with no assignees (no 403)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Boots', category: 'Camping' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ checked: true });
+    expect(res.status).toBe(200);
+    expect(res.body.item.checked).toBe(1);
+  });
+
+  it('PACK-020 — LSO-1661 regression: member still gets 403 on items in categories they are not assigned to', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    const item = createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothing' });
+
+    // Assign Clothing to alice only — bob must NOT be able to toggle it.
+    await request(app)
+      .put(`/api/trips/${trip.id}/packing/category-assignees/Clothing`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [alice.id] });
+
+    const aliceRes = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(alice.id))
+      .send({ checked: true });
+    expect(aliceRes.status).toBe(200);
+
+    const bobRes = await request(app)
+      .put(`/api/trips/${trip.id}/packing/${item.id}`)
+      .set('Cookie', authCookie(bob.id))
+      .send({ checked: false });
+    expect(bobRes.status).toBe(403);
   });
 });
 

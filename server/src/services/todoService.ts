@@ -25,10 +25,56 @@ function fetchItemById(id: string | number) {
   return decorateItem(row);
 }
 
+// Shared member-visibility predicate for todo items. A non-owner trip member
+// can see an item when:
+//   1. They are its direct `assigned_user_id`, OR
+//   2. Its category lists them in `todo_category_assignees`, OR
+//   3. A sibling item in the same category is assigned directly to them, OR
+//   4. (Fallback) the category has no `tca` rows AND no sibling has an
+//      `assigned_user_id` — preserves the pre-LSO-1652 default where every
+//      member saw every item, OR
+//   5. The item has no category AND no assignee at all.
+const TODO_MEMBER_VISIBILITY_SQL = `
+  ti.assigned_user_id = ?
+  OR (
+    ti.category IS NOT NULL AND (
+      EXISTS (
+        SELECT 1 FROM todo_category_assignees tca
+        WHERE tca.trip_id = ti.trip_id
+          AND tca.category_name = ti.category
+          AND tca.user_id = ?
+      )
+      OR EXISTS (
+        SELECT 1 FROM todo_items sib
+        WHERE sib.trip_id = ti.trip_id
+          AND sib.category = ti.category
+          AND sib.assigned_user_id = ?
+      )
+    )
+  )
+  OR (
+    ti.category IS NOT NULL
+    AND NOT EXISTS (
+      SELECT 1 FROM todo_category_assignees tca
+      WHERE tca.trip_id = ti.trip_id
+        AND tca.category_name = ti.category
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM todo_items sib
+      WHERE sib.trip_id = ti.trip_id
+        AND sib.category = ti.category
+        AND sib.assigned_user_id IS NOT NULL
+    )
+  )
+  OR (ti.category IS NULL AND ti.assigned_user_id IS NULL)
+`;
+
 /**
  * Owner sees all items. Members see items where: the member is directly assigned,
  * OR the item's category is "visible" (member assigned to the category, or member
- * is `assigned_user_id` on any item in that category for this trip).
+ * is `assigned_user_id` on any item in that category for this trip), with a
+ * backwards-compatible fallback so unassigned categories remain visible to every
+ * member.
  */
 export function listItems(tripId: string | number, userId: number) {
   if (isOwner(tripId, userId)) {
@@ -40,25 +86,7 @@ export function listItems(tripId: string | number, userId: number) {
   const rows = db.prepare(`
     ${ITEM_SELECT_WITH_USER}
     WHERE ti.trip_id = ?
-      AND (
-        ti.assigned_user_id = ?
-        OR (
-          ti.category IS NOT NULL AND (
-            EXISTS (
-              SELECT 1 FROM todo_category_assignees tca
-              WHERE tca.trip_id = ti.trip_id
-                AND tca.category_name = ti.category
-                AND tca.user_id = ?
-            )
-            OR EXISTS (
-              SELECT 1 FROM todo_items sib
-              WHERE sib.trip_id = ti.trip_id
-                AND sib.category = ti.category
-                AND sib.assigned_user_id = ?
-            )
-          )
-        )
-      )
+      AND (${TODO_MEMBER_VISIBILITY_SQL})
     ORDER BY ti.sort_order ASC, ti.created_at ASC
   `).all(tripId, userId, userId, userId) as any[];
   return rows.map(decorateItem);
@@ -73,25 +101,7 @@ export function canMemberAccessItem(tripId: string | number, itemId: string | nu
   const row = db.prepare(`
     SELECT 1 FROM todo_items ti
     WHERE ti.id = ? AND ti.trip_id = ?
-      AND (
-        ti.assigned_user_id = ?
-        OR (
-          ti.category IS NOT NULL AND (
-            EXISTS (
-              SELECT 1 FROM todo_category_assignees tca
-              WHERE tca.trip_id = ti.trip_id
-                AND tca.category_name = ti.category
-                AND tca.user_id = ?
-            )
-            OR EXISTS (
-              SELECT 1 FROM todo_items sib
-              WHERE sib.trip_id = ti.trip_id
-                AND sib.category = ti.category
-                AND sib.assigned_user_id = ?
-            )
-          )
-        )
-      )
+      AND (${TODO_MEMBER_VISIBILITY_SQL})
   `).get(itemId, tripId, userId, userId, userId);
   return !!row;
 }

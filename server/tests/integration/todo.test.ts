@@ -320,3 +320,79 @@ describe('Todo category assignees', () => {
     expect(res.body.assignees).toHaveLength(0);
   });
 });
+
+describe('Todo member visibility (LSO-1661 regression)', () => {
+  it('TODO-016: member sees all todo items when no category/item assignments configured', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    await request(app)
+      .post(`/api/trips/${trip.id}/todo`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Book flight', category: 'Logistics' });
+    await request(app)
+      .post(`/api/trips/${trip.id}/todo`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Buy maps', category: 'Logistics' });
+
+    const res = await request(app)
+      .get(`/api/trips/${trip.id}/todo`)
+      .set('Cookie', authCookie(member.id));
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(2);
+  });
+
+  it('TODO-017: member can toggle todo in unassigned category (no 403)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+
+    const createRes = await request(app)
+      .post(`/api/trips/${trip.id}/todo`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Book hotel', category: 'Logistics' });
+    const itemId = createRes.body.item.id;
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/todo/${itemId}`)
+      .set('Cookie', authCookie(member.id))
+      .send({ checked: 1 });
+    expect(res.status).toBe(200);
+    expect(res.body.item.checked).toBe(1);
+  });
+
+  it('TODO-018: member still gets 403 on todos in categories they are not assigned to', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+
+    const createRes = await request(app)
+      .post(`/api/trips/${trip.id}/todo`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ name: 'Book hotel', category: 'Logistics' });
+    const itemId = createRes.body.item.id;
+
+    await request(app)
+      .put(`/api/trips/${trip.id}/todo/category-assignees/Logistics`)
+      .set('Cookie', authCookie(owner.id))
+      .send({ user_ids: [alice.id] });
+
+    const aliceRes = await request(app)
+      .put(`/api/trips/${trip.id}/todo/${itemId}`)
+      .set('Cookie', authCookie(alice.id))
+      .send({ checked: 1 });
+    expect(aliceRes.status).toBe(200);
+
+    const bobRes = await request(app)
+      .put(`/api/trips/${trip.id}/todo/${itemId}`)
+      .set('Cookie', authCookie(bob.id))
+      .send({ checked: 0 });
+    expect(bobRes.status).toBe(403);
+  });
+});
