@@ -14,6 +14,11 @@ Set-Location -Path $PSScriptRoot
 
 $ImageName = "trek:local"
 $AppVersion = "dev"
+# Tag local builds with the commit so the admin page shows what is running.
+try {
+    $ShortSha = git rev-parse --short HEAD 2>$null
+    if ($LASTEXITCODE -eq 0 -and $ShortSha) { $AppVersion = "dev-$ShortSha" }
+} catch {}
 
 # Check if Docker is running
 docker info > $null 2>&1
