@@ -37,7 +37,6 @@ const NTFY_EVENT_META: Partial<Record<NotifEventType, { priority: 1 | 2 | 3 | 4 
   photos_shared:            { priority: 3, tags: ['camera'] },
   collab_message:           { priority: 3, tags: ['speech_balloon'] },
   packing_tagged:           { priority: 3, tags: ['luggage'] },
-  version_available:        { priority: 4, tags: ['package'] },
   synology_session_cleared: { priority: 3, tags: ['warning'] },
 };
 const NTFY_DEFAULT_META = { priority: 3 as const, tags: [] as string[] };
@@ -69,11 +68,26 @@ export function getAdminNtfyConfig(): NtfyConfig {
   };
 }
 
+export function resolveNtfyServer(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string {
+  return (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
+}
+
 export function resolveNtfyUrl(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string | null {
   const topic = userCfg?.topic || adminCfg.topic;
   if (!topic) return null;
-  const base = (userCfg?.server || adminCfg.server || 'https://ntfy.sh').replace(/\/+$/, '');
+  const base = resolveNtfyServer(adminCfg, userCfg);
   return `${base}/${encodeURIComponent(topic)}`;
+}
+
+/**
+ * Decides which ntfy token, if any, may be attached for this admin/user config pair.
+ * The operator's token must never reach a server the operator didn't configure — so it's
+ * only used as a fallback when the effective server still resolves to the operator's own.
+ */
+export function resolveNtfyToken(adminCfg: NtfyConfig, userCfg: NtfyConfig | null): string | null {
+  if (userCfg?.token) return userCfg.token;
+  const usingAdminServer = resolveNtfyServer(adminCfg, userCfg) === resolveNtfyServer(adminCfg, null);
+  return usingAdminServer ? adminCfg.token : null;
 }
 
 export function isNtfyConfiguredForUser(userId: number): boolean {

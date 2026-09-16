@@ -22,7 +22,7 @@ export const publicTripSummaries = [
   },
 ];
 
-const publicTrip = {
+export const publicTrip = {
   trip: {
     id: 42,
     title: 'Public Paris Trip',
@@ -75,6 +75,7 @@ const publicTrip = {
     { id: '2', title: 'Hotel', category: 'Accommodation', amount: 600, note: '', persons: 2, days: 3 },
   ],
   budgetSummary: { totalBudget: 1000, currency: 'EUR' },
+  accommodationTiers: { participant_count: 1, active_tier_id: null, next_tier: null, tiers: [] },
 };
 
 export const publicTripsHandlers = [

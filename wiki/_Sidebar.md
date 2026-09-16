@@ -81,7 +81,6 @@
 - [[Admin: Packing Templates|Admin-Packing-Templates]]
 - [[Admin: Permissions|Admin-Permissions]]
 - [[Admin: MCP Tokens|Admin-MCP-Tokens]]
-- [[Admin: GitHub Releases|Admin-GitHub-Releases]]
 
 ## Operations
 - [[Backups]]

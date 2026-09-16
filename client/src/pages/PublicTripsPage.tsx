@@ -4,9 +4,11 @@ import { MapPin, Calendar } from 'lucide-react'
 import { publicTripsApi, type PublicTripSummary } from '../api/client'
 import { formatDateRange } from '../utils/formatters'
 import PublicThemeToggle from '../components/shared/PublicThemeToggle'
+import { useTranslation } from '../i18n'
 
 export default function PublicTripsPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [trips, setTrips] = useState<PublicTripSummary[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -37,21 +39,21 @@ export default function PublicTripsPage() {
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
 
         {/* Login / Register links + theme toggle */}
-        <nav className="absolute top-3 right-3 flex gap-2 items-center" aria-label="Account navigation">
+        <nav className="absolute top-3 right-3 flex gap-2 items-center" aria-label={t('publicTrips.accountNav')}>
           <PublicThemeToggle />
           <Link
             to="/login"
             data-testid="login-link"
             className="text-xs font-medium px-3 py-1.5 rounded-full border border-white/20 bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
           >
-            Login
+            {t('login.signIn')}
           </Link>
           <Link
             to="/register"
             data-testid="register-link"
             className="text-xs font-medium px-3 py-1.5 rounded-full border border-white/20 bg-white/10 text-white/80 hover:bg-white/20 transition-colors"
           >
-            Register
+            {t('login.register')}
           </Link>
         </nav>
 
@@ -62,10 +64,10 @@ export default function PublicTripsPage() {
             <img src="/icons/icon-white.svg" alt="TREK" width={26} height={26} />
           </div>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 8 }}>
-            Travel Resource &amp; Exploration Kit
+            {t('journey.public.tagline')}
           </div>
-          <h1 className="text-2xl font-bold tracking-tight mb-1">Explore Trips</h1>
-          <p style={{ fontSize: 13, opacity: 0.5 }}>Browse publicly shared travel itineraries</p>
+          <h1 className="text-2xl font-bold tracking-tight mb-1">{t('publicTrips.title')}</h1>
+          <p style={{ fontSize: 13, opacity: 0.5 }}>{t('publicTrips.subtitle')}</p>
         </div>
       </header>
 
@@ -77,8 +79,8 @@ export default function PublicTripsPage() {
             className="flex flex-col items-center justify-center py-24 text-center"
           >
             <div className="text-5xl mb-4">🗺️</div>
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-1">No public trips yet</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Check back later — trip planners can make their itineraries public here.</p>
+            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-1">{t('publicTrips.empty')}</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('publicTrips.emptyHint')}</p>
           </div>
         ) : (
           <div
@@ -92,7 +94,7 @@ export default function PublicTripsPage() {
                 data-testid="trip-card"
                 onClick={() => navigate(`/public/trips/${trip.id}`)}
                 className="group text-left bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900 dark:focus-visible:ring-white"
-                aria-label={`View trip: ${trip.name}`}
+                aria-label={t('publicTrips.viewTrip', { name: trip.name })}
               >
                 {/* Cover image */}
                 {trip.cover_image_url ? (
@@ -134,7 +136,7 @@ export default function PublicTripsPage() {
 
                   <div className="flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500">
                     <MapPin size={11} className="flex-shrink-0" />
-                    <span data-testid="trip-place-count">{trip.place_count} {trip.place_count === 1 ? 'place' : 'places'}</span>
+                    <span data-testid="trip-place-count">{t(trip.place_count === 1 ? 'common.placeCountOne' : 'common.placeCount', { count: trip.place_count })}</span>
                   </div>
                 </div>
               </button>
@@ -147,7 +149,7 @@ export default function PublicTripsPage() {
       <div className="flex flex-col items-center pb-8">
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <img src="/icons/icon.svg" alt="TREK" width={18} height={18} style={{ borderRadius: 4 }} />
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Powered by <strong style={{ color: 'var(--text-secondary)' }}>TREK</strong></span>
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('publicTrips.poweredBy')} <strong style={{ color: 'var(--text-secondary)' }}>TREK</strong></span>
         </div>
       </div>
     </div>

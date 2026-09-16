@@ -139,7 +139,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} photos shared`, body: `${p.actor} shared ${p.count} photo(s) in "${p.trip}".` }),
     collab_message: p => ({ title: `New message in "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Packing: ${p.category}`, body: `${p.actor} assigned you to the "${p.category}" packing category in "${p.trip}".` }),
-    version_available: p => ({ title: 'New TREK version available', body: `TREK ${p.version} is now available. Visit the admin panel to update.` }),
     synology_session_cleared: () => ({ title: 'Synology session cleared', body: 'Your Synology account or URL changed. You have been logged out of Synology Photos.' }),
   },
   de: {
@@ -151,7 +150,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} Fotos geteilt`, body: `${p.actor} hat ${p.count} Foto(s) in "${p.trip}" geteilt.` }),
     collab_message: p => ({ title: `Neue Nachricht in "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Packliste: ${p.category}`, body: `${p.actor} hat dich der Kategorie "${p.category}" in der Packliste von "${p.trip}" zugewiesen.` }),
-    version_available: p => ({ title: 'Neue TREK-Version verfügbar', body: `TREK ${p.version} ist jetzt verfügbar. Besuche das Admin-Panel zum Aktualisieren.` }),
     synology_session_cleared: () => ({ title: 'Synology-Sitzung beendet', body: 'Dein Synology-Konto oder die URL hat sich geändert. Du wurdest von Synology Photos abgemeldet.' }),
   },
   fr: {
@@ -163,7 +161,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} photos partagées`, body: `${p.actor} a partagé ${p.count} photo(s) dans "${p.trip}".` }),
     collab_message: p => ({ title: `Nouveau message dans "${p.trip}"`, body: `${p.actor} : ${p.preview}` }),
     packing_tagged: p => ({ title: `Bagages : ${p.category}`, body: `${p.actor} vous a assigné à la catégorie "${p.category}" dans "${p.trip}".` }),
-    version_available: p => ({ title: 'Nouvelle version TREK disponible', body: `TREK ${p.version} est maintenant disponible. Rendez-vous dans le panneau d'administration pour mettre à jour.` }),
     synology_session_cleared: () => ({ title: 'Session Synology effacée', body: 'Votre compte ou URL Synology a changé. Vous avez été déconnecté de Synology Photos.' }),
   },
   es: {
@@ -175,7 +172,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} fotos compartidas`, body: `${p.actor} compartió ${p.count} foto(s) en "${p.trip}".` }),
     collab_message: p => ({ title: `Nuevo mensaje en "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Equipaje: ${p.category}`, body: `${p.actor} te asignó a la categoría "${p.category}" en "${p.trip}".` }),
-    version_available: p => ({ title: 'Nueva versión de TREK disponible', body: `TREK ${p.version} ya está disponible. Visita el panel de administración para actualizar.` }),
     synology_session_cleared: () => ({ title: 'Sesión de Synology cerrada', body: 'Tu cuenta o URL de Synology ha cambiado. Has cerrado sesión en Synology Photos.' }),
   },
   nl: {
@@ -187,7 +183,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} foto's gedeeld`, body: `${p.actor} heeft ${p.count} foto('s) gedeeld in "${p.trip}".` }),
     collab_message: p => ({ title: `Nieuw bericht in "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Paklijst: ${p.category}`, body: `${p.actor} heeft je toegewezen aan de categorie "${p.category}" in "${p.trip}".` }),
-    version_available: p => ({ title: 'Nieuwe TREK-versie beschikbaar', body: `TREK ${p.version} is nu beschikbaar. Bezoek het beheerderspaneel om bij te werken.` }),
     synology_session_cleared: () => ({ title: 'Synology-sessie gewist', body: 'Je Synology-account of URL is gewijzigd. Je bent uitgelogd bij Synology Photos.' }),
   },
   ru: {
@@ -199,7 +194,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} фото`, body: `${p.actor} поделился ${p.count} фото в "${p.trip}".` }),
     collab_message: p => ({ title: `Новое сообщение в "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Список вещей: ${p.category}`, body: `${p.actor} назначил вас в категорию "${p.category}" в "${p.trip}".` }),
-    version_available: p => ({ title: 'Доступна новая версия TREK', body: `TREK ${p.version} теперь доступен. Перейдите в панель администратора для обновления.` }),
     synology_session_cleared: () => ({ title: 'Сессия Synology сброшена', body: 'Ваш аккаунт или URL Synology изменился. Вы вышли из Synology Photos.' }),
   },
   zh: {
@@ -211,7 +205,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} 张照片已分享`, body: `${p.actor} 在"${p.trip}"中分享了 ${p.count} 张照片。` }),
     collab_message: p => ({ title: `"${p.trip}"中的新消息`, body: `${p.actor}：${p.preview}` }),
     packing_tagged: p => ({ title: `行李清单：${p.category}`, body: `${p.actor} 将你分配到"${p.trip}"中的"${p.category}"类别。` }),
-    version_available: p => ({ title: '新版 TREK 可用', body: `TREK ${p.version} 现已可用。请前往管理面板进行更新。` }),
     synology_session_cleared: () => ({ title: 'Synology 会话已清除', body: '您的 Synology 账户或 URL 已更改，您已退出 Synology Photos。' }),
   },
   'zh-TW': {
@@ -223,7 +216,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `已分享 ${p.count} 張照片`, body: `${p.actor} 在「${p.trip}」中分享了 ${p.count} 張照片。` }),
     collab_message: p => ({ title: `「${p.trip}」中的新訊息`, body: `${p.actor}：${p.preview}` }),
     packing_tagged: p => ({ title: `打包清單：${p.category}`, body: `${p.actor} 已將您指派到「${p.trip}」中的「${p.category}」分類。` }),
-    version_available: p => ({ title: '新版 TREK 可用', body: `TREK ${p.version} 現已可用。請前往管理面板進行更新。` }),
     synology_session_cleared: () => ({ title: 'Synology 工作階段已清除', body: '您的 Synology 帳戶或 URL 已變更，您已登出 Synology Photos。' }),
   },
   ar: {
@@ -235,7 +227,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} صور مشتركة`, body: `${p.actor} شارك ${p.count} صورة في "${p.trip}".` }),
     collab_message: p => ({ title: `رسالة جديدة في "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `قائمة التعبئة: ${p.category}`, body: `${p.actor} عيّنك في فئة "${p.category}" في "${p.trip}".` }),
-    version_available: p => ({ title: 'إصدار TREK جديد متاح', body: `TREK ${p.version} متاح الآن. تفضل بزيارة لوحة الإدارة للتحديث.` }),
     synology_session_cleared: () => ({ title: 'تمت إعادة تعيين جلسة Synology', body: 'تغيّر حسابك أو رابط Synology. تم تسجيل خروجك من Synology Photos.' }),
   },
   br: {
@@ -247,7 +238,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} fotos compartilhadas`, body: `${p.actor} compartilhou ${p.count} foto(s) em "${p.trip}".` }),
     collab_message: p => ({ title: `Nova mensagem em "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Bagagem: ${p.category}`, body: `${p.actor} atribuiu você à categoria "${p.category}" em "${p.trip}".` }),
-    version_available: p => ({ title: 'Nova versão do TREK disponível', body: `O TREK ${p.version} está disponível. Acesse o painel de administração para atualizar.` }),
     synology_session_cleared: () => ({ title: 'Sessão Synology encerrada', body: 'Sua conta ou URL do Synology foi alterada. Você foi desconectado do Synology Photos.' }),
   },
   cs: {
@@ -259,7 +249,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} sdílených fotek`, body: `${p.actor} sdílel ${p.count} foto v "${p.trip}".` }),
     collab_message: p => ({ title: `Nová zpráva v "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Balení: ${p.category}`, body: `${p.actor} vás přiřadil do kategorie "${p.category}" v "${p.trip}".` }),
-    version_available: p => ({ title: 'Nová verze TREK dostupná', body: `TREK ${p.version} je nyní dostupný. Navštivte administrátorský panel pro aktualizaci.` }),
     synology_session_cleared: () => ({ title: 'Relace Synology byla zrušena', body: 'Váš účet nebo URL Synology se změnil. Byli jste odhlášeni ze Synology Photos.' }),
   },
   hu: {
@@ -271,7 +260,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} fotó megosztva`, body: `${p.actor} ${p.count} fotót osztott meg a(z) "${p.trip}" utazásban.` }),
     collab_message: p => ({ title: `Új üzenet a(z) "${p.trip}" utazásban`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Csomagolás: ${p.category}`, body: `${p.actor} hozzárendelte Önt a "${p.category}" csomagolási kategóriához a(z) "${p.trip}" utazásban.` }),
-    version_available: p => ({ title: 'Új TREK verzió érhető el', body: `A TREK ${p.version} elérhető. Látogasson el az adminisztrációs panelre a frissítéshez.` }),
     synology_session_cleared: () => ({ title: 'Synology munkamenet törölve', body: 'A Synology fiókja vagy URL-je megváltozott. Kijelentkeztek a Synology Photos-ból.' }),
   },
   it: {
@@ -283,7 +271,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} foto condivise`, body: `${p.actor} ha condiviso ${p.count} foto in "${p.trip}".` }),
     collab_message: p => ({ title: `Nuovo messaggio in "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Bagagli: ${p.category}`, body: `${p.actor} ti ha assegnato alla categoria "${p.category}" in "${p.trip}".` }),
-    version_available: p => ({ title: 'Nuova versione TREK disponibile', body: `TREK ${p.version} è ora disponibile. Visita il pannello di amministrazione per aggiornare.` }),
     synology_session_cleared: () => ({ title: 'Sessione Synology rimossa', body: 'Il tuo account o URL Synology è cambiato. Sei stato disconnesso da Synology Photos.' }),
   },
   pl: {
@@ -295,7 +282,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} zdjęć udostępnionych`, body: `${p.actor} udostępnił ${p.count} zdjęcie/zdjęcia w "${p.trip}".` }),
     collab_message: p => ({ title: `Nowa wiadomość w "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Pakowanie: ${p.category}`, body: `${p.actor} przypisał Cię do kategorii "${p.category}" w "${p.trip}".` }),
-    version_available: p => ({ title: 'Nowa wersja TREK dostępna', body: `TREK ${p.version} jest teraz dostępny. Odwiedź panel administracyjny, aby zaktualizować.` }),
     synology_session_cleared: () => ({ title: 'Sesja Synology wyczyszczona', body: 'Twoje konto lub URL Synology uległo zmianie. Zostałeś wylogowany z Synology Photos.' }),
   },
   id: {
@@ -307,7 +293,6 @@ const EVENT_TEXTS: Record<string, Record<NotifEventType, EventTextFn>> = {
     photos_shared: p => ({ title: `${p.count} foto dibagikan`, body: `${p.actor} membagikan ${p.count} foto di "${p.trip}".` }),
     collab_message: p => ({ title: `Pesan baru di "${p.trip}"`, body: `${p.actor}: ${p.preview}` }),
     packing_tagged: p => ({ title: `Pengepakan: ${p.category}`, body: `${p.actor} menugaskan Anda ke kategori "${p.category}" di "${p.trip}".` }),
-    version_available: p => ({ title: 'Versi TREK baru tersedia', body: `TREK ${p.version} sekarang tersedia. Kunjungi panel admin untuk memperbarui.` }),
   },
 };
 
@@ -354,7 +339,7 @@ export function buildEmailHtml(subject: string, body: string, lang: string, navi
         <!-- Footer -->
         <tr><td style="padding: 20px 32px; background: #f9fafb; border-top: 1px solid #f3f4f6; text-align: center;">
           <p style="margin: 0 0 8px; font-size: 11px; color: #9ca3af; line-height: 1.5;">${s.footer}<br>${s.manage}</p>
-          <p style="margin: 0; font-size: 10px; color: #d1d5db;">${s.madeWith} <span style="color: #ef4444;">&hearts;</span> by Maurice &middot; <a href="https://github.com/${escapeHtml(GITHUB_REPO)}" style="color: #9ca3af; text-decoration: none;">GitHub</a></p>
+          <p style="margin: 0; font-size: 10px; color: #d1d5db;">${s.madeWith} <span style="color: #ef4444;">&hearts;</span> &middot; <a href="https://github.com/${escapeHtml(GITHUB_REPO)}" style="color: #9ca3af; text-decoration: none;">GitHub</a></p>
         </td></tr>
       </table>
     </td></tr>

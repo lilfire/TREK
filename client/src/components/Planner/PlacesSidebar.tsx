@@ -108,7 +108,7 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
       <PlaceAvatar place={place} category={cat} size={34} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
-          {hasGeometry && <Route size={11} strokeWidth={2} color="var(--text-faint)" style={{ flexShrink: 0 }} title="Track / Route" />}
+          {hasGeometry && <Route size={11} strokeWidth={2} color="var(--text-faint)" style={{ flexShrink: 0 }} title={t('places.trackRoute')} />}
           {cat && (() => {
             const CatIcon = getCategoryIcon(cat.icon)
             return <CatIcon size={11} strokeWidth={2} color={cat.color || '#6366f1'} style={{ flexShrink: 0 }} title={cat.name} />

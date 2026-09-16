@@ -22,6 +22,7 @@ const { testDb, dbMock } = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/config', () => ({
+  USER_AGENT: 'TREK Travel Planner (https://github.com/lilfire/TREK)',
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
@@ -171,22 +172,22 @@ describe('createNotification — preference filtering', () => {
     expect(broadcastMock.mock.calls[0][0]).toBe(recipient.id);
   });
 
-  it('INOTIF-004 — admin-scope version_available only reaches admins with enabled pref', () => {
+  it('INOTIF-004 — admin-scope delivery only reaches admins with the pref enabled', () => {
     const { user: admin1 } = createAdmin(testDb);
     const { user: admin2 } = createAdmin(testDb);
 
-    // admin2 disables version_available inapp notifications
-    disableNotificationPref(testDb, admin2.id, 'version_available', 'inapp');
+    // admin2 disables inapp notifications for this event
+    disableNotificationPref(testDb, admin2.id, 'trip_invite', 'inapp');
 
     const ids = createNotification({
       type: 'navigate',
       scope: 'admin',
       target: 0,
       sender_id: null,
-      event_type: 'version_available',
-      title_key: 'notifications.versionAvailable.title',
-      text_key: 'notifications.versionAvailable.text',
-      navigate_text_key: 'notifications.versionAvailable.button',
+      event_type: 'trip_invite',
+      title_key: 'notif.trip_invite.title',
+      text_key: 'notif.trip_invite.text',
+      navigate_text_key: 'notif.action.view_trip',
       navigate_target: '/admin',
     });
 

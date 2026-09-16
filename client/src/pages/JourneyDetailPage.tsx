@@ -500,7 +500,7 @@ export default function JourneyDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current)) }} className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
+                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current, t, locale)) }} className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
                     <div className="relative group">
                       <button
                         onClick={async () => {
@@ -598,8 +598,8 @@ export default function JourneyDetailPage() {
                       <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
                         <BookOpen size={24} className="text-zinc-400" />
                       </div>
-                      <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">No entries yet</p>
-                      <p className="text-[12px] text-zinc-500 mt-1">Add a trip to get started with skeleton entries</p>
+                      <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">{t('journey.detail.noEntries')}</p>
+                      <p className="text-[12px] text-zinc-500 mt-1">{t('journey.detail.noEntriesHint')}</p>
                     </div>
                   )}
 
@@ -648,7 +648,7 @@ export default function JourneyDetailPage() {
                                     type="button"
                                     onClick={() => move(-1)}
                                     disabled={idx === 0}
-                                    aria-label="Move up"
+                                    aria-label={t('journey.detail.moveUp')}
                                     className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ChevronUp size={14} />
@@ -657,7 +657,7 @@ export default function JourneyDetailPage() {
                                     type="button"
                                     onClick={() => move(1)}
                                     disabled={idx === entries.length - 1}
-                                    aria-label="Move down"
+                                    aria-label={t('journey.detail.moveDown')}
                                     className="w-7 h-7 rounded-lg bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 shadow-sm text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-50 dark:hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                                   >
                                     <ChevronDown size={14} />
@@ -800,7 +800,7 @@ export default function JourneyDetailPage() {
           loadJourney(Number(id))
         }}
         title={t('journey.entries.deleteTitle')}
-        message={t('journey.deleteConfirmMessage', { title: deleteTarget?.title || 'this entry' })}
+        message={t('journey.deleteConfirmMessage', { title: deleteTarget?.title || t('journey.entry.thisEntry') })}
         confirmLabel={t('common.delete')}
         danger
       />
@@ -890,7 +890,7 @@ function MapView({ entries, mapEntries, sortedDates, activeLocationId, fullMapRe
             {[
               { value: mapEntries.length, label: t('journey.stats.places') },
               { value: dates.length, label: t('journey.stats.days') },
-              { value: entries.filter(e => e.type === 'entry').length, label: 'Stories' },
+              { value: entries.filter(e => e.type === 'entry').length, label: t('journey.stats.stories') },
             ].map(s => (
               <div key={s.label} className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 text-center">
                 <div className="text-[17px] font-bold text-zinc-900 dark:text-white tracking-tight">{s.value}</div>
@@ -1829,7 +1829,7 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
                       {new Date(tripRange.to + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </span>
                     <span className="ml-1 text-zinc-400">
-                      ({Math.ceil((new Date(tripRange.to).getTime() - new Date(tripRange.from).getTime()) / 86400000) + 1} days)
+                      ({t('common.dayCount', { count: Math.ceil((new Date(tripRange.to).getTime() - new Date(tripRange.from).getTime()) / 86400000) + 1 })})
                     </span>
                   </>
                 ) : (
@@ -1862,7 +1862,7 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
                         : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
                     }`}
                   >
-                    {a.albumName || a.name || 'Album'}{a.assetCount != null ? ` (${a.assetCount})` : ''}
+                    {a.albumName || a.name || t('journey.picker.album')}{a.assetCount != null ? ` (${a.assetCount})` : ''}
                   </button>
                 ))}
                 {albums.length === 0 && !loading && <span className="text-[12px] text-zinc-400">{t('journey.picker.noAlbums')}</span>}
@@ -3123,7 +3123,7 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
                   <button
                     onClick={() => setUnlinkTarget({ trip_id: trip.trip_id, title: trip.title })}
                     className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center bg-red-500/10 text-red-500 hover:bg-red-500/20 dark:bg-red-500/15 dark:hover:bg-red-500/25 transition-colors"
-                    title="Unlink trip"
+                    title={t('journey.trips.unlinkTrip')}
                   >
                     <Trash2 size={14} />
                   </button>

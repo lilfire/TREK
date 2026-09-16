@@ -196,7 +196,7 @@ interface PollCardProps {
   onVote: (pollId: number, optionId: number) => Promise<void>
   onClose: (pollId: number) => Promise<void>
   onDelete: (pollId: number) => Promise<void>
-  t: (key: string) => string
+  t: (key: string, params?: Record<string, string | number>) => string
 }
 
 function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: PollCardProps) {
@@ -236,7 +236,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
               </span>
             )}
             <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
-              {total} {total === 1 ? 'vote' : 'votes'}
+              {t(total === 1 ? 'collab.polls.voteCountOne' : 'collab.polls.voteCount', { count: total })}
             </span>
           </div>
         </div>

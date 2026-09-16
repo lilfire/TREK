@@ -3,10 +3,11 @@ import Modal from '../shared/Modal'
 import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe, DollarSign } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
+import AccommodationTierEditor from './AccommodationTierEditor'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
-import { useTranslation } from '../../i18n'
+import { useTranslation, getIntlLanguage } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import type { Trip } from '../../types'
 import { CURRENCY_CODES, CURRENCY_SYMBOLS } from '../../utils/currencies'
@@ -43,7 +44,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const isEditing = !!trip
   const fileRef = useRef(null)
   const toast = useToast()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
   const tripRemindersEnabled = useAuthStore(s => s.tripRemindersEnabled)
   const setTripRemindersEnabled = useAuthStore(s => s.setTripRemindersEnabled)
@@ -53,11 +54,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
 
   const countryOptions = useMemo(() => {
     let dn: Intl.DisplayNames | null = null
-    try { dn = new Intl.DisplayNames(['en'], { type: 'region' }) } catch { /* */ }
+    const intlLang = getIntlLanguage(language)
+    try { dn = new Intl.DisplayNames([intlLang], { type: 'region' }) } catch { /* */ }
     return ISO_3166_ALPHA2
       .map(code => ({ value: code, label: (dn ? dn.of(code) : null) || code }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  }, [])
+      .sort((a, b) => a.label.localeCompare(b.label, intlLang))
+  }, [language])
 
   const currencyOptions = useMemo(() =>
     CURRENCY_CODES.map(c => ({ value: c, label: `${c} (${CURRENCY_SYMBOLS[c] || c})` }))
@@ -156,16 +158,16 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
     const parsedFee = feeAmount.trim() ? parseFloat(feeAmount) : null
     if (parsedFee !== null && (isNaN(parsedFee) || parsedFee < 0)) {
-      setError('Registration fee must be a non-negative number'); return
+      setError(t('tripForm.fee.invalidAmount')); return
     }
     if (parsedFee && parsedFee > 0 && !feeMode) {
-      setError('Please select a fee type'); return
+      setError(t('tripForm.fee.typeRequired')); return
     }
     if (parsedFee && parsedFee > 0 && feeMode === 'deadline' && !feeDeadline) {
-      setError('Please select a payment deadline'); return
+      setError(t('tripForm.fee.deadlineRequired')); return
     }
     if (parsedFee && parsedFee > 0 && feeMode === 'deadline' && feeDeadline && new Date(feeDeadline) < new Date(new Date().toDateString())) {
-      setError('Payment deadline must not be in the past'); return
+      setError(t('tripForm.fee.deadlinePast')); return
     }
     setIsLoading(true)
     try {
@@ -601,7 +603,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         {/* Registration Fee */}
         <div data-testid="fee-section">
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
-            <DollarSign className="inline w-4 h-4 mr-1" />Registration Fee
+            <DollarSign className="inline w-4 h-4 mr-1" />{t('tripForm.fee.label')}
           </label>
           <div className="flex items-center gap-2 mb-2">
             <input
@@ -617,7 +619,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                   setFeeDeadline('')
                 }
               }}
-              placeholder={`Amount (${feeCurrency})`}
+              placeholder={t('tripForm.fee.amountPlaceholder', { currency: feeCurrency })}
               className={inputCls + ' flex-1'}
             />
             <div data-testid="fee-currency-select" style={{ width: 120, flexShrink: 0 }}>
@@ -633,7 +635,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
 
           {feeAmount && parseFloat(feeAmount) > 0 && (
             <div className="space-y-2 mt-2" data-testid="fee-mode-section">
-              <p className="text-xs text-slate-500">Fee type</p>
+              <p className="text-xs text-slate-500">{t('tripForm.fee.type')}</p>
               <div className="flex gap-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -645,7 +647,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                     onChange={() => setFeeMode('deadline')}
                     className="accent-slate-900"
                   />
-                  <span className="text-sm text-slate-700">Inform registrants of a payment deadline</span>
+                  <span className="text-sm text-slate-700">{t('tripForm.fee.modeDeadline')}</span>
                 </label>
               </div>
               <div className="flex gap-3">
@@ -659,13 +661,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                     onChange={() => { setFeeMode('rsvp'); setFeeDeadline('') }}
                     className="accent-slate-900"
                   />
-                  <span className="text-sm text-slate-700">Collect payment at registration (PayPal)</span>
+                  <span className="text-sm text-slate-700">{t('tripForm.fee.modeRsvp')}</span>
                 </label>
               </div>
 
               {feeMode === 'deadline' && (
                 <div data-testid="fee-deadline-section">
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Payment deadline</label>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">{t('tripForm.fee.deadline')}</label>
                   <input
                     data-testid="fee-deadline-input"
                     type="date"
@@ -681,7 +683,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         </div>
 
         <div className="mt-4">
-          <label className="block text-xs font-medium text-slate-600 mb-1">RSVP deadline <span className="font-normal text-slate-400">(optional)</span></label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">{t('tripForm.rsvpDeadline')} <span className="font-normal text-slate-400">{t('rsvp.messageOptional')}</span></label>
           <input
             data-testid="rsvp-deadline-input"
             type="date"
@@ -695,10 +697,18 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               onClick={() => setRsvpDeadline('')}
               className="mt-1 text-xs text-slate-400 hover:text-slate-600 underline"
             >
-              Clear deadline
+              {t('tripForm.clearDeadline')}
             </button>
           )}
         </div>
+
+        {/* Accommodation tiers — needs a saved trip, saved independently of this form */}
+        {isEditing && trip?.id && canEditTrip && (
+          <AccommodationTierEditor
+            tripId={trip.id}
+            currency={feeAmount && parseFloat(feeAmount) > 0 ? feeCurrency : currency}
+          />
+        )}
 
       </form>
     </Modal>

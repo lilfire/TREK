@@ -148,7 +148,7 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   }], [])
 
   if (!loaded) {
-    return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+    return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>{t('common.loading')}</p>
   }
 
   const darkMode = defaults.dark_mode

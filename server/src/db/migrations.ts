@@ -2332,6 +2332,39 @@ function runMigrations(db: Database.Database): void {
       try { db.exec('ALTER TABLE packing_items ADD COLUMN checked_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
       try { db.exec('ALTER TABLE todo_items ADD COLUMN checked_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    // Accommodation tiers: which accommodation applies from N confirmed participants
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS trip_accommodation_tiers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          min_participants INTEGER NOT NULL,
+          place_id INTEGER REFERENCES places(id) ON DELETE SET NULL,
+          price_per_person REAL,
+          description TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+          UNIQUE(trip_id, min_participants)
+        )
+      `);
+      db.exec(`CREATE INDEX IF NOT EXISTS idx_accommodation_tiers_trip ON trip_accommodation_tiers(trip_id)`);
+    },
+
+    // Upstream decoupling: the update check and its `version_available`
+    // notification are gone. Drop the rows they left behind so nothing renders
+    // a raw i18n key in the bell and no stale preference can resurface if the
+    // event name is ever reused. Pure DELETEs — idempotent, no schema change.
+    () => {
+      db.prepare("DELETE FROM app_settings WHERE key = 'last_notified_version'").run();
+      db.prepare("DELETE FROM app_settings WHERE key LIKE 'admin_notif_pref_version_available_%'").run();
+      db.prepare("DELETE FROM notification_channel_preferences WHERE event_type = 'version_available'").run();
+      db.prepare(
+        "DELETE FROM notifications WHERE title_key IN ('notif.version_available.title', 'notifications.versionAvailable.title')"
+      ).run();
+      // The v3-thankyou system notice was removed with the upstream content.
+      db.prepare("DELETE FROM user_notice_dismissals WHERE notice_id = 'v3-thankyou'").run();
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -124,7 +124,8 @@ ${days?.map((d: any, i: number) => `Day ${i + 1} (${d.date}): ${d.assignments?.l
       const tripCurrency = (trip.currency as string | null) || 'NOK';
 
       const placePool = db.prepare('SELECT id, name FROM places WHERE trip_id = ?').all(tripId) as { id: number; name: string }[];
-      const placeExists = placePool.some(p => p.name?.toLowerCase() === placeName.toLowerCase());
+      const matchedPlace = placePool.find(p => p.name?.toLowerCase() === placeName.toLowerCase());
+      const placeExists = !!matchedPlace;
 
       const budgetItems = listBudgetItems(tripId);
       const existingCategories = [...new Set(budgetItems.map(b => b.category).filter(Boolean))] as string[];
@@ -174,8 +175,9 @@ ${currencyStep}
    - category: "${category}"
    - total_price: ${amount}
    - currency: "${categoryCurrency}"${noteArg}
-4. If this is a group trip, ask whether the cost should be split among specific members and call set_budget_item_members if so.
-5. Confirm success: "Added '${placeName}' (${amount} ${categoryCurrency}) to budget group '${category}'."`;
+4. Link the place to the budget group by calling update_place with placeId ${matchedPlace ? matchedPlace.id : '(the created place ID)'} and budget_category: "${category}" (or pass budget_category directly when creating the place).
+5. If this is a group trip, ask whether the cost should be split among specific members and call set_budget_item_members if so.
+6. Confirm success: "Added '${placeName}' (${amount} ${categoryCurrency}) to budget group '${category}'."`;
 
       return {
         description: `Bind "${placeName}" to budget group "${category}" for trip "${trip.title || tripId}"`,

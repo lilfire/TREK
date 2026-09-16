@@ -13,7 +13,7 @@
 
 ## 1. Fork & Clone the Repository
 
-Go to the [TREK repository](https://github.com/mauriceboe/TREK) and click **Fork** to create your own copy.
+Go to the [TREK repository](https://github.com/lilfire/TREK) and click **Fork** to create your own copy.
 
 Then clone your fork locally:
 
@@ -38,7 +38,7 @@ You should now have two remotes:
 | Remote     | URL                                          | Purpose                        |
 |------------|----------------------------------------------|--------------------------------|
 | `origin`   | `git@github.com:your-username/TREK.git`      | Your fork — push changes here  |
-| `upstream` | `git@github.com:mauriceboe/TREK.git`         | Main repo — pull updates from here |
+| `upstream` | `git@github.com:mauriceboe/TREK.git`         | Upstream project — pull changes from here |
 
 ---
 
@@ -127,7 +127,7 @@ git push origin fix/my-changes:dev
 git push origin dev
 ```
 
-Then open a Pull Request from your fork to `mauriceboe/TREK` targeting the `dev` branch. If your PR only modifies files under `wiki/`, it is exempt from branch enforcement and may target any branch.
+Then open a Pull Request from your fork to `lilfire/TREK` targeting the `dev` branch. If your PR only modifies files under `wiki/`, it is exempt from branch enforcement and may target any branch.
 
 ---
 

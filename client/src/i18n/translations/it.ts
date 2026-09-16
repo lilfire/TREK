@@ -734,36 +734,8 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'admin.oauthSessions.loadError': 'Impossibile caricare le sessioni OAuth',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
-  'admin.github.title': 'Cronologia rilasci',
-  'admin.github.subtitle': 'Ultimi aggiornamenti da {repo}',
-  'admin.github.latest': 'Ultimo',
-  'admin.github.prerelease': 'Pre-release',
-  'admin.github.showDetails': 'Mostra dettagli',
-  'admin.github.hideDetails': 'Nascondi dettagli',
-  'admin.github.loadMore': 'Carica altro',
-  'admin.github.loading': 'Caricamento...',
-  'admin.github.error': 'Impossibile caricare i rilasci',
-  'admin.github.by': 'da',
-  'admin.github.support': 'Mi aiuta a continuare a sviluppare TREK',
+  'admin.version.prerelease': 'Pre-release',
 
-  'admin.update.available': 'Aggiornamento disponibile',
-  'admin.update.text': 'TREK {version} è disponibile. Stai eseguendo {current}.',
-  'admin.update.button': 'Vedi su GitHub',
-  'admin.update.install': 'Installa aggiornamento',
-  'admin.update.confirmTitle': 'Installare l\'aggiornamento?',
-  'admin.update.confirmText': 'TREK verrà aggiornato da {current} a {version}. Il server si riavvierà automaticamente in seguito.',
-  'admin.update.dataInfo': 'Tutti i tuoi dati (viaggi, utenti, chiavi API, caricamenti, Ferie, Atlante, budget) saranno preservati.',
-  'admin.update.warning': 'L\'app sarà temporaneamente non disponibile durante il riavvio.',
-  'admin.update.confirm': 'Aggiorna ora',
-  'admin.update.installing': 'Aggiornamento in corso…',
-  'admin.update.success': 'Aggiornamento installato! Il server si sta riavviando…',
-  'admin.update.failed': 'Aggiornamento non riuscito',
-  'admin.update.backupHint': 'Ti consigliamo di creare un backup prima di aggiornare.',
-  'admin.update.backupLink': 'Vai a Backup',
-  'admin.update.howTo': 'Come aggiornare',
-  'admin.update.dockerText': 'La tua istanza TREK è in esecuzione in Docker. Per aggiornare alla versione {version}, esegui i seguenti comandi sul tuo server:',
-  'admin.update.reloadHint': 'Ricarica la pagina tra qualche secondo.',
 
   // Vacay addon
   'vacay.subtitle': 'Pianifica e gestisci i giorni di ferie',
@@ -1875,7 +1847,6 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'todo.sortByPrio': 'Priorità',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'Nuova versione disponibile',
   'settings.notificationPreferences.noChannels': 'Nessun canale di notifica configurato. Chiedi a un amministratore di configurare notifiche via e-mail o webhook.',
   'settings.webhookUrl.label': 'URL webhook',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1935,9 +1906,6 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'admin.notifications.tripReminders.enabled': 'Promemoria viaggio attivati',
   'admin.notifications.tripReminders.disabled': 'Promemoria viaggio disattivati',
   'admin.tabs.notifications': 'Notifiche',
-  'notifications.versionAvailable.title': 'Aggiornamento disponibile',
-  'notifications.versionAvailable.text': 'TREK {version} è ora disponibile.',
-  'notifications.versionAvailable.button': 'Visualizza dettagli',
   'notif.test.title': '[Test] Notifica',
   'notif.test.simple.text': 'Questa è una semplice notifica di test.',
   'notif.test.boolean.text': 'Accetti questa notifica di test?',
@@ -1960,8 +1928,6 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'notif.collab_message.text': '{actor} ha inviato un messaggio in {trip}',
   'notif.packing_tagged.title': 'Assegnazione bagagli',
   'notif.packing_tagged.text': '{actor} ti ha assegnato a {category} in {trip}',
-  'notif.version_available.title': 'Nuova versione disponibile',
-  'notif.version_available.text': 'TREK {version} è ora disponibile',
   'notif.action.view_trip': 'Vedi viaggio',
   'notif.action.view_collab': 'Vedi messaggi',
   'notif.action.view_packing': 'Vedi bagagli',
@@ -2349,8 +2315,6 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'system_notice.v3_mcp.highlight_tools':      'Strumenti e prompt estesi',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Una nota personale da parte mia',
-  'system_notice.v3_thankyou.body': 'Prima di andare avanti — voglio prendermi un momento.\n\nTREK è nato come un progetto secondario che ho costruito per i miei viaggi. Non avrei mai immaginato che sarebbe cresciuto fino a diventare qualcosa di cui 4.000 di voi si fidano per pianificare le proprie avventure. Ogni stella, ogni issue, ogni richiesta di funzionalità — le leggo tutte, e sono loro a tenermi in piedi nelle notti tarde tra un lavoro a tempo pieno e l\'università.\n\nVoglio che sappiate: TREK sarà sempre open source, sempre self-hosted, sempre vostro. Nessun tracciamento, nessun abbonamento, nessuna fregatura. Solo uno strumento creato da qualcuno che ama viaggiare tanto quanto voi.\n\nUn ringraziamento speciale a [jubnl](https://github.com/jubnl) — sei diventato un collaboratore incredibile. Molto di ciò che rende la 3.0 fantastica porta la tua impronta. Grazie per aver creduto in questo progetto quando era ancora acerbo.\n\nE a ognuno di voi che ha segnalato un bug, tradotto una stringa, condiviso TREK con un amico o semplicemente lo ha usato per pianificare un viaggio — **grazie**. Voi siete il motivo per cui tutto questo esiste.\n\nA molte altre avventure insieme.\n\n— Maurice\n\n---\n\n[Unisciti alla community su Discord](https://discord.gg/7Q6M6jDwzf)\n\nSe TREK rende i tuoi viaggi migliori, un [piccolo caffè](https://ko-fi.com/mauriceboe) aiuta sempre a tenere le luci accese.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Azione richiesta: conflitto di account utente',
   'system_notice.v3014_whitespace_collision.body': "L'aggiornamento 3.0.14 ha rilevato uno o più conflitti di nome utente o e-mail causati da spazi iniziali o finali nei valori memorizzati. Gli account interessati sono stati rinominati automaticamente. Controlla i log del server per le righe che iniziano con **[migration] WHITESPACE COLLISION** per identificare quali account richiedono revisione.",
@@ -2413,6 +2377,40 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.unplanned.subheading': 'Luoghi aggiunti a questo viaggio ma non ancora pianificati.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Alloggio',
+  'publicTrip.tiers.subheading': 'Dove alloggeremo dipende da quante persone si iscrivono.',
+  'publicTrip.tiers.participants': '{count} confermati',
+  'publicTrip.tiers.nextTier': 'Ancora {count} per sbloccare {name}',
+  'publicTrip.tiers.allReached': 'Livello massimo raggiunto!',
+  'publicTrip.tiers.paidNote': 'Contano solo le iscrizioni pagate.',
+  'publicTrip.tiers.active': 'Attuale',
+  'publicTrip.tiers.range': '{min}–{max} partecipanti',
+  'publicTrip.tiers.rangeSingle': '{min} partecipanti',
+  'publicTrip.tiers.rangeOpen': '{min}+ partecipanti',
+  'publicTrip.tiers.viewPlace': "Vedi l'alloggio",
+  'publicTrip.tiers.viewOnMap': "Vedi sulla mappa",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Livelli di alloggio",
+  'tripForm.tiers.hint': "L'alloggio dipende dai partecipanti confermati (proprietario + iscrizioni; solo pagate se c'è una quota). Mostrato nella pagina pubblica del viaggio.",
+  'tripForm.tiers.status': "{count} confermati",
+  'tripForm.tiers.current': "attuale: {name}",
+  'tripForm.tiers.add': "Aggiungi livello",
+  'tripForm.tiers.name': "Nome",
+  'tripForm.tiers.namePlaceholder': "es. Baita Fjellro",
+  'tripForm.tiers.minParticipants': "Da partecipanti",
+  'tripForm.tiers.place': "Luogo (facoltativo)",
+  'tripForm.tiers.noPlace': "Nessun luogo",
+  'tripForm.tiers.pricePerPerson': "Prezzo/persona ({currency})",
+  'tripForm.tiers.description': "Descrizione (facoltativa)",
+  'tripForm.tiers.nameRequired': "Il nome è obbligatorio",
+  'tripForm.tiers.minInvalid': "I partecipanti devono essere un numero intero di almeno 1",
+  'tripForm.tiers.priceInvalid': "Il prezzo deve essere 0 o più",
+  'tripForm.tiers.saveError': "Impossibile salvare il livello",
+  'tripForm.tiers.deleteError': "Impossibile eliminare il livello",
+  'tripForm.tiers.confirmDelete': "Eliminare il livello \"{name}\"?",
 }
 
 export default it

@@ -487,8 +487,7 @@ describe('CollabNotes', () => {
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Expandable Note');
     // Expand button (Maximize2 icon) appears when note has content
-    // The translation key 'collab.notes.expand' falls back to the raw key since it's not in en.ts
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     // View modal shows the note title
     await waitFor(() => {
       const titles = screen.getAllByText('Expandable Note');
@@ -511,7 +510,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('View Modal Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     // Modal is open — there are multiple instances of the title
     await waitFor(() => expect(screen.getAllByText('View Modal Note').length).toBeGreaterThan(1));
     // The view modal renders a pencil button to switch to edit mode
@@ -916,7 +915,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Full Content Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     // View modal shows the full content
     await waitFor(() => {
       const titles = screen.getAllByText('Full Content Note');
@@ -941,7 +940,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Tagged Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     // View modal header shows the category name
     await waitFor(() => {
       const foodEls = screen.getAllByText('Food');
@@ -1097,7 +1096,7 @@ describe('CollabNotes', () => {
     await screen.findByText('Attached View Note');
     // PDF badge is present in NoteCard
     expect(screen.getByText('PDF')).toBeInTheDocument();
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     // View modal opens — title appears multiple times
     await waitFor(() => expect(screen.getAllByText('Attached View Note').length).toBeGreaterThan(1));
     // PDF badge appears in both card and view modal
@@ -1121,7 +1120,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Image View Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     // View modal opens
     await waitFor(() => expect(screen.getAllByText('Image View Note').length).toBeGreaterThan(1));
     // The view modal code for image attachments executed (AuthedImg renders initially null, then img after async)
@@ -1143,7 +1142,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Transition Note');
-    await user.click(screen.getByTitle('collab.notes.expand'));
+    await user.click(screen.getByTitle('Expand'));
     await waitFor(() => expect(screen.getAllByText('Transition Note').length).toBeGreaterThan(1));
     // Click the Pencil button in the view modal (second-to-last button)
     const allButtons = screen.getAllByRole('button');

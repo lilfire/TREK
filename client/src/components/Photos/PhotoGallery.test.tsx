@@ -60,9 +60,9 @@ describe('PhotoGallery', () => {
   it('FE-COMP-PHOTOGALLERY-001: shows photo count in header', () => {
     const photos = [buildPhoto(), buildPhoto({ id: 2 })]
     render(<PhotoGallery {...defaultProps} photos={photos} />)
-    // The count paragraph renders "2 Fotos" as split text nodes
+    // The count paragraph renders "2 photos"
     expect(screen.getByText((content, el) => el?.tagName === 'P' && el.textContent?.trim().startsWith('2'))).toBeInTheDocument()
-    expect(screen.getAllByText('Fotos').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Photos').length).toBeGreaterThan(0)
   })
 
   it('FE-COMP-PHOTOGALLERY-002: shows empty state when no photos', () => {

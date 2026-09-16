@@ -16,6 +16,8 @@ interface Props {
   currency?: string
   paypalClientId?: string | null
   rsvpDeadline?: string | null
+  /** Called after a registration that keeps the user on the page */
+  onRegistered?: () => void
 }
 
 interface RsvpError {
@@ -65,7 +67,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'NOK', paypalClientId, rsvpDeadline }: Props) {
+export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, feeDeadline, currency = 'NOK', paypalClientId, rsvpDeadline, onRegistered }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
   const { t } = useTranslation()
@@ -97,6 +99,7 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
         toast.success(t('rsvp.toastJoined'))
       }
       setJoinDone(true)
+      onRegistered?.()
     } catch (err: unknown) {
       setError(parseRsvpError(t, err))
     } finally {

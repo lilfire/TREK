@@ -95,7 +95,7 @@ function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }
           }}
         >
           <Plus size={14} />
-          Add Place
+          {t('dayplan.mobile.addPlace')}
         </button>
       ) : (
         <div style={{ borderRadius: 14, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', overflow: 'hidden' }}>
@@ -147,7 +147,7 @@ function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }
               }}
             >
               <Plus size={13} />
-              Create new place
+              {t('dayplan.mobile.createNew')}
             </button>
           )}
         </div>

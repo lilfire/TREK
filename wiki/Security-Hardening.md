@@ -73,7 +73,7 @@ Helmet applies a strict CSP on all responses. Key directives:
 ## Monitoring
 
 - [ ] Review the audit log periodically for unexpected logins or admin changes. See [Audit-Log](Audit-Log).
-- [ ] Check for TREK updates regularly. See [Admin-GitHub-Releases](Admin-GitHub-Releases) and [Updating](Updating).
+- [ ] Rebuild and redeploy regularly. This build does no update polling — see [Updating](Updating).
 
 ## See also
 
@@ -85,6 +85,5 @@ Helmet applies a strict CSP on all responses. Key directives:
 - [Admin-Users-and-Invites](Admin-Users-and-Invites)
 - [Backups](Backups)
 - [Audit-Log](Audit-Log)
-- [Admin-GitHub-Releases](Admin-GitHub-Releases)
 - [Updating](Updating)
 - [Environment-Variables](Environment-Variables)

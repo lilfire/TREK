@@ -12,7 +12,7 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 1. In Portainer, go to **Stacks → Add stack**.
 2. Give the stack a name (e.g. `trek`).
-3. Select **Web editor** and paste the compose file from [docker-compose.yml](https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml).
+3. Select **Web editor** and paste the compose file from [docker-compose.yml](https://github.com/lilfire/TREK/blob/main/docker-compose.yml).
 
 ![Web editor with the docker-compose content pasted in](assets/portainer-stack-save.png)
 
@@ -26,7 +26,7 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 ## Compose Content
 
-See https://github.com/mauriceboe/TREK/blob/main/docker-compose.yml
+See https://github.com/lilfire/TREK/blob/main/docker-compose.yml
 
 Set at minimum `ENCRYPTION_KEY`, `TZ`, and `APP_URL` in the **Environment variables** section of the stack editor. Generate an encryption key with:
 
@@ -40,9 +40,9 @@ Three tag strategies are available:
 
 | Tag | Example | Behavior |
 |---|---|---|
-| `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
-| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+| `latest` | `ghcr.io/lilfire/trek:latest` | Always the newest release across all major versions |
+| Major version | `ghcr.io/lilfire/trek:3` | Latest release pinned to that major version |
+| Full version | `ghcr.io/lilfire/trek:3.0.15` | Exact release; never changes |
 
 Use `latest` or a major-version tag (e.g. `3`) if you want automatic updates on redeploy. Use a full version tag (e.g. `3.0.15`) if you want explicit control over which release runs.
 

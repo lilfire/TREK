@@ -324,6 +324,26 @@ export function reorderBudgetCategories(tripId: string | number, orderedCategori
   })();
 }
 
+/**
+ * Budget categories for a trip in display order, with their locked currency
+ * (null = inherits the trip currency), item count and subtotal in that currency.
+ */
+export function listCategoriesWithCurrency(tripId: string | number) {
+  return db.prepare(`
+    SELECT c.category, bco.currency, COALESCE(bco.sort_order, 999999) AS sort_order,
+           COUNT(bi.id) AS item_count, COALESCE(SUM(bi.total_price), 0) AS total
+    FROM (
+      SELECT category FROM budget_category_order WHERE trip_id = :tripId
+      UNION
+      SELECT DISTINCT category FROM budget_items WHERE trip_id = :tripId AND category IS NOT NULL
+    ) c
+    LEFT JOIN budget_category_order bco ON bco.trip_id = :tripId AND bco.category = c.category
+    LEFT JOIN budget_items bi ON bi.trip_id = :tripId AND bi.category = c.category
+    GROUP BY c.category
+    ORDER BY sort_order ASC, c.category ASC
+  `).all({ tripId }) as { category: string; currency: string | null; sort_order: number; item_count: number; total: number }[];
+}
+
 export function updateCategoryCurrency(tripId: string | number, category: string, currency: string | null): boolean {
   const result = db.prepare(
     'INSERT INTO budget_category_order (trip_id, category, sort_order, currency) VALUES (?, ?, 0, ?) ON CONFLICT(trip_id, category) DO UPDATE SET currency = excluded.currency'

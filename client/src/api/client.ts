@@ -235,6 +235,10 @@ export const tripsApi = {
   removeMember: (id: number | string, userId: number) => apiClient.delete(`/trips/${id}/members/${userId}`).then(r => r.data),
   copy: (id: number | string, data?: { title?: string }) => apiClient.post(`/trips/${id}/copy`, data || {}).then(r => r.data),
   bundle: (id: number | string) => apiClient.get(`/trips/${id}/bundle`).then(r => r.data),
+  listAccommodationTiers: (id: number | string) => apiClient.get(`/trips/${id}/accommodation-tiers`).then(r => r.data),
+  createAccommodationTier: (id: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${id}/accommodation-tiers`, data).then(r => r.data),
+  updateAccommodationTier: (id: number | string, tierId: number, data: Record<string, unknown>) => apiClient.put(`/trips/${id}/accommodation-tiers/${tierId}`, data).then(r => r.data),
+  deleteAccommodationTier: (id: number | string, tierId: number) => apiClient.delete(`/trips/${id}/accommodation-tiers/${tierId}`).then(r => r.data),
 }
 
 export const daysApi = {
@@ -342,7 +346,6 @@ export const adminApi = {
   testPaypalConnection: () => apiClient.post('/admin/paypal-settings/test').then(r => r.data),
   addons: () => apiClient.get('/admin/addons').then(r => r.data),
   updateAddon: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/admin/addons/${id}`, data).then(r => r.data),
-  checkVersion: () => apiClient.get('/admin/version-check').then(r => r.data),
   getBagTracking: () => apiClient.get('/admin/bag-tracking').then(r => r.data),
   updateBagTracking: (enabled: boolean) => apiClient.put('/admin/bag-tracking', { enabled }).then(r => r.data),
   getPlacesPhotos: () => apiClient.get('/admin/places-photos').then(r => r.data),

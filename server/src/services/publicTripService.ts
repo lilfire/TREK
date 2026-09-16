@@ -1,6 +1,26 @@
 import { db } from '../db/database';
 import { loadTagsByPlaceIds } from './queryHelpers';
 import { getPaypalClientId } from './paypalService';
+import { getTierStatus } from './accommodationTierService';
+
+const PUBLIC_TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise'];
+const PUBLIC_METADATA_KEYS = ['airline', 'flight_number', 'departure_airport', 'arrival_airport', 'train_number', 'platform'];
+
+function pickPublicMetadata(raw: unknown): Record<string, string> | null {
+  if (!raw) return null;
+  let parsed: any;
+  try {
+    parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  } catch {
+    return null;
+  }
+  if (!parsed || typeof parsed !== 'object') return null;
+  const out: Record<string, string> = {};
+  for (const key of PUBLIC_METADATA_KEYS) {
+    if (parsed[key]) out[key] = String(parsed[key]);
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
 
 export interface PublicTripSummary {
   id: number;
@@ -188,16 +208,23 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     }
   }
 
-  const reservations = db.prepare(
-    'SELECT * FROM reservations WHERE trip_id = ? ORDER BY reservation_time ASC'
-  ).all(tripId) as any[];
+  // Public (anonymous) view: only transport bookings, and never booking
+  // references, private notes or seat numbers.
+  const transportPh = PUBLIC_TRANSPORT_TYPES.map(() => '?').join(',');
+  const reservations = db.prepare(`
+    SELECT id, trip_id, day_id, end_day_id, assignment_id, type, title, status,
+           reservation_time, reservation_end_time, metadata
+    FROM reservations
+    WHERE trip_id = ? AND type IN (${transportPh})
+    ORDER BY reservation_time ASC
+  `).all(tripId, ...PUBLIC_TRANSPORT_TYPES) as any[];
 
   const dayPositions = db.prepare(`
     SELECT rdp.reservation_id, rdp.day_id, rdp.position
     FROM reservation_day_positions rdp
     JOIN reservations r ON rdp.reservation_id = r.id
-    WHERE r.trip_id = ?
-  `).all(tripId) as { reservation_id: number; day_id: number; position: number }[];
+    WHERE r.trip_id = ? AND r.type IN (${transportPh})
+  `).all(tripId, ...PUBLIC_TRANSPORT_TYPES) as { reservation_id: number; day_id: number; position: number }[];
 
   const posMap = new Map<number, Record<number, number>>();
   for (const dp of dayPositions) {
@@ -206,6 +233,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
   }
   for (const r of reservations) {
     r.day_positions = posMap.get(r.id) || null;
+    r.metadata = pickPublicMetadata(r.metadata);
   }
 
   const accommodations = db.prepare(`
@@ -242,6 +270,13 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     currency: trip.currency,
   };
 
+  // Accommodation is included in the registration fee — never expose per-tier prices publicly
+  const tierStatus = getTierStatus(Number(tripId));
+  const accommodationTiers = {
+    ...tierStatus,
+    tiers: tierStatus.tiers.map(({ price_per_person, ...tier }) => tier),
+  };
+
   return {
     trip,
     days,
@@ -253,5 +288,7 @@ export function getPublicTripData(tripId: string | number): Record<string, any> 
     accommodations,
     budgetItems,
     budgetSummary,
+    // Counts only — never participant names or emails
+    accommodationTiers,
   };
 }

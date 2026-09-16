@@ -130,14 +130,14 @@ export default function AdminMcpTokensPanel() {
                           <button onClick={() => toggleScopes(session.id)}
                             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80"
                             style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}>
-                            +{hidden} more
+                            {t('common.moreCount', { count: hidden })}
                           </button>
                         )}
                         {expanded && hidden > 0 && (
                           <button onClick={() => toggleScopes(session.id)}
                             className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium transition-colors hover:opacity-80"
                             style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)' }}>
-                            show less
+                            {t('common.showLess')}
                           </button>
                         )}
                       </div>

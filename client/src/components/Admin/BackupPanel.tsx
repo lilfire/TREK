@@ -265,7 +265,7 @@ export default function BackupPanel() {
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-sm text-gray-900 truncate">{backup.filename}</p>
                     {isAuto(backup.filename) && (
-                      <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">Auto</span>
+                      <span className="text-xs bg-blue-50 text-blue-600 border border-blue-100 rounded-full px-2 py-0.5 whitespace-nowrap">{t('settings.auto')}</span>
                     )}
                   </div>
                   <div className="flex items-center gap-3 mt-0.5">

@@ -88,7 +88,7 @@ export default function DashboardToolbar({
               </button>
               <button
                 onClick={onWidgetSettingsToggle}
-                title={t('dashboard.widgets') || 'Widgets'}
+                title={t('dashboard.widgets')}
                 style={{
                   appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',

@@ -13,12 +13,18 @@ import { registerBudgetTools } from './tools/budget';
 import { registerPackingTools } from './tools/packing';
 import { registerCollabTools } from './tools/collab';
 import { registerTripTools } from './tools/trips';
+import { registerRsvpTools } from './tools/rsvp';
+import { registerAccommodationTierTools } from './tools/accommodationTiers';
 import { registerTransportTools } from './tools/transports';
 import { registerVacayTools } from './tools/vacay';
 import { registerMcpPrompts } from './tools/prompts';
 
 export function registerTools(server: McpServer, userId: number, scopes: string[] | null, isStaticToken = false, getDeprecationNotice: () => string | null = () => null): void {
   registerTripTools(server, userId, scopes, getDeprecationNotice);
+
+  registerRsvpTools(server, userId, scopes);
+
+  registerAccommodationTierTools(server, userId, scopes);
 
   registerPlaceTools(server, userId, scopes);
 

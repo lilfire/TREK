@@ -115,22 +115,6 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     maxVersion: '4.0.0',
   },
 
-  {
-    // Page 1 — personal thank-you from the creator (shown first)
-    id: 'v3-thankyou',
-    display: 'modal',
-    severity: 'info',
-    icon: 'Heart',
-    titleKey: 'system_notice.v3_thankyou.title',
-    bodyKey:  'system_notice.v3_thankyou.body',
-    dismissible: true,
-    conditions: [{ kind: 'existingUserBeforeVersion', version: '3.0.0' }],
-    publishedAt: '2026-04-16T00:00:00Z',
-    priority: 95,
-    minVersion: '3.0.0',
-    maxVersion: '4.0.0',
-  },
-
   // ── 3.0.14 admin notice — whitespace migration collision ───────────────────
 
   {

@@ -258,8 +258,15 @@ Compound tools collapse common multi-step workflows into a single atomic call. E
 | Tool                 | Description                                                                                 |
 |----------------------|---------------------------------------------------------------------------------------------|
 | `list_trips`         | List all trips you own or are a member of. Supports `include_archived` flag.                |
-| `create_trip`        | Create a new trip with title, dates, currency. Days are auto-generated from the date range. |
-| `update_trip`        | Update a trip's title, description, dates, or currency.                                     |
+| `create_trip`        | Create a new trip with title, dates, currency. Days are auto-generated from the date range. Also accepts the same `country`, visibility, fee and RSVP fields as `update_trip`. |
+| `update_trip`        | Update a trip's title, description, dates, currency, `country`, `reminder_days`, `is_public` (**owner only**), registration fee (`registration_fee`, `fee_mode` `rsvp`/`deadline`, `fee_deadline`, `fee_currency`) and `rsvp_deadline`. Omitted fields are left unchanged; a fee of `0`/`null` clears the fee mode, deadline and currency. |
+| `set_trip_cover`     | Set the trip cover image from a public http(s) image URL (jpg/png/gif/webp, max 20 MB, SSRF-guarded). Requires `trip_cover_upload` (owner by default). |
+| `list_public_trips`  | List trips published on the public landing page (`is_public`), with their `public_url`.     |
+| `list_trip_rsvps`    | List RSVP registrations from the public trip page with the latest registration-fee payment status. **Owner only.** |
+| `list_accommodation_tiers` | List accommodation tiers with the confirmed participant count (owner + RSVPs; only paid RSVPs when a fee applies), the active tier and participants needed for the next tier. |
+| `create_accommodation_tier` | Create a tier: accommodation that applies from `min_participants` confirmed participants (unique per trip), with optional `place_id`, `price_per_person` and `description`. Requires `trip_edit`. |
+| `update_accommodation_tier` | Update a tier. Omitted fields are left unchanged; `null` clears `place_id`, `price_per_person` or `description`. Requires `trip_edit`. |
+| `delete_accommodation_tier` | Delete a tier. Requires `trip_edit`. |
 | `delete_trip`        | Delete a trip. **Owner only.**                                                              |
 | `list_trip_members`  | List the owner and all collaborators of a trip.                                             |
 | `add_trip_member`    | Add a user to a trip by username or email. **Owner only.**                                  |
@@ -277,8 +284,8 @@ Compound tools collapse common multi-step workflows into a single atomic call. E
 | Tool             | Description                                                                                      |
 |------------------|--------------------------------------------------------------------------------------------------|
 | `list_places`              | List places/POIs in a trip, optionally filtered by assignment status, category, tag, or search.  |
-| `create_place`             | Add a place/POI with name, coordinates, address, category, notes, website, phone, and optional `google_place_id` / `osm_id` for opening hours. |
-| `update_place`             | Update any field of an existing place including transport mode, timing, and price.               |
+| `create_place`             | Add a place/POI with name, coordinates, address, category, notes, website, phone, optional `budget_category` (budget group), and optional `google_place_id` / `osm_id` for opening hours. |
+| `update_place`             | Update any field of an existing place including transport mode, timing, price, and `budget_category` (`null` unlinks). When linked to a budget group, the place price is synced to that group's budget items. |
 | `delete_place`             | Remove a place from a trip.                                                                      |
 | `bulk_delete_places`       | Delete multiple places at once by ID. Removes all day assignments as well. **Cannot be undone.** |
 | `import_places_from_url`   | Import all places from a publicly shared Google Maps or Naver Maps list URL.                     |
@@ -338,6 +345,8 @@ For flights, trains, cars, and cruises, use the **Transport** tools above. Reser
 
 | Tool                       | Description                                                                           |
 |----------------------------|---------------------------------------------------------------------------------------|
+| `list_budget_categories`   | List budget categories in display order with their currency (or inherited trip currency), item count, and subtotal. |
+| `set_budget_category_currency` | Set or clear the currency of a budget category (amounts are not converted). Requires the `budget_edit` permission. |
 | `create_budget_item`       | Add an expense with name, category, and price.                                        |
 | `update_budget_item`       | Update an expense's details, split (persons/days), or notes.                          |
 | `delete_budget_item`       | Remove a budget item.                                                                 |
@@ -345,6 +354,8 @@ For flights, trains, cars, and cruises, use the **Transport** tools above. Reser
 | `toggle_budget_member_paid`| Mark or unmark a member as having paid their share of a budget item.                  |
 
 ### Packing
+
+Members only see and edit items in categories or bags assigned to them (categories without assignees are visible to everyone). `toggle_packing_item` is gated by the `packing_check` permission; other edits by `packing_edit`. To-do edits follow the same item visibility rules and use `packing_edit`.
 
 | Tool                          | Description                                                                       |
 |-------------------------------|-----------------------------------------------------------------------------------|

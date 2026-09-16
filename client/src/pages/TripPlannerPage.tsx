@@ -783,7 +783,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         <div style={{ marginBottom: 28 }}>
           <img
             src={document.documentElement.classList.contains('dark') ? '/icons/trek-loading-light.gif' : '/icons/trek-loading-dark.gif'}
-            alt="Loading"
+            alt={t('common.loading')}
             width={64}
             height={64}
           />

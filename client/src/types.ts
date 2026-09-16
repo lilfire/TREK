@@ -36,6 +36,36 @@ export interface Trip {
   updated_at: string
 }
 
+export interface AccommodationTier {
+  id: number
+  trip_id: number
+  name: string
+  min_participants: number
+  place_id: number | null
+  price_per_person: number | null
+  description: string | null
+  place_name: string | null
+  place_address: string | null
+  place_lat: number | null
+  place_lng: number | null
+  place_image_url: string | null
+  place_website: string | null
+}
+
+export interface AccommodationTierWithState extends AccommodationTier {
+  /** Inclusive upper bound; null for the open-ended highest tier */
+  max_participants: number | null
+  is_active: boolean
+  is_reached: boolean
+}
+
+export interface AccommodationTierStatus {
+  participant_count: number
+  active_tier_id: number | null
+  next_tier: { id: number; name: string; min_participants: number; participants_needed: number } | null
+  tiers: AccommodationTierWithState[]
+}
+
 export interface Day {
   id: number
   trip_id: number
@@ -360,7 +390,6 @@ export interface AppConfig {
   oidc_registration?: boolean
   env_override_oidc_only?: boolean
   github_repo?: string
-  github_version_source?: string
 }
 
 // Translation function type

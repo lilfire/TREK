@@ -213,7 +213,7 @@ export default function JourneyPublicPage() {
           <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
             <BookOpen size={24} className="text-zinc-400" />
           </div>
-          <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">No entries yet</p>
+          <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">{t('journey.detail.noEntries')}</p>
         </div>
       )}
       {sortedDates.map((date, dayIdx) => {
@@ -362,7 +362,7 @@ export default function JourneyPublicPage() {
                           {prosArr.length > 0 && (
                             <div className="rounded-xl border border-green-200 dark:border-green-800/30 p-3" style={{ background: 'linear-gradient(180deg, #F0FDF4 0%, white 100%)' }}>
                               <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-700 mb-2">
-                                <ThumbsUp size={10} /> Pros
+                                <ThumbsUp size={10} /> {t('journey.editor.pros')}
                               </div>
                               {prosArr.map((p, i) => (
                                 <div key={i} className="flex items-start gap-1.5 text-[12px] text-green-900 mb-1">
@@ -374,7 +374,7 @@ export default function JourneyPublicPage() {
                           {consArr.length > 0 && (
                             <div className="rounded-xl border border-red-200 dark:border-red-800/30 p-3" style={{ background: 'linear-gradient(180deg, #FEF2F2 0%, white 100%)' }}>
                               <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-700 mb-2">
-                                <ThumbsDown size={10} /> Cons
+                                <ThumbsDown size={10} /> {t('journey.editor.cons')}
                               </div>
                               {consArr.map((c, i) => (
                                 <div key={i} className="flex items-start gap-1.5 text-[12px] text-red-900 mb-1">
@@ -391,12 +391,12 @@ export default function JourneyPublicPage() {
                         <div className="flex items-center gap-1.5 pt-3 mt-3 border-t border-zinc-100 dark:border-zinc-800">
                           {mood && (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${mood.bg} ${mood.text}`}>
-                              <mood.icon size={11} /> {mood.label}
+                              <mood.icon size={11} /> {t(`journey.mood.${entry.mood}`)}
                             </span>
                           )}
                           {weather && (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                              <weather.icon size={11} /> {weather.label}
+                              <weather.icon size={11} /> {t(`journey.weather.${entry.weather}`)}
                             </span>
                           )}
                         </div>
@@ -464,7 +464,7 @@ export default function JourneyPublicPage() {
             background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
             color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
           }}>
-            {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+            {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || t('settings.language')}
           </button>
           {showLangPicker && (
             <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150 }}>
@@ -608,7 +608,7 @@ export default function JourneyPublicPage() {
           <span style={{ fontSize: 11, color: '#9ca3af' }}>{t('journey.public.sharedVia')} <strong style={{ color: '#6b7280' }}>TREK</strong></span>
         </div>
         <div style={{ fontSize: 10, color: '#d1d5db' }}>
-          Made with <span style={{ color: '#ef4444' }}>♥</span> by Maurice · <a href={`https://github.com/${githubRepo}`} style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
+          {t('journey.public.madeWith')} <span style={{ color: '#ef4444' }}>♥</span> · <a href={`https://github.com/${githubRepo}`} style={{ color: '#9ca3af', textDecoration: 'none' }}>GitHub</a>
         </div>
       </div>
 

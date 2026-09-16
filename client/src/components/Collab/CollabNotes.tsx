@@ -99,6 +99,7 @@ interface FilePreviewPortalProps {
 }
 
 function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
+  const { t } = useTranslation()
   const [authUrl, setAuthUrl] = useState('')
   const rawUrl = file?.url || ''
   useEffect(() => {
@@ -144,12 +145,12 @@ function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
           {(isPdf || isTxt) ? (
             <object data={authUrl ? `${authUrl}#view=FitH` : ''} type={file.mime_type} style={{ flex: 1, width: '100%', border: 'none', background: '#fff' }} title={file.original_name}>
               <p style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 14, padding: 0 }}>Download</button>
+                <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 14, padding: 0 }}>{t('files.download')}</button>
               </p>
             </object>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 14, padding: 0 }}>Download {file.original_name}</button>
+              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 14, padding: 0 }}>{t('files.download')} {file.original_name}</button>
             </div>
           )}
         </div>
@@ -546,6 +547,7 @@ interface EditableCatNameProps {
 }
 
 function EditableCatName({ name, onRename }: EditableCatNameProps) {
+  const { t } = useTranslation()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(name)
   const inputRef = useRef(null)
@@ -567,7 +569,7 @@ function EditableCatName({ name, onRename }: EditableCatNameProps) {
   return (
     <span onClick={() => { setValue(name); setEditing(true) }}
       style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0' }}
-      title="Click to rename">
+      title={t('collab.notes.clickToRename')}>
       {name}
     </span>
   )
@@ -782,7 +784,7 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
             display: 'flex', gap: 2,
           }}>
             {note.content && (
-              <button onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
+              <button onClick={() => onView?.(note)} title={t('collab.notes.expand')}
                 style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
@@ -854,7 +856,7 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
                   {/* Website */}
                   {note.website && (
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 7, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Link</span>
+                      <span style={{ fontSize: 7, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{t('collab.notes.link')}</span>
                       <WebsiteThumbnail url={note.website} tripId={tripId} color={color} />
                     </div>
                   )}

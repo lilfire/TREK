@@ -720,7 +720,6 @@ const zh: Record<string, string> = {
   'admin.oauthSessions.loadError': '加载 OAuth 会话失败',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
 
   'admin.audit.subtitle': '安全与管理员操作记录（备份、用户、MFA、设置）。',
   'admin.audit.empty': '暂无审计记录。',
@@ -734,35 +733,8 @@ const zh: Record<string, string> = {
   'admin.audit.col.ip': 'IP',
   'admin.audit.col.details': '详情',
 
-  'admin.github.title': '版本历史',
-  'admin.github.subtitle': '{repo} 的最新更新',
-  'admin.github.latest': '最新',
-  'admin.github.prerelease': '预发布',
-  'admin.github.showDetails': '显示详情',
-  'admin.github.hideDetails': '隐藏详情',
-  'admin.github.loadMore': '加载更多',
-  'admin.github.loading': '加载中...',
-  'admin.github.support': '帮助我继续开发 TREK',
-  'admin.github.error': '加载版本失败',
-  'admin.github.by': '作者',
+  'admin.version.prerelease': '预发布',
 
-  'admin.update.available': '有可用更新',
-  'admin.update.text': 'TREK {version} 已发布。你当前使用的是 {current}。',
-  'admin.update.button': '在 GitHub 查看',
-  'admin.update.install': '安装更新',
-  'admin.update.confirmTitle': '确定安装更新？',
-  'admin.update.confirmText': 'TREK 将从 {current} 更新到 {version}。服务器将自动重启。',
-  'admin.update.dataInfo': '你的所有数据（旅行、用户、API 密钥、上传文件、Vacay、Atlas、预算）将被保留。',
-  'admin.update.warning': '重启期间应用将短暂不可用。',
-  'admin.update.confirm': '立即更新',
-  'admin.update.installing': '更新中…',
-  'admin.update.success': '更新已安装！服务器正在重启…',
-  'admin.update.failed': '更新失败',
-  'admin.update.backupHint': '建议在更新前创建备份。',
-  'admin.update.backupLink': '前往备份',
-  'admin.update.howTo': '如何更新',
-  'admin.update.dockerText': '你的 TREK 实例运行在 Docker 中。要更新到 {version}，请在服务器上执行以下命令：',
-  'admin.update.reloadHint': '请在几秒后刷新页面。',
 
   // Vacay addon
   'vacay.subtitle': '规划和管理假期',
@@ -1871,7 +1843,6 @@ const zh: Record<string, string> = {
   'todo.sortByPrio': '优先级',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': '有新版本可用',
   'settings.notificationPreferences.noChannels': '未配置通知渠道。请联系管理员设置电子邮件或 Webhook 通知。',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1931,9 +1902,6 @@ const zh: Record<string, string> = {
   'admin.notifications.tripReminders.enabled': '行程提醒已启用',
   'admin.notifications.tripReminders.disabled': '行程提醒已禁用',
   'admin.tabs.notifications': '通知',
-  'notifications.versionAvailable.title': '有可用更新',
-  'notifications.versionAvailable.text': 'TREK {version} 现已可用。',
-  'notifications.versionAvailable.button': '查看详情',
   'notif.test.title': '[测试] 通知',
   'notif.test.simple.text': '这是一条简单的测试通知。',
   'notif.test.boolean.text': '您是否接受此测试通知？',
@@ -1956,8 +1924,6 @@ const zh: Record<string, string> = {
   'notif.collab_message.text': '{actor} 在 {trip} 中发送了消息',
   'notif.packing_tagged.title': '行李分配',
   'notif.packing_tagged.text': '{actor} 将您分配到 {trip} 中的 {category}',
-  'notif.version_available.title': '新版本可用',
-  'notif.version_available.text': 'TREK {version} 现已可用',
   'notif.action.view_trip': '查看旅行',
   'notif.action.view_collab': '查看消息',
   'notif.action.view_packing': '查看行李',
@@ -2348,8 +2314,6 @@ const zh: Record<string, string> = {
   'system_notice.v3_mcp.highlight_tools':      '扩展工具集与提示词',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': '来自我的一封私人信',
-  'system_notice.v3_thankyou.body': '在你继续之前——我想停下来说几句。\n\nTREK 最初只是我为自己的旅行而做的一个业余项目。我从未想过它会成长为 4,000 人信赖的冒险规划工具。每一颗星标、每一个 issue、每一个功能请求——我都会读，它们在全职工作和大学学业之间的深夜里支撑着我继续前行。\n\n我想让你们知道：TREK 将永远开源，永远可自托管，永远属于你们。没有追踪，没有订阅，没有任何附加条件。只是一个热爱旅行的人为同样热爱旅行的你们打造的工具。\n\n特别感谢 [jubnl](https://github.com/jubnl)——你已经成为一位不可思议的合作者。3.0 版本中许多精彩之处都留下了你的印记。感谢你在这个项目还很粗糙的时候就选择了相信它。\n\n也感谢你们每一位——报告了 bug、翻译了文本、向朋友分享了 TREK，或者只是用它规划了一次旅行——**谢谢你们**。你们是这一切存在的原因。\n\n愿我们一起踏上更多的冒险旅程。\n\n— Maurice\n\n---\n\n[加入 Discord 社区](https://discord.gg/7Q6M6jDwzf)\n\n如果 TREK 让你的旅行更美好，一杯[小小的咖啡](https://ko-fi.com/mauriceboe)能让这盏灯一直亮着。',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': '需要操作：用户账户冲突',
   'system_notice.v3014_whitespace_collision.body': '3.0.14 版本升级检测到一个或多个由存储账户中首尾空白字符引发的用户名或邮箱冲突。受影响的账户已自动重命名。请检查服务器日志中以 **[migration] WHITESPACE COLLISION** 开头的行，以确认哪些账户需要审查。',
@@ -2412,6 +2376,40 @@ const zh: Record<string, string> = {
   'publicTrip.unplanned.subheading': '已添加到此行程但尚未安排的地点。',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': '住宿',
+  'publicTrip.tiers.subheading': '住宿安排取决于报名人数。',
+  'publicTrip.tiers.participants': '已确认 {count} 人',
+  'publicTrip.tiers.nextTier': '再有 {count} 人即可解锁 {name}',
+  'publicTrip.tiers.allReached': '已达到最高等级！',
+  'publicTrip.tiers.paidNote': '仅计算已付款的报名。',
+  'publicTrip.tiers.active': '当前',
+  'publicTrip.tiers.range': '{min}–{max} 人',
+  'publicTrip.tiers.rangeSingle': '{min} 人',
+  'publicTrip.tiers.rangeOpen': '{min}+ 人',
+  'publicTrip.tiers.viewPlace': "查看住宿",
+  'publicTrip.tiers.viewOnMap': "在地图上查看",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "住宿等级",
+  'tripForm.tiers.hint': "适用的住宿取决于已确认的参与人数（组织者 + 报名；设有费用时仅计已付款）。显示在公开行程页面上。",
+  'tripForm.tiers.status': "已确认 {count} 人",
+  'tripForm.tiers.current': "当前：{name}",
+  'tripForm.tiers.add': "添加等级",
+  'tripForm.tiers.name': "名称",
+  'tripForm.tiers.namePlaceholder': "例如：Fjellro 小屋",
+  'tripForm.tiers.minParticipants': "起始人数",
+  'tripForm.tiers.place': "地点（可选）",
+  'tripForm.tiers.noPlace': "无地点",
+  'tripForm.tiers.pricePerPerson': "每人价格（{currency}）",
+  'tripForm.tiers.description': "描述（可选）",
+  'tripForm.tiers.nameRequired': "名称为必填项",
+  'tripForm.tiers.minInvalid': "人数必须是不小于 1 的整数",
+  'tripForm.tiers.priceInvalid': "价格必须大于或等于 0",
+  'tripForm.tiers.saveError': "无法保存等级",
+  'tripForm.tiers.deleteError': "无法删除等级",
+  'tripForm.tiers.confirmDelete': "删除等级「{name}」？",
 }
 
 export default zh

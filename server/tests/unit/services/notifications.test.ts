@@ -203,10 +203,10 @@ describe('buildEmailHtml', () => {
     expect(unknown).toContain('notifications enabled in TREK');
   });
 
-  it('footer GitHub link uses GITHUB_REPO from config (default mauriceboe/TREK)', () => {
+  it('footer GitHub link uses GITHUB_REPO from config (default lilfire/TREK)', () => {
     const html = buildEmailHtml('Subject', 'Body', 'en');
     // The config module is loaded with default GITHUB_REPO since no GITHUB_REPO env was set.
-    expect(html).toContain('https://github.com/mauriceboe/TREK"');
+    expect(html).toContain('https://github.com/lilfire/TREK"');
   });
 });
 
@@ -215,11 +215,12 @@ describe('buildEmailHtml', () => {
 describe('buildEmailHtml footer GitHub link (LSO-1638)', () => {
   it('renders the footer GitHub link wrapped in escapeHtml of GITHUB_REPO', async () => {
     vi.resetModules();
-    vi.doMock('../../../src/config', () => ({ GITHUB_REPO: 'lilfire/TREK' }));
+    vi.doMock('../../../src/config', () => ({ GITHUB_REPO: 'someone/OTHERFORK' }));
     const mod = await import('../../../src/services/notifications');
     const html = mod.buildEmailHtml('Subject', 'Body', 'en');
-    expect(html).toContain('https://github.com/lilfire/TREK"');
-    expect(html).not.toContain('https://github.com/mauriceboe/TREK"');
+    expect(html).toContain('https://github.com/someone/OTHERFORK"');
+    // The configured slug wins over the build default.
+    expect(html).not.toContain('https://github.com/lilfire/TREK"');
     vi.doUnmock('../../../src/config');
     vi.resetModules();
   });

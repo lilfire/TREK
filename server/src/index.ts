@@ -73,7 +73,6 @@ const onListen = () => {
   scheduler.start();
   scheduler.startTripReminders();
   scheduler.startTodoReminders();
-  scheduler.startVersionCheck();
   scheduler.startDemoReset();
   scheduler.startIdempotencyCleanup();
   scheduler.startTrekPhotoCacheCleanup();

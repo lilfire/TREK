@@ -36,6 +36,7 @@ import { listItems as listTodoItems } from '../services/todoService';
 import { listBudgetItems } from '../services/budgetService';
 import { listReservations } from '../services/reservationService';
 import { listFiles } from '../services/fileService';
+import { createTier, updateTier, deleteTier, getTierStatus } from '../services/accommodationTierService';
 
 const router = express.Router();
 
@@ -304,6 +305,68 @@ router.delete('/:id/members/:userId', authenticate, (req: Request, res: Response
 
   removeMember(req.params.id, targetId);
   res.json({ success: true });
+});
+
+// ── Accommodation tiers ───────────────────────────────────────────────────
+// Readable by anyone with trip access; changes require trip_edit.
+
+function tierEditAccess(req: Request, res: Response): boolean {
+  const authReq = req as AuthRequest;
+  const access = canAccessTrip(req.params.id, authReq.user.id);
+  if (!access) { res.status(404).json({ error: 'Trip not found' }); return false; }
+  if (!checkPermission('trip_edit', authReq.user.role, access.user_id, authReq.user.id, access.user_id !== authReq.user.id)) {
+    res.status(403).json({ error: 'No permission to edit this trip' });
+    return false;
+  }
+  return true;
+}
+
+function tierError(res: Response, e: unknown) {
+  if (e instanceof NotFoundError) return res.status(404).json({ error: e.message });
+  if (e instanceof ValidationError) return res.status(400).json({ error: e.message });
+  throw e;
+}
+
+function pickTierInput(body: Record<string, unknown>) {
+  const input: Record<string, unknown> = {};
+  for (const key of ['name', 'min_participants', 'place_id', 'price_per_person', 'description']) {
+    if (body[key] !== undefined) input[key] = body[key];
+  }
+  return input;
+}
+
+router.get('/:id/accommodation-tiers', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  if (!canAccessTrip(req.params.id, authReq.user.id))
+    return res.status(404).json({ error: 'Trip not found' });
+  res.json(getTierStatus(Number(req.params.id)));
+});
+
+router.post('/:id/accommodation-tiers', authenticate, (req: Request, res: Response) => {
+  if (!tierEditAccess(req, res)) return;
+  try {
+    const tier = createTier(Number(req.params.id), pickTierInput(req.body));
+    res.status(201).json({ tier, status: getTierStatus(Number(req.params.id)) });
+  } catch (e) {
+    tierError(res, e);
+  }
+});
+
+router.put('/:id/accommodation-tiers/:tierId', authenticate, (req: Request, res: Response) => {
+  if (!tierEditAccess(req, res)) return;
+  try {
+    const tier = updateTier(Number(req.params.id), Number(req.params.tierId), pickTierInput(req.body));
+    res.json({ tier, status: getTierStatus(Number(req.params.id)) });
+  } catch (e) {
+    tierError(res, e);
+  }
+});
+
+router.delete('/:id/accommodation-tiers/:tierId', authenticate, (req: Request, res: Response) => {
+  if (!tierEditAccess(req, res)) return;
+  if (!deleteTier(Number(req.params.id), Number(req.params.tierId)))
+    return res.status(404).json({ error: 'Accommodation tier not found' });
+  res.json({ success: true, status: getTierStatus(Number(req.params.id)) });
 });
 
 // ── Offline bundle ────────────────────────────────────────────────────────

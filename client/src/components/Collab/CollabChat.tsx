@@ -580,7 +580,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
                   )}
                   <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
                     <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
-                      {msg.username} {t('collab.chat.deletedMessage') || 'deleted a message'} · {formatTime(msg.created_at, is12h)}
+                      {msg.username} {t('collab.chat.deletedMessage')} · {formatTime(msg.created_at, is12h)}
                     </span>
                   </div>
                 </React.Fragment>

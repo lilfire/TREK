@@ -111,20 +111,12 @@ if (!SUPPORTED_LANG_CODES.includes(rawDefaultLang)) {
 }
 export const DEFAULT_LANGUAGE = SUPPORTED_LANG_CODES.includes(rawDefaultLang) ? rawDefaultLang : 'en';
 
-// GITHUB_REPO is the "owner/name" slug used for release/version checks and the
-// "view source" link surfaced in the admin UI. Defaults to upstream; forks set
-// the GITHUB_REPO env var so update checks point at their own release feed.
-export const GITHUB_REPO = process.env.GITHUB_REPO || 'mauriceboe/TREK';
+// GITHUB_REPO is the "owner/name" slug used for the "view source", bug report,
+// discussion and wiki links surfaced in the UI and in the email footer. It is
+// never fetched: this build does no update polling of any kind.
+export const GITHUB_REPO = process.env.GITHUB_REPO || 'lilfire/TREK';
 
-// GITHUB_VERSION_SOURCE picks the API the server polls for update checks.
-// "releases" reads tags from the GitHub Releases API (default — matches the
-// historical behaviour). "packages" reads container image tags from the GHCR
-// Container Registry API, which is what forks publishing Docker images via
-// GitHub Packages will want.
-export const GITHUB_VERSION_SOURCE: 'releases' | 'packages' =
-  process.env.GITHUB_VERSION_SOURCE === 'packages' ? 'packages' : 'releases';
-
-// GITHUB_TOKEN is optional. When set, it is passed as a Bearer token on the
-// GHCR versions API request so private packages (and higher rate limits) work.
-// Public releases and public packages do not require it.
-export const GITHUB_TOKEN = process.env.GITHUB_TOKEN || '';
+// Shared outbound User-Agent. Nominatim's usage policy requires a contactable
+// identifier, so every third-party API call identifies this deployment by its
+// own repository rather than by whichever project it was forked from.
+export const USER_AGENT = `TREK Travel Planner (https://github.com/${GITHUB_REPO})`;

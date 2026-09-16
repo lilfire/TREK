@@ -61,7 +61,7 @@ export default function InAppNotificationsPage(): React.ReactElement {
                 )}
               </h1>
               <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                {total} {total === 1 ? 'notification' : 'notifications'}
+                {t(total === 1 ? 'notifications.countOne' : 'notifications.count', { count: total })}
               </p>
             </div>
 

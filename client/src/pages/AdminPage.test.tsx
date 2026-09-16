@@ -17,10 +17,6 @@ vi.mock('../components/Admin/BackupPanel', () => ({
   default: () => <div data-testid="backup-panel" />,
 }));
 
-vi.mock('../components/Admin/GitHubPanel', () => ({
-  default: () => <div data-testid="github-panel" />,
-}));
-
 vi.mock('../components/Admin/AddonManager', () => ({
   default: () => <div data-testid="addon-manager" />,
 }));
@@ -217,19 +213,6 @@ describe('AdminPage', () => {
     });
   });
 
-  describe('FE-PAGE-ADMIN-011: GitHub tab renders GitHubPanel', () => {
-    it('clicking GitHub tab shows github-panel', async () => {
-      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
-      render(<AdminPage />);
-
-      await waitFor(() => expect(screen.getByRole('button', { name: /^users$/i })).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: /^github$/i }));
-
-      expect(screen.getByTestId('github-panel')).toBeInTheDocument();
-    });
-  });
-
   describe('FE-PAGE-ADMIN-012: Stats card values displayed', () => {
     it('shows totalPlaces (42) and totalFiles (8) from GET /api/admin/stats', async () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
@@ -293,23 +276,6 @@ describe('AdminPage', () => {
 
       await waitFor(() => {
         expect(screen.getByDisplayValue('alice')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('FE-PAGE-ADMIN-016: Version update banner shown when update available', () => {
-    it('shows update available banner when version-check returns update_available: true', async () => {
-      server.use(
-        http.get('/api/admin/version-check', () => {
-          return HttpResponse.json({ update_available: true, latest: '9.9.9', current: '1.0.0' });
-        }),
-      );
-
-      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
-      render(<AdminPage />);
-
-      await waitFor(() => {
-        expect(screen.getByText(/update available/i)).toBeInTheDocument();
       });
     });
   });
@@ -611,10 +577,10 @@ describe('AdminPage', () => {
       server.use(
         http.get('/api/admin/notification-preferences', () => {
           return HttpResponse.json({
-            event_types: ['version_available'],
+            event_types: ['trip_invite'],
             available_channels: { inapp: true, email: true },
-            implemented_combos: { version_available: ['inapp', 'email'] },
-            preferences: { version_available: { inapp: true, email: true } },
+            implemented_combos: { trip_invite: ['inapp', 'email'] },
+            preferences: { trip_invite: { inapp: true, email: true } },
           });
         }),
       );
@@ -651,27 +617,6 @@ describe('AdminPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /mcp access/i }));
 
       expect(screen.getByTestId('mcp-tokens-panel')).toBeInTheDocument();
-    });
-  });
-
-  describe('FE-PAGE-ADMIN-032: Update instructions modal', () => {
-    it('clicking How to Update opens the docker instructions modal', async () => {
-      server.use(
-        http.get('/api/admin/version-check', () => {
-          return HttpResponse.json({ update_available: true, latest: '9.9.9', current: '1.0.0' });
-        }),
-      );
-
-      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
-      render(<AdminPage />);
-
-      await waitFor(() => expect(screen.getByText(/update available/i)).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: /how to update/i }));
-
-      await waitFor(() => {
-        expect(screen.getByText(/docker pull/i)).toBeInTheDocument();
-      });
     });
   });
 
@@ -767,8 +712,8 @@ describe('AdminPage', () => {
       const oidcHeading = await screen.findByRole('heading', { name: /single sign-on/i });
       const oidcCard = oidcHeading.closest('.bg-white');
 
-      // Type in the display name field (placeholder is 'z.B. Google, Authentik, Keycloak')
-      const displayNameInput = within(oidcCard!).getByPlaceholderText('z.B. Google, Authentik, Keycloak');
+      // Type in the display name field (placeholder is 'e.g. Google, Authentik, Keycloak')
+      const displayNameInput = within(oidcCard!).getByPlaceholderText('e.g. Google, Authentik, Keycloak');
       fireEvent.change(displayNameInput, { target: { value: 'Google' } });
 
       // Click the Save button in the OIDC section
@@ -872,31 +817,6 @@ describe('AdminPage', () => {
       // Modal stays open — password validation error
       await waitFor(() => {
         expect(screen.getByPlaceholderText('Username')).toBeInTheDocument();
-      });
-    });
-  });
-
-  describe('FE-PAGE-ADMIN-040: Close update instructions modal', () => {
-    it('clicking Close button dismisses the update instructions modal', async () => {
-      server.use(
-        http.get('/api/admin/version-check', () => {
-          return HttpResponse.json({ update_available: true, latest: '9.9.9', current: '1.0.0' });
-        }),
-      );
-
-      seedStore(useAuthStore, { isAuthenticated: true, user: buildAdmin() });
-      render(<AdminPage />);
-
-      await waitFor(() => expect(screen.getByText(/update available/i)).toBeInTheDocument());
-
-      fireEvent.click(screen.getByRole('button', { name: /how to update/i }));
-      await waitFor(() => expect(screen.getByText(/docker pull/i)).toBeInTheDocument());
-
-      // Click the Close button to dismiss the modal
-      fireEvent.click(screen.getByRole('button', { name: /close/i }));
-
-      await waitFor(() => {
-        expect(screen.queryByText(/docker pull/i)).not.toBeInTheDocument();
       });
     });
   });

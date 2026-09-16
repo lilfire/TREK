@@ -1,5 +1,6 @@
 import { MapPin, Camera, Smile, Laugh, Meh, Frown, Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake } from 'lucide-react'
 import { formatLocationName } from '../../utils/formatters'
+import { useTranslation } from '../../i18n'
 import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 
 const MOOD_ICONS: Record<string, typeof Smile> = {
@@ -46,6 +47,7 @@ interface Props {
 }
 
 export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, onClick, publicPhotoUrl }: Props) {
+  const { t } = useTranslation()
   const hasLocation = !!(entry.location_lat && entry.location_lng)
   const hasPhotos = entry.photos && entry.photos.length > 0
   const firstPhoto = hasPhotos ? entry.photos![0] : null
@@ -128,7 +130,7 @@ export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, o
 
           {/* Title */}
           <h4 className="text-[13px] font-semibold text-zinc-900 dark:text-white leading-tight truncate">
-            {entry.title || (entry.type === 'checkin' ? 'Check-in' : entry.type === 'skeleton' ? 'Add your story…' : 'Untitled')}
+            {entry.title || (entry.type === 'checkin' ? t('journey.entry.checkin') : entry.type === 'skeleton' ? t('journey.entry.addStory') : t('journey.entry.untitled'))}
           </h4>
 
           {/* Story preview (1-2 lines, only on active card) */}
@@ -143,10 +145,10 @@ export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, o
             {hasLocation ? (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-700 text-[10px] font-medium text-zinc-600 dark:text-zinc-300 max-w-full overflow-hidden">
                 <MapPin size={10} className="flex-shrink-0" />
-                <span className="truncate">{formatLocationName(entry.location_name) || 'On the map'}</span>
+                <span className="truncate">{formatLocationName(entry.location_name) || t('journey.entry.onTheMap')}</span>
               </span>
             ) : (
-              <span className="text-[10px] text-zinc-400 italic">No location</span>
+              <span className="text-[10px] text-zinc-400 italic">{t('journey.noLocation')}</span>
             )}
           </div>
         </div>

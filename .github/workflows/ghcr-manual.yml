@@ -29,7 +29,7 @@ jobs:
           tags: ghcr.io/${{ env.IMAGE_NAME }}:${{ github.event.inputs.tag }}
           labels: |
             org.opencontainers.image.description=TREK - A self-hosted trip planning application
-            org.opencontainers.image.documentation=https://github.com/lilfire/TREK/blob/main/CHANGELOG.md
+            org.opencontainers.image.documentation=https://github.com/lilfire/TREK/wiki
             org.opencontainers.image.source=https://github.com/lilfire/TREK
   build-latest:
     runs-on: ubuntu-latest
@@ -52,5 +52,5 @@ jobs:
           tags: ghcr.io/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.description=TREK - A self-hosted trip planning application
-            org.opencontainers.image.documentation=https://github.com/lilfire/TREK/blob/main/CHANGELOG.md
+            org.opencontainers.image.documentation=https://github.com/lilfire/TREK/wiki
             org.opencontainers.image.source=https://github.com/lilfire/TREK

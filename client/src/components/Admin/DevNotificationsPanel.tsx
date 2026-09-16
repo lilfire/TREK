@@ -5,7 +5,7 @@ import { useToast } from '../shared/Toast'
 import {
   Bell, Zap, ArrowRight, CheckCircle, Navigation, User,
   Calendar, Clock, Image, MessageSquare, Tag, UserPlus,
-  Download, MapPin,
+  MapPin,
 } from 'lucide-react'
 
 interface Trip {
@@ -262,24 +262,6 @@ export default function DevNotificationsPanel(): React.ReactElement {
           </div>
         </div>
       )}
-
-      {/* ── Admin-Scoped Events ──────────────────────────────────────────── */}
-      <div>
-        <SectionTitle>Admin-Scoped Events</SectionTitle>
-        <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
-          Fires to all admin users.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Btn id="version_available" label="version_available" sub="navigate · admin" icon={Download} color="#64748b"
-            onClick={() => fire('version_available', {
-              event: 'version_available',
-              scope: 'admin',
-              targetId: 0,
-              params: { version: '9.9.9-test' },
-            })}
-          />
-        </div>
-      </div>
     </div>
   )
 }

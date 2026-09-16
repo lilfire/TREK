@@ -348,7 +348,7 @@ function AddonRow({ addon, onToggle, t, nameOverride, descriptionOverride, statu
           <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{displayName}</span>
           {isComingSoon && (
             <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-faint)' }}>
-              Coming Soon
+              {t('admin.addons.comingSoon')}
             </span>
           )}
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}>

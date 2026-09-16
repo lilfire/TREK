@@ -19,7 +19,7 @@ import {
   getAppUrl,
 } from './notifications';
 import { sendWebhook } from './webhookService';
-import { sendNtfy, getUserNtfyConfig, getAdminNtfyConfig, resolveNtfyUrl } from './ntfyService';
+import { sendNtfy, getUserNtfyConfig, getAdminNtfyConfig, resolveNtfyUrl, resolveNtfyToken } from './ntfyService';
 import {
   resolveRecipients,
   createNotificationForRecipient,
@@ -113,13 +113,6 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     textKey: 'notif.packing_tagged.text',
     navigateTextKey: 'notif.action.view_packing',
     navigateTarget: p => (p.tripId ? `/trips/${p.tripId}` : null),
-  },
-  version_available: {
-    inAppType: 'navigate',
-    titleKey: 'notif.version_available.title',
-    textKey: 'notif.version_available.text',
-    navigateTextKey: 'notif.action.view_admin',
-    navigateTarget: () => '/admin',
   },
   synology_session_cleared: {
     inAppType: 'simple',
@@ -287,7 +280,7 @@ export async function send(payload: NotificationPayload): Promise<void> {
       if (ntfyUrl) {
         const lang = getUserLanguage(recipientId);
         const { title, body } = getEventText(lang, event, params);
-        const token = userNtfyCfg?.token ?? adminNtfyCfg.token;
+        const token = resolveNtfyToken(adminNtfyCfg, userNtfyCfg);
         promises.push(sendNtfy(ntfyUrl, token, { event, title, body, link: fullLink }));
       }
     }

@@ -274,23 +274,6 @@ function startTodoReminders(): void {
   }, { timezone: tz });
 }
 
-// Version check: daily at 9 AM — notify admins if a new TREK release is available
-let versionCheckTask: ScheduledTask | null = null;
-
-function startVersionCheck(): void {
-  if (versionCheckTask) { versionCheckTask.stop(); versionCheckTask = null; }
-
-  const tz = process.env.TZ || 'UTC';
-  versionCheckTask = cron.schedule('0 9 * * *', async () => {
-    try {
-      const { checkAndNotifyVersion } = require('./services/adminService');
-      await checkAndNotifyVersion();
-    } catch (err: unknown) {
-      logError(`Version check: ${err instanceof Error ? err.message : err}`);
-    }
-  }, { timezone: tz });
-}
-
 // Idempotency key cleanup: nightly at 3 AM — delete keys older than 24 hours
 let idempotencyCleanupTask: ScheduledTask | null = null;
 
@@ -338,9 +321,8 @@ function stop(): void {
   if (currentTask) { currentTask.stop(); currentTask = null; }
   if (demoTask) { demoTask.stop(); demoTask = null; }
   if (reminderTask) { reminderTask.stop(); reminderTask = null; }
-  if (versionCheckTask) { versionCheckTask.stop(); versionCheckTask = null; }
   if (idempotencyCleanupTask) { idempotencyCleanupTask.stop(); idempotencyCleanupTask = null; }
   if (trekPhotoCacheTask) { trekPhotoCacheTask.stop(); trekPhotoCacheTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startIdempotencyCleanup, startTrekPhotoCacheCleanup, loadSettings, saveSettings, VALID_INTERVALS };
