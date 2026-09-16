@@ -5,6 +5,7 @@ import {
   type TripCardProps, type DashboardTrip,
   tripGradient, getTripStatus, daysUntil, formatDateShort,
 } from './DashboardTripCardTypes'
+import TripCover, { coverSrc } from '../components/shared/TripCover'
 
 // ── Liquid Glass hover effect ────────────────────────────────────────────────
 interface LiquidGlassProps {
@@ -94,22 +95,15 @@ export function SpotlightCard({ trip, onEdit, onCopy, onDelete, onArchive, onCli
     <div
       onClick={() => onClick(trip)}
       className="group relative rounded-3xl overflow-hidden cursor-pointer mb-8 transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-[0_16px_60px_rgba(0,0,0,0.22)] active:scale-[0.995]"
-      style={{ minHeight: 340, boxShadow: '0 8px 40px rgba(0,0,0,0.13)', isolation: 'isolate' }}
+      style={{ boxShadow: '0 8px 40px rgba(0,0,0,0.13)', isolation: 'isolate' }}
     >
-      <div className="absolute inset-0 overflow-hidden rounded-3xl" style={{
-        background: trip.cover_image ? undefined : tripGradient(trip.id),
-      }}>
-        {trip.cover_image && (
-          <>
-            <img src={trip.cover_image} className="w-full h-full object-cover transition-transform duration-[1200ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.06]" alt="" />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%)' }} />
-          </>
-        )}
-      </div>
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 0%, transparent 40%, rgba(0,0,0,0.5) 100%)' }} />
-
-      <div className="relative p-6 flex flex-col text-white z-[2]" style={{ minHeight: 340 }}>
-        <div className="flex items-center justify-between mb-5">
+      <TripCover
+        src={trip.cover_image}
+        fallback={tripGradient(trip.id)}
+        imgClassName="transition-transform duration-[1200ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.06]"
+      >
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 55%)' }} />
+        <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between text-white z-[2]">
           {badgeText ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-black/40 backdrop-blur-sm border border-white/15 rounded-full text-[10px] font-bold uppercase tracking-[0.1em]">
               {isLive ? (
@@ -121,48 +115,58 @@ export function SpotlightCard({ trip, onEdit, onCopy, onDelete, onArchive, onCli
             </span>
           ) : <span />}
           <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-            {onEdit && <button title={t('common.edit')} onClick={() => onEdit(trip)} className="w-[34px] h-[34px] rounded-[10px] bg-white/12 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-white/20 transition-colors"><Edit2 size={14} /></button>}
-            {onCopy && <button title={t('dashboard.copyTrip')} onClick={() => onCopy(trip)} className="w-[34px] h-[34px] rounded-[10px] bg-white/12 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-white/20 transition-colors"><Copy size={14} /></button>}
-            {onArchive && <button title={t('dashboard.archive')} onClick={() => onArchive(trip.id)} className="w-[34px] h-[34px] rounded-[10px] bg-white/12 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-white/20 transition-colors"><Archive size={14} /></button>}
-            {onDelete && <button title={t('common.delete')} onClick={() => onDelete(trip)} className="w-[34px] h-[34px] rounded-[10px] bg-white/12 backdrop-blur-sm border border-white/15 flex items-center justify-center text-red-300 hover:bg-red-500/20 transition-colors"><Trash2 size={14} /></button>}
+            {onEdit && <button title={t('common.edit')} onClick={() => onEdit(trip)} className="w-[34px] h-[34px] rounded-[10px] bg-black/30 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/50 transition-colors"><Edit2 size={14} /></button>}
+            {onCopy && <button title={t('dashboard.copyTrip')} onClick={() => onCopy(trip)} className="w-[34px] h-[34px] rounded-[10px] bg-black/30 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/50 transition-colors"><Copy size={14} /></button>}
+            {onArchive && <button title={t('dashboard.archive')} onClick={() => onArchive(trip.id)} className="w-[34px] h-[34px] rounded-[10px] bg-black/30 backdrop-blur-sm border border-white/15 flex items-center justify-center text-white hover:bg-black/50 transition-colors"><Archive size={14} /></button>}
+            {onDelete && <button title={t('common.delete')} onClick={() => onDelete(trip)} className="w-[34px] h-[34px] rounded-[10px] bg-black/30 backdrop-blur-sm border border-white/15 flex items-center justify-center text-red-300 hover:bg-red-500/30 transition-colors"><Trash2 size={14} /></button>}
           </div>
         </div>
+      </TripCover>
 
-        <div className="flex-1 flex flex-col justify-end mb-4">
-          {!trip.is_owner && (
-            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 bg-white/15 backdrop-blur-sm border border-white/15 rounded-full text-[9px] font-semibold uppercase tracking-[0.06em] mb-2">
-              <Users size={9} /> {t('dashboard.sharedBy', { name: trip.owner_username })}
-            </span>
-          )}
-          <h2 className="text-[32px] font-extrabold tracking-[-0.03em] leading-[0.95] mb-1.5">{trip.title}</h2>
-          <p className="text-[12px] opacity-80 font-medium">
-            {formatDateShort(trip.start_date, locale)} — {formatDateShort(trip.end_date, locale)}
-            {isLive && <> · {t('journey.pdf.day')} {currentDay} / {totalDays}</>}
-          </p>
-        </div>
+      {/* Content panel: a blurred, darkened continuation of the cover keeps the white text readable */}
+      <div className="relative overflow-hidden text-white" style={{ background: trip.cover_image ? '#18181b' : tripGradient(trip.id) }}>
+        {trip.cover_image && (
+          <img src={coverSrc(trip.cover_image)} alt="" aria-hidden className="absolute inset-0 w-full h-full object-cover" style={{ filter: 'blur(40px) saturate(1.2)', transform: 'scale(1.3)' }} />
+        )}
+        <div className="absolute inset-0" style={{ background: trip.cover_image ? 'rgba(0,0,0,0.55)' : 'linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%)' }} />
 
-        {isLive && (
-          <div className="mb-4">
-            <div className="flex justify-between text-[11px] font-semibold mb-1.5">
-              <span className="opacity-85">{t('dashboard.mobile.tripProgress')}</span>
-              <span className="opacity-70">{t('dashboard.mobile.daysLeft', { count: daysLeft })}</span>
-            </div>
-            <div className="h-1.5 bg-white/15 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-white rounded-full relative"
-                style={{
-                  width: `${progress}%`,
-                  animation: 'trek-progress-fill 900ms cubic-bezier(0.23,1,0.32,1) both',
-                  ['--trek-progress-to' as string]: `${progress}%`,
-                }}
-              >
-                <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]" />
+        <div className="relative p-6 flex flex-col z-[2]">
+          <div className="flex flex-col mb-4">
+            {!trip.is_owner && (
+              <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 bg-white/15 backdrop-blur-sm border border-white/15 rounded-full text-[9px] font-semibold uppercase tracking-[0.06em] mb-2">
+                <Users size={9} /> {t('dashboard.sharedBy', { name: trip.owner_username })}
+              </span>
+            )}
+            <h2 className="text-[32px] font-extrabold tracking-[-0.03em] leading-[0.95] mb-1.5">{trip.title}</h2>
+            <p className="text-[12px] opacity-80 font-medium">
+              {formatDateShort(trip.start_date, locale)} — {formatDateShort(trip.end_date, locale)}
+              {isLive && <> · {t('journey.pdf.day')} {currentDay} / {totalDays}</>}
+            </p>
+          </div>
+
+          {isLive && (
+            <div className="mb-4">
+              <div className="flex justify-between text-[11px] font-semibold mb-1.5">
+                <span className="opacity-85">{t('dashboard.mobile.tripProgress')}</span>
+                <span className="opacity-70">{t('dashboard.mobile.daysLeft', { count: daysLeft })}</span>
+              </div>
+              <div className="h-1.5 bg-white/15 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-white rounded-full relative"
+                  style={{
+                    width: `${progress}%`,
+                    animation: 'trek-progress-fill 900ms cubic-bezier(0.23,1,0.32,1) both',
+                    ['--trek-progress-to' as string]: `${progress}%`,
+                  }}
+                >
+                  <span className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_12px_rgba(255,255,255,0.9)]" />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <SpotlightStats trip={trip} totalDays={totalDays} t={t} />
+          <SpotlightStats trip={trip} totalDays={totalDays} t={t} />
+        </div>
       </div>
     </div>
   )

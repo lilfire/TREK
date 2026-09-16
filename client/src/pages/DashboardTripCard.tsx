@@ -4,6 +4,7 @@ import {
   type TripCardProps,
   tripGradient, getTripStatus, daysUntil, formatDateShort,
 } from './DashboardTripCardTypes'
+import TripCover, { COVER_ASPECT } from '../components/shared/TripCover'
 
 // ── Regular Trip Card ────────────────────────────────────────────────────────
 export function TripCard({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t, locale }: Omit<TripCardProps, 'dark'>): React.ReactElement {
@@ -26,11 +27,12 @@ export function TripCard({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t
       className="group rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-lg hover:border-zinc-300 dark:hover:border-zinc-600"
       style={{ background: 'var(--bg-card)', isolation: 'isolate' }}
     >
-      <div className="relative h-[140px] overflow-hidden" style={{ background: trip.cover_image ? undefined : tripGradient(trip.id) }}>
-        {trip.cover_image && (
-          <img src={trip.cover_image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.08]" alt="" />
-        )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.55) 100%)' }} />
+      <TripCover
+        src={trip.cover_image}
+        fallback={tripGradient(trip.id)}
+        imgClassName="transition-transform duration-[800ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.08]"
+      >
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 60%)' }} />
 
         <div className="absolute top-3 right-3 z-[2] flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {onEdit && <button title={t('common.edit')} onClick={e => { e.stopPropagation(); onEdit(trip) }} className="w-[30px] h-[30px] rounded-[8px] bg-black/30 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/50 transition-colors"><Edit2 size={12} /></button>}
@@ -61,13 +63,13 @@ export function TripCard({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t
             </span>
           </div>
         )}
+      </TripCover>
 
-        <div className="absolute bottom-3.5 left-3.5 right-3.5 z-[2] text-white">
-          <h3 className="text-[20px] font-extrabold tracking-[-0.02em] leading-tight">{trip.title}</h3>
-          {trip.description && (
-            <p className="text-[11px] opacity-75 font-medium mt-1 truncate">{trip.description}</p>
-          )}
-        </div>
+      <div className="px-4 pt-3">
+        <h3 className="text-[20px] font-extrabold tracking-[-0.02em] leading-tight truncate" style={{ color: 'var(--text-primary)' }}>{trip.title}</h3>
+        {trip.description && (
+          <p className="text-[11px] font-medium mt-1 truncate" style={{ color: 'var(--text-muted)' }}>{trip.description}</p>
+        )}
       </div>
 
       <div className="flex items-center justify-between px-4 py-3">
@@ -107,7 +109,7 @@ export function SkeletonCard(): React.ReactElement {
       className="rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden"
       style={{ background: 'var(--bg-card)' }}
     >
-      <div className="trek-skeleton" style={{ height: 120, borderRadius: 0 }} />
+      <div className="trek-skeleton" style={{ aspectRatio: COVER_ASPECT, borderRadius: 0 }} />
       <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div className="trek-skeleton" style={{ height: 14, width: '70%' }} />
         <div className="trek-skeleton" style={{ height: 11, width: '50%' }} />

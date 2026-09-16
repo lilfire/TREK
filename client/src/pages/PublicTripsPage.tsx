@@ -4,6 +4,7 @@ import { MapPin, Calendar } from 'lucide-react'
 import { publicTripsApi, type PublicTripSummary } from '../api/client'
 import { formatDateRange } from '../utils/formatters'
 import PublicThemeToggle from '../components/shared/PublicThemeToggle'
+import TripCover, { COVER_ASPECT } from '../components/shared/TripCover'
 import { useTranslation } from '../i18n'
 
 export default function PublicTripsPage() {
@@ -98,20 +99,14 @@ export default function PublicTripsPage() {
               >
                 {/* Cover image */}
                 {trip.cover_image_url ? (
-                  <div className="h-36 overflow-hidden">
-                    <img
-                      src={trip.cover_image_url.startsWith('http') || trip.cover_image_url.startsWith('/') ? trip.cover_image_url : `/uploads/${trip.cover_image_url}`}
-                      alt=""
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
+                  <TripCover src={trip.cover_image_url} imgClassName="group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div
-                    className="h-36 flex items-center justify-center"
-                    style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}
+                    className="flex items-center justify-center"
+                    style={{ aspectRatio: COVER_ASPECT, background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}
                     aria-hidden="true"
                   >
-                    <span className="text-4xl opacity-30">✈️</span>
+                    <span className="text-2xl opacity-30">✈️</span>
                   </div>
                 )}
 

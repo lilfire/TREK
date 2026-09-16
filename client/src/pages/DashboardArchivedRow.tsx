@@ -1,6 +1,7 @@
 import React from 'react'
 import { ArchiveRestore, Copy, Trash2 } from 'lucide-react'
 import { type DashboardTrip, tripGradient, formatDateShort } from './DashboardTripCardTypes'
+import TripCover from '../components/shared/TripCover'
 
 // ── Archived Row ─────────────────────────────────────────────────────────────
 interface ArchivedRowProps {
@@ -23,11 +24,7 @@ export function ArchivedRow({ trip, onCopy, onUnarchive, onDelete, onClick, t, l
     }}
       onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border-primary)'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-faint)'}>
-      <div style={{
-        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-        background: trip.cover_image ? `url(${trip.cover_image}) center/cover no-repeat` : tripGradient(trip.id),
-        opacity: 0.7,
-      }} />
+      <TripCover src={trip.cover_image} fallback={tripGradient(trip.id)} style={{ width: 110, borderRadius: 6, flexShrink: 0, opacity: 0.7 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{trip.title}</span>
