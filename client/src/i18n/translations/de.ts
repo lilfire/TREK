@@ -1282,6 +1282,8 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Umbenennen',
   'packing.menuCheckAll': 'Alle abhaken',
   'packing.menuUncheckAll': 'Alle Haken entfernen',
+  'packing.menuDuplicate': 'Duplizieren',
+  'packing.copySuffix': 'Kopie',
   'packing.menuDeleteCat': 'Kategorie löschen',
   'packing.noMembers': 'Keine Mitglieder',
   'packing.addItem': 'Eintrag hinzufügen',
@@ -1307,6 +1309,8 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Fehler beim Speichern',
   'packing.toast.deleteError': 'Fehler beim Löschen',
   'packing.toast.renameError': 'Fehler beim Umbenennen',
+  'packing.toast.duplicated': 'Kategorie dupliziert',
+  'packing.toast.duplicateError': 'Fehler beim Duplizieren der Kategorie',
   'packing.toast.addError': 'Fehler beim Hinzufügen',
 
   // Packing suggestions

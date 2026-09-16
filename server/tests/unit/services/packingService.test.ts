@@ -1,6 +1,6 @@
 /**
  * Unit tests for packingService.ts — uncovered functions.
- * Covers PACK-SVC-001 to PACK-SVC-018.
+ * Covers PACK-SVC-001 to PACK-SVC-023.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -51,6 +51,7 @@ import {
   listItems,
   canMemberAccessItem,
   updateCategoryAssignees,
+  duplicateCategory,
 } from '../../../src/services/packingService';
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -359,5 +360,82 @@ describe('listItems / canMemberAccessItem member visibility', () => {
     expect(canMemberAccessItem(trip.id, item.id, bob.id)).toBe(false);
     // Owner is always allowed.
     expect(canMemberAccessItem(trip.id, item.id, owner.id)).toBe(true);
+  });
+});
+
+// ── duplicateCategory ─────────────────────────────────────────────────────────
+
+describe('duplicateCategory', () => {
+  it('PACK-SVC-019: copies name, quantity and weight into "<name> (copy)" and appends at the end', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const bag = createBag(trip.id, { name: 'Backpack' });
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, checked_by_user_id, quantity, weight_grams, bag_id, sort_order) VALUES (?, ?, ?, 1, ?, 3, 250, ?, 0)').run(trip.id, 'Socks', 'Clothes', user.id, bag.id);
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 1)').run(trip.id, 'Shirt', 'Clothes');
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, checked, sort_order) VALUES (?, ?, ?, 0, 2)').run(trip.id, 'Passport', 'Documents');
+
+    const result = duplicateCategory(trip.id, 'Clothes', user.id)!;
+
+    expect(result.category).toBe('Clothes (copy)');
+    expect(result.items.map((i: any) => i.name)).toEqual(['Socks', 'Shirt']);
+    expect(result.items[0]).toMatchObject({ category: 'Clothes (copy)', checked: 0, checked_by_user_id: null, quantity: 3, weight_grams: 250, bag_id: null });
+    expect(result.items.map((i: any) => i.sort_order)).toEqual([3, 4]);
+  });
+
+  it('PACK-SVC-020: does not copy category assignees', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, member.id);
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothes' });
+    updateCategoryAssignees(trip.id, 'Clothes', [member.id]);
+
+    duplicateCategory(trip.id, 'Clothes', owner.id);
+
+    const rows = testDb.prepare('SELECT * FROM packing_category_assignees WHERE trip_id = ? AND category_name = ?').all(trip.id, 'Clothes (copy)');
+    expect(rows).toHaveLength(0);
+  });
+
+  it('PACK-SVC-021: picks the next free name with the given suffix', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothes' });
+
+    expect(duplicateCategory(trip.id, 'Clothes', user.id, 'kopi')!.category).toBe('Clothes (kopi)');
+    expect(duplicateCategory(trip.id, 'Clothes', user.id, 'kopi')!.category).toBe('Clothes (kopi 2)');
+    expect(duplicateCategory(trip.id, 'Clothes', user.id, 'kopi')!.category).toBe('Clothes (kopi 3)');
+  });
+
+  it('PACK-SVC-022: non-owner only copies items they can see', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    const bag = createBag(trip.id, { name: 'Bob bag' });
+    setBagMembers(trip.id, bag.id, [bob.id]);
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothes' });
+    testDb.prepare('INSERT INTO packing_items (trip_id, name, category, bag_id, sort_order) VALUES (?, ?, ?, ?, 5)').run(trip.id, 'Hat', 'Clothes', bag.id);
+    updateCategoryAssignees(trip.id, 'Clothes', [alice.id]);
+
+    // Bob only sees Hat through his bag.
+    expect(duplicateCategory(trip.id, 'Clothes', bob.id)!.items.map((i: any) => i.name)).toEqual(['Hat']);
+    // Owner copies everything.
+    expect(duplicateCategory(trip.id, 'Clothes', owner.id)!.items.map((i: any) => i.name)).toEqual(['Shirt', 'Hat']);
+  });
+
+  it('PACK-SVC-023: returns null for an unknown or invisible category', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: alice } = createUser(testDb);
+    const { user: bob } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id);
+    addTripMember(testDb, trip.id, alice.id);
+    addTripMember(testDb, trip.id, bob.id);
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothes' });
+    updateCategoryAssignees(trip.id, 'Clothes', [alice.id]);
+
+    expect(duplicateCategory(trip.id, 'Nope', owner.id)).toBeNull();
+    expect(duplicateCategory(trip.id, 'Clothes', bob.id)).toBeNull();
   });
 });

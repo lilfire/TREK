@@ -1276,6 +1276,8 @@ const ru: Record<string, string> = {
   'packing.menuRename': 'Переименовать',
   'packing.menuCheckAll': 'Отметить все',
   'packing.menuUncheckAll': 'Снять отметки',
+  'packing.menuDuplicate': 'Дублировать',
+  'packing.copySuffix': 'копия',
   'packing.menuDeleteCat': 'Удалить категорию',
   'packing.addItem': 'Добавить вещь',
   'packing.addItemPlaceholder': 'Название...',
@@ -1301,6 +1303,8 @@ const ru: Record<string, string> = {
   'packing.toast.saveError': 'Ошибка сохранения',
   'packing.toast.deleteError': 'Ошибка удаления',
   'packing.toast.renameError': 'Ошибка переименования',
+  'packing.toast.duplicated': 'Категория продублирована',
+  'packing.toast.duplicateError': 'Не удалось продублировать категорию',
   'packing.toast.addError': 'Ошибка добавления',
 
   // Packing suggestions

@@ -46,6 +46,7 @@ import { resetTestDb } from '../helpers/test-db';
 import { createUser, createTrip, createPackingItem, addTripMember } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
+import { invalidatePermissionsCache } from '../../src/services/permissions';
 
 const app: Application = createApp();
 
@@ -291,6 +292,73 @@ describe('Bulk import packing items', () => {
       .set('Cookie', authCookie(user.id))
       .send({ items: [] });
     expect(res.status).toBe(400);
+  });
+});
+
+describe('Duplicate category', () => {
+  it('PACK-021 — POST /categories/duplicate copies the items into a new category', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPackingItem(testDb, trip.id, { name: 'Socks', category: 'Clothes' });
+    createPackingItem(testDb, trip.id, { name: 'Shirt', category: 'Clothes' });
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing/categories/duplicate`)
+      .set('Cookie', authCookie(user.id))
+      .send({ category: 'Clothes', suffix: 'kopi' });
+    expect(res.status).toBe(201);
+    expect(res.body.category).toBe('Clothes (kopi)');
+    expect(res.body.count).toBe(2);
+    expect(res.body.items.every((i: any) => i.category === 'Clothes (kopi)' && i.checked === 0)).toBe(true);
+  });
+
+  it('PACK-022 — POST /categories/duplicate without category returns 400', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing/categories/duplicate`)
+      .set('Cookie', authCookie(user.id))
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it('PACK-023 — POST /categories/duplicate for unknown category or trip returns 404', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const unknownCat = await request(app)
+      .post(`/api/trips/${trip.id}/packing/categories/duplicate`)
+      .set('Cookie', authCookie(user.id))
+      .send({ category: 'Nope' });
+    expect(unknownCat.status).toBe(404);
+
+    const unknownTrip = await request(app)
+      .post('/api/trips/99999/packing/categories/duplicate')
+      .set('Cookie', authCookie(user.id))
+      .send({ category: 'Nope' });
+    expect(unknownTrip.status).toBe(404);
+  });
+
+  it('PACK-024 — POST /categories/duplicate returns 403 without packing_edit', async () => {
+    testDb.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run('perm_packing_edit', 'trip_owner');
+    invalidatePermissionsCache();
+    try {
+      const { user: owner } = createUser(testDb);
+      const { user: member } = createUser(testDb);
+      const trip = createTrip(testDb, owner.id);
+      addTripMember(testDb, trip.id, member.id);
+      createPackingItem(testDb, trip.id, { name: 'Socks', category: 'Clothes' });
+
+      const res = await request(app)
+        .post(`/api/trips/${trip.id}/packing/categories/duplicate`)
+        .set('Cookie', authCookie(member.id))
+        .send({ category: 'Clothes' });
+      expect(res.status).toBe(403);
+    } finally {
+      testDb.prepare('DELETE FROM app_settings WHERE key = ?').run('perm_packing_edit');
+      invalidatePermissionsCache();
+    }
   });
 });
 

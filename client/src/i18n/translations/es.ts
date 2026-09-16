@@ -1203,6 +1203,8 @@ const es: Record<string, string> = {
   'packing.menuRename': 'Renombrar',
   'packing.menuCheckAll': 'Marcar todo',
   'packing.menuUncheckAll': 'Desmarcar todo',
+  'packing.menuDuplicate': 'Duplicar',
+  'packing.copySuffix': 'copia',
   'packing.menuDeleteCat': 'Eliminar categoría',
   'packing.addItem': 'Añadir artículo',
   'packing.addItemPlaceholder': 'Nombre del artículo...',
@@ -1228,6 +1230,8 @@ const es: Record<string, string> = {
   'packing.toast.saveError': 'No se pudo guardar',
   'packing.toast.deleteError': 'No se pudo eliminar',
   'packing.toast.renameError': 'No se pudo renombrar',
+  'packing.toast.duplicated': 'Categoría duplicada',
+  'packing.toast.duplicateError': 'No se pudo duplicar la categoría',
   'packing.toast.addError': 'No se pudo añadir',
 
   // Packing suggestions

@@ -1276,6 +1276,8 @@ const nl: Record<string, string> = {
   'packing.menuRename': 'Hernoemen',
   'packing.menuCheckAll': 'Alles aanvinken',
   'packing.menuUncheckAll': 'Alles uitvinken',
+  'packing.menuDuplicate': 'Dupliceren',
+  'packing.copySuffix': 'kopie',
   'packing.menuDeleteCat': 'Categorie verwijderen',
   'packing.addItem': 'Item toevoegen',
   'packing.addItemPlaceholder': 'Itemnaam...',
@@ -1301,6 +1303,8 @@ const nl: Record<string, string> = {
   'packing.toast.saveError': 'Opslaan mislukt',
   'packing.toast.deleteError': 'Verwijderen mislukt',
   'packing.toast.renameError': 'Hernoemen mislukt',
+  'packing.toast.duplicated': 'Categorie gedupliceerd',
+  'packing.toast.duplicateError': 'Dupliceren van categorie mislukt',
   'packing.toast.addError': 'Toevoegen mislukt',
 
   // Packing suggestions

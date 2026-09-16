@@ -1278,6 +1278,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Přejmenovat',
   'packing.menuCheckAll': 'Označit vše',
   'packing.menuUncheckAll': 'Odznačit vše',
+  'packing.menuDuplicate': 'Duplikovat',
+  'packing.copySuffix': 'kopie',
   'packing.menuDeleteCat': 'Smazat kategorii',
   'packing.noMembers': 'Žádní členové cesty',
   'packing.addItem': 'Přidat položku',
@@ -1303,6 +1305,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Uložení se nezdařilo',
   'packing.toast.deleteError': 'Smazání se nezdařilo',
   'packing.toast.renameError': 'Přejmenování se nezdařilo',
+  'packing.toast.duplicated': 'Kategorie duplikována',
+  'packing.toast.duplicateError': 'Duplikování kategorie se nezdařilo',
   'packing.toast.addError': 'Přidání se nezdařilo',
 
   // Návrhy balení (Packing suggestions)

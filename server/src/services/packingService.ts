@@ -209,6 +209,51 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
   return created;
 }
 
+// ── Duplicate Category ─────────────────────────────────────────────────────
+
+/**
+ * Copies the items of a category into a new, uniquely named category.
+ * Only name, quantity and weight are copied — the copy starts unchecked,
+ * without bag and without category assignees. Non-owners only copy items
+ * they can see. Returns null when the source category has no visible items.
+ */
+export function duplicateCategory(tripId: string | number, sourceCategory: string, userId: number, suffix = 'copy') {
+  const sourceItems = (isOwner(tripId, userId)
+    ? db.prepare(
+        'SELECT * FROM packing_items pi WHERE pi.trip_id = ? AND pi.category = ? ORDER BY pi.sort_order ASC, pi.created_at ASC'
+      ).all(tripId, sourceCategory)
+    : db.prepare(`
+        SELECT * FROM packing_items pi
+        WHERE pi.trip_id = ? AND pi.category = ?
+          AND (${PACKING_MEMBER_VISIBILITY_SQL})
+        ORDER BY pi.sort_order ASC, pi.created_at ASC
+      `).all(tripId, sourceCategory, userId, userId)
+  ) as { name: string; quantity: number | null; weight_grams: number | null }[];
+  if (sourceItems.length === 0) return null;
+
+  const exists = db.prepare('SELECT 1 FROM packing_items WHERE trip_id = ? AND category = ? LIMIT 1');
+  const created: any[] = [];
+  let category = '';
+
+  const insertAll = db.transaction(() => {
+    category = `${sourceCategory} (${suffix})`;
+    for (let n = 2; exists.get(tripId, category); n++) category = `${sourceCategory} (${suffix} ${n})`;
+
+    const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
+    let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
+    const stmt = db.prepare(
+      'INSERT INTO packing_items (trip_id, name, checked, category, quantity, weight_grams, bag_id, sort_order) VALUES (?, ?, 0, ?, ?, ?, NULL, ?)'
+    );
+    for (const item of sourceItems) {
+      const result = stmt.run(tripId, item.name, category, item.quantity ?? 1, item.weight_grams ?? null, sortOrder++);
+      created.push(fetchItemById(result.lastInsertRowid as number));
+    }
+  });
+
+  insertAll();
+  return { category, items: created };
+}
+
 // ── Bags ───────────────────────────────────────────────────────────────────
 
 export function listBags(tripId: string | number) {

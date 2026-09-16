@@ -1276,6 +1276,8 @@ const fr: Record<string, string> = {
   'packing.menuRename': 'Renommer',
   'packing.menuCheckAll': 'Tout cocher',
   'packing.menuUncheckAll': 'Tout décocher',
+  'packing.menuDuplicate': 'Dupliquer',
+  'packing.copySuffix': 'copie',
   'packing.menuDeleteCat': 'Supprimer la catégorie',
   'packing.addItem': 'Ajouter un article',
   'packing.addItemPlaceholder': 'Nom de l\'article...',
@@ -1301,6 +1303,8 @@ const fr: Record<string, string> = {
   'packing.toast.saveError': 'Échec de l\'enregistrement',
   'packing.toast.deleteError': 'Échec de la suppression',
   'packing.toast.renameError': 'Échec du renommage',
+  'packing.toast.duplicated': 'Catégorie dupliquée',
+  'packing.toast.duplicateError': 'Échec de la duplication de la catégorie',
   'packing.toast.addError': 'Échec de l\'ajout',
 
   // Packing suggestions

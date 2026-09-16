@@ -11,6 +11,7 @@ import {
   updateItem,
   deleteItem,
   bulkImport,
+  duplicateCategory,
   listBags,
   createBag,
   updateBag,
@@ -55,6 +56,30 @@ router.post('/import', authenticate, (req: Request, res: Response) => {
 
   res.status(201).json({ items: created, count: created.length });
   for (const item of created) {
+    broadcast(tripId, 'packing:created', { item }, req.headers['x-socket-id'] as string);
+  }
+});
+
+// Duplicate a category's items into a new category (must be before /:id)
+router.post('/categories/duplicate', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+  const { category, suffix } = req.body;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('packing_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  if (typeof category !== 'string' || !category) return res.status(400).json({ error: 'category is required' });
+  const cleanSuffix = typeof suffix === 'string' && suffix.trim() ? suffix.trim().slice(0, 30) : undefined;
+
+  const result = duplicateCategory(tripId, category, authReq.user.id, cleanSuffix);
+  if (!result) return res.status(404).json({ error: 'Category not found' });
+
+  res.status(201).json({ category: result.category, items: result.items, count: result.items.length });
+  for (const item of result.items) {
     broadcast(tripId, 'packing:created', { item }, req.headers['x-socket-id'] as string);
   }
 });

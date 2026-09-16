@@ -1280,6 +1280,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'إعادة تسمية',
   'packing.menuCheckAll': 'تحديد الكل',
   'packing.menuUncheckAll': 'إلغاء تحديد الكل',
+  'packing.menuDuplicate': 'تكرار',
+  'packing.copySuffix': 'نسخة',
   'packing.menuDeleteCat': 'حذف الفئة',
   'packing.noMembers': 'لا أعضاء',
   'packing.addItem': 'إضافة عنصر',
@@ -1305,6 +1307,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'فشل الحفظ',
   'packing.toast.deleteError': 'فشل الحذف',
   'packing.toast.renameError': 'فشلت إعادة التسمية',
+  'packing.toast.duplicated': 'تم تكرار الفئة',
+  'packing.toast.duplicateError': 'فشل تكرار الفئة',
   'packing.toast.addError': 'فشلت الإضافة',
 
   // Packing suggestions

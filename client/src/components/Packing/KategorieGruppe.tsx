@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   ChevronDown, ChevronRight, Pencil, Check, MoreHorizontal,
-  CheckCheck, RotateCcw, UserPlus, Plus, X, Trash2,
+  CheckCheck, RotateCcw, UserPlus, Plus, X, Trash2, Copy,
 } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useToast } from '../shared/Toast'
@@ -41,6 +41,7 @@ interface KategorieGruppeProps {
   allCategories: string[]
   onRename: (oldName: string, newName: string) => Promise<void>
   onDeleteAll: (items: PackingItem[]) => Promise<void>
+  onDuplicate?: (category: string) => Promise<void>
   onAddItem: (category: string, name: string) => Promise<void>
   assignees: CategoryAssignee[]
   tripMembers: TripMember[]
@@ -51,7 +52,7 @@ interface KategorieGruppeProps {
   canEdit?: boolean
 }
 
-export default function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true }: KategorieGruppeProps) {
+export default function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDuplicate, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
   const [editingName, setEditingName] = useState(false)
   const [editKatName, setEditKatName] = useState(kategorie)
@@ -236,6 +237,7 @@ export default function KategorieGruppe({ kategorie, items, tripId, allCategorie
               <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMenu(false)} />
               <div style={{ position: 'fixed', right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 4 : 0, zIndex: 100, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', padding: 4, minWidth: 170 }}>
                 {canEdit && <MenuItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
+                {canEdit && onDuplicate && <MenuItem icon={<Copy size={13} />} label={t('packing.menuDuplicate')} onClick={() => { onDuplicate(kategorie); setShowMenu(false) }} />}
                 <MenuItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { handleCheckAll(); setShowMenu(false) }} />
                 <MenuItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { handleUncheckAll(); setShowMenu(false) }} />
                 {canEdit && <>

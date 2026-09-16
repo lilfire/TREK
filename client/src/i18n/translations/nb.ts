@@ -1463,6 +1463,8 @@ const nb: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Gi nytt navn',
   'packing.menuCheckAll': 'Kryss av alle',
   'packing.menuUncheckAll': 'Fjern avkryssing for alle',
+  'packing.menuDuplicate': 'Dupliser',
+  'packing.copySuffix': 'kopi',
   'packing.menuDeleteCat': 'Slett kategori',
   'packing.noMembers': 'Ingen turmedlemmer',
   'packing.addItem': 'Legg til element',
@@ -1488,6 +1490,8 @@ const nb: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Kunne ikke lagre',
   'packing.toast.deleteError': 'Kunne ikke slette',
   'packing.toast.renameError': 'Kunne ikke gi nytt navn',
+  'packing.toast.duplicated': 'Kategori duplisert',
+  'packing.toast.duplicateError': 'Kunne ikke duplisere kategori',
   'packing.toast.addError': 'Kunne ikke legge til',
 
   // Packing suggestions

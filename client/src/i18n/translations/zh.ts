@@ -1276,6 +1276,8 @@ const zh: Record<string, string> = {
   'packing.menuRename': '重命名',
   'packing.menuCheckAll': '全部勾选',
   'packing.menuUncheckAll': '取消全部勾选',
+  'packing.menuDuplicate': '复制',
+  'packing.copySuffix': '副本',
   'packing.menuDeleteCat': '删除分类',
   'packing.addItem': '添加物品',
   'packing.addItemPlaceholder': '物品名称...',
@@ -1301,6 +1303,8 @@ const zh: Record<string, string> = {
   'packing.toast.saveError': '保存失败',
   'packing.toast.deleteError': '删除失败',
   'packing.toast.renameError': '重命名失败',
+  'packing.toast.duplicated': '分类已复制',
+  'packing.toast.duplicateError': '复制分类失败',
   'packing.toast.addError': '添加失败',
 
   // Packing suggestions

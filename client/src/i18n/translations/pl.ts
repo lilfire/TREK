@@ -1225,6 +1225,8 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Zmień nazwę',
   'packing.menuCheckAll': 'Zaznacz wszystko',
   'packing.menuUncheckAll': 'Odznacz wszystko',
+  'packing.menuDuplicate': 'Duplikuj',
+  'packing.copySuffix': 'kopia',
   'packing.menuDeleteCat': 'Usuń kategorię',
   'packing.saveAsTemplate': 'Zapisz jako szablon',
   'packing.templateName': 'Nazwa szablonu',
@@ -1250,6 +1252,8 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Nie udało się zapisać',
   'packing.toast.deleteError': 'Nie udało się usunąć',
   'packing.toast.renameError': 'Nie udało się zmienić nazwy',
+  'packing.toast.duplicated': 'Kategoria zduplikowana',
+  'packing.toast.duplicateError': 'Nie udało się zduplikować kategorii',
   'packing.toast.addError': 'Nie udało się dodać',
 
   // Packing suggestions

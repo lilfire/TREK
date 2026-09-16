@@ -1277,6 +1277,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Átnevezés',
   'packing.menuCheckAll': 'Összes kipipálása',
   'packing.menuUncheckAll': 'Összes jelölés törlése',
+  'packing.menuDuplicate': 'Duplikálás',
+  'packing.copySuffix': 'másolat',
   'packing.menuDeleteCat': 'Kategória törlése',
   'packing.noMembers': 'Nincsenek utazási tagok',
   'packing.addItem': 'Tétel hozzáadása',
@@ -1302,6 +1304,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Nem sikerült menteni',
   'packing.toast.deleteError': 'Nem sikerült törölni',
   'packing.toast.renameError': 'Nem sikerült átnevezni',
+  'packing.toast.duplicated': 'Kategória duplikálva',
+  'packing.toast.duplicateError': 'Nem sikerült duplikálni a kategóriát',
   'packing.toast.addError': 'Nem sikerült hozzáadni',
 
   // Csomagolási javaslatok

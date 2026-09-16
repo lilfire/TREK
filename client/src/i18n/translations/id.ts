@@ -1336,6 +1336,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Ganti Nama',
   'packing.menuCheckAll': 'Centang Semua',
   'packing.menuUncheckAll': 'Hapus Centang Semua',
+  'packing.menuDuplicate': 'Duplikat',
+  'packing.copySuffix': 'salinan',
   'packing.menuDeleteCat': 'Hapus Kategori',
   'packing.noMembers': 'Tidak ada anggota perjalanan',
   'packing.addItem': 'Tambah item',
@@ -1361,6 +1363,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Gagal menyimpan',
   'packing.toast.deleteError': 'Gagal menghapus',
   'packing.toast.renameError': 'Gagal mengganti nama',
+  'packing.toast.duplicated': 'Kategori diduplikasi',
+  'packing.toast.duplicateError': 'Gagal menduplikasi kategori',
   'packing.toast.addError': 'Gagal menambahkan',
 
   // Packing suggestions

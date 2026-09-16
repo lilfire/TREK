@@ -1369,6 +1369,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Rename',
   'packing.menuCheckAll': 'Check All',
   'packing.menuUncheckAll': 'Uncheck All',
+  'packing.menuDuplicate': 'Duplicate',
+  'packing.copySuffix': 'copy',
   'packing.menuDeleteCat': 'Delete Category',
   'packing.noMembers': 'No trip members',
   'packing.addItem': 'Add item',
@@ -1394,6 +1396,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Failed to save',
   'packing.toast.deleteError': 'Failed to delete',
   'packing.toast.renameError': 'Failed to rename',
+  'packing.toast.duplicated': 'Category duplicated',
+  'packing.toast.duplicateError': 'Failed to duplicate category',
   'packing.toast.addError': 'Failed to add',
 
   // Packing suggestions

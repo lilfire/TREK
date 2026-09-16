@@ -1335,6 +1335,8 @@ const zhTw: Record<string, string> = {
   'packing.menuRename': '重新命名',
   'packing.menuCheckAll': '全部勾選',
   'packing.menuUncheckAll': '取消全部勾選',
+  'packing.menuDuplicate': '複製',
+  'packing.copySuffix': '副本',
   'packing.menuDeleteCat': '刪除分類',
   'packing.addItem': '新增物品',
   'packing.addItemPlaceholder': '物品名稱...',
@@ -1360,6 +1362,8 @@ const zhTw: Record<string, string> = {
   'packing.toast.saveError': '儲存失敗',
   'packing.toast.deleteError': '刪除失敗',
   'packing.toast.renameError': '重新命名失敗',
+  'packing.toast.duplicated': '分類已複製',
+  'packing.toast.duplicateError': '複製分類失敗',
   'packing.toast.addError': '新增失敗',
 
   // Packing suggestions

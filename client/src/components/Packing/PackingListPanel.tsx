@@ -110,6 +110,18 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
     }
   }
 
+  const handleDuplicateCategory = async (category: string) => {
+    try {
+      const result = await packingApi.duplicateCategory(tripId, category, t('packing.copySuffix'))
+      const created: PackingItem[] = result.items || []
+      useTripStore.setState(s => {
+        const known = new Set(s.packingItems.map(i => i.id))
+        return { packingItems: [...s.packingItems, ...created.filter(i => !known.has(i.id))] }
+      })
+      toast.success(t('packing.toast.duplicated'))
+    } catch { toast.error(t('packing.toast.duplicateError')) }
+  }
+
   const handleClearChecked = async () => {
     if (!confirm(t('packing.confirm.clearChecked', { count: abgehakt }))) return
     for (const item of safeItems.filter(i => i.checked)) {
@@ -330,6 +342,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
                   allCategories={allCategories}
                   onRename={handleRenameCategory}
                   onDeleteAll={handleDeleteCategory}
+                  onDuplicate={handleDuplicateCategory}
                   onAddItem={handleAddItemToCategory}
                   assignees={categoryAssignees[kat] || []}
                   tripMembers={tripMembers}
