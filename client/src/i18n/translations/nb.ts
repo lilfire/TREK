@@ -705,6 +705,8 @@ const nb: Record<string, string | { name: string; category: string }[]> = {
   'admin.defaultSettings.saved': 'Standard lagret',
   'admin.defaultSettings.reset': 'Tilbakestill til innebygd standard',
   'admin.defaultSettings.resetToBuiltIn': 'tilbakestill',
+  'admin.publicMap.title': 'Kartkilde for offentlige sider',
+  'admin.publicMap.hint': 'Brukes på delte og offentlige reisesider. La stå tomt for CartoDB (standard). URL-en er synlig for alle besøkende, så en eventuell API-nøkkel i den blir offentlig.',
   'admin.tabs.templates': 'Pakkelistemaler',
   'admin.packingTemplates.title': 'Pakkelistemaler',
   'admin.packingTemplates.subtitle': 'Opprett gjenbrukbare pakkelister for turene dine',

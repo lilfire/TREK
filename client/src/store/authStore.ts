@@ -34,6 +34,7 @@ interface AuthState {
   appRequireMfa: boolean
   tripRemindersEnabled: boolean
   placesPhotosEnabled: boolean
+  publicMapTileUrl: string | null
   placesAutocompleteEnabled: boolean
   placesDetailsEnabled: boolean
   githubRepo: string
@@ -58,6 +59,7 @@ interface AuthState {
   setAppRequireMfa: (val: boolean) => void
   setTripRemindersEnabled: (val: boolean) => void
   setPlacesPhotosEnabled: (val: boolean) => void
+  setPublicMapTileUrl: (val: string | null) => void
   setPlacesAutocompleteEnabled: (val: boolean) => void
   setPlacesDetailsEnabled: (val: boolean) => void
   setGithubRepo: (val: string) => void
@@ -83,6 +85,7 @@ export const useAuthStore = create<AuthState>()(
   appRequireMfa: false,
   tripRemindersEnabled: false,
   placesPhotosEnabled: true,
+  publicMapTileUrl: null,
   placesAutocompleteEnabled: true,
   placesDetailsEnabled: true,
   githubRepo: 'lilfire/TREK',
@@ -270,6 +273,7 @@ export const useAuthStore = create<AuthState>()(
   setAppRequireMfa: (val: boolean) => set({ appRequireMfa: val }),
   setTripRemindersEnabled: (val: boolean) => set({ tripRemindersEnabled: val }),
   setPlacesPhotosEnabled: (val: boolean) => set({ placesPhotosEnabled: val }),
+  setPublicMapTileUrl: (val: string | null) => set({ publicMapTileUrl: val }),
   setPlacesAutocompleteEnabled: (val: boolean) => set({ placesAutocompleteEnabled: val }),
   setPlacesDetailsEnabled: (val: boolean) => set({ placesDetailsEnabled: val }),
   setGithubRepo: (val: string) => set({ githubRepo: val }),

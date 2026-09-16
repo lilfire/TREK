@@ -712,6 +712,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'admin.defaultSettings.saved': 'Default saved',
   'admin.defaultSettings.reset': 'Reset to built-in default',
   'admin.defaultSettings.resetToBuiltIn': 'reset',
+  'admin.publicMap.title': 'Map tile URL for public pages',
+  'admin.publicMap.hint': 'Used on shared and public trip pages. Leave empty for CartoDB (default). The URL is visible to every visitor, so any API key in it becomes public.',
   'admin.tabs.templates': 'Packing Templates',
   'admin.packingTemplates.title': 'Packing Templates',
   'admin.packingTemplates.subtitle': 'Create reusable packing lists for your trips',

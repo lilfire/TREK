@@ -340,9 +340,11 @@ export default function RsvpForm({ tripId, isMember, registrationFee, feeMode, f
           {t('rsvp.paypalFeeNotice', { amount: String(registrationFee), currency })}
         </div>
 
-        <div data-testid="paypal-button-wrapper" className={!formFieldsValid ? 'opacity-50 pointer-events-none' : ''}>
+        {/* colorScheme must match the PayPal iframe's, or the browser paints the iframe with an opaque white background in dark mode */}
+        <div data-testid="paypal-button-wrapper" className={!formFieldsValid ? 'opacity-50 pointer-events-none' : ''} style={{ colorScheme: 'light' }}>
           <PayPalScriptProvider options={{ clientId: paypalClientId, currency: currency.toUpperCase() }}>
             <PayPalButtons
+              style={{ layout: 'vertical', disableMaxWidth: true, borderRadius: 8 }}
               disabled={!formFieldsValid || submitting}
               forceReRender={[name, email]}
               createOrder={async () => {

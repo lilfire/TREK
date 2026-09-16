@@ -59,6 +59,7 @@ export default function SharedTripPage() {
   const { token } = useParams<{ token: string }>()
   const { t, locale } = useTranslation()
   const githubRepo = useAuthStore(state => state.githubRepo)
+  const publicMapTileUrl = useAuthStore(state => state.publicMapTileUrl)
   const [data, setData] = useState<any>(null)
   const [error, setError] = useState(false)
   const [selectedDay, setSelectedDay] = useState<number | null>(null)
@@ -96,9 +97,9 @@ export default function SharedTripPage() {
     : (places || []).filter((p: any) => p?.lat && p?.lng)
 
   const center = mapPlaces.length > 0 ? [mapPlaces[0].lat, mapPlaces[0].lng] : [48.85, 2.35]
-  const tileUrl = isDark
+  const tileUrl = publicMapTileUrl || (isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png')
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>

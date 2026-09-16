@@ -353,6 +353,30 @@ export function updatePlacesPhotos(enabled: boolean) {
   return { enabled: !!enabled };
 }
 
+// ── Public Map Tile URL ───────────────────────────────────────────────────
+
+export function getPublicMapTileUrl() {
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'public_map_tile_url'").get() as { value: string } | undefined;
+  return { url: row?.value || null };
+}
+
+export function updatePublicMapTileUrl(url: string | null) {
+  const trimmed = typeof url === 'string' ? url.trim() : '';
+  if (!trimmed) {
+    db.prepare("DELETE FROM app_settings WHERE key = 'public_map_tile_url'").run();
+    return { url: null };
+  }
+  if (
+    trimmed.length > 500 ||
+    !trimmed.startsWith('https://') ||
+    !trimmed.includes('{z}') || !trimmed.includes('{x}') || !trimmed.includes('{y}')
+  ) {
+    throw new Error('url must be an https:// tile template containing {z}, {x} and {y}');
+  }
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('public_map_tile_url', ?)").run(trimmed);
+  return { url: trimmed };
+}
+
 // ── Places Autocomplete ────────────────────────────────────────────────────
 
 export function getPlacesAutocomplete() {

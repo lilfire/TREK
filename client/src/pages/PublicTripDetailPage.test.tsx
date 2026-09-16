@@ -6,6 +6,7 @@ import { server } from '../../tests/helpers/msw/server';
 import { publicTrip } from '../../tests/helpers/msw/handlers/publicTrips';
 import { resetAllStores } from '../../tests/helpers/store';
 import { useSettingsStore } from '../store/settingsStore';
+import { useAuthStore } from '../store/authStore';
 import PublicTripDetailPage, { formatDuration, truncateText } from './PublicTripDetailPage';
 
 vi.mock('@paypal/react-paypal-js', () => ({
@@ -1541,6 +1542,21 @@ describe('FE-PUB-TRIP-020: Leaflet map renders for places with coordinates', () 
     });
 
     document.documentElement.classList.remove('dark');
+  });
+
+  it('FE-PUB-TRIP-023: uses admin-configured public map tile URL when set', async () => {
+    useAuthStore.setState({ publicMapTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' });
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await waitFor(() => {
+      expect(screen.getByTestId('trip-map')).toBeInTheDocument();
+    });
+
+    expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toBe('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
   });
 });
 

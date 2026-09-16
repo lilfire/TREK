@@ -12,7 +12,7 @@ vi.mock('react-leaflet', () => ({
   MapContainer: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="map-container">{children}</div>
   ),
-  TileLayer: () => null,
+  TileLayer: ({ url }: { url: string }) => <div data-testid="tile-layer" data-url={url} />,
   Marker: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Tooltip: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   useMap: () => ({
@@ -380,6 +380,25 @@ describe('SharedTripPage', () => {
 
       const githubLink = screen.getByText('GitHub').closest('a');
       expect(githubLink).toHaveAttribute('href', 'https://github.com/lilfire/TREK');
+    });
+  });
+
+  describe('FE-PAGE-SHARED-019: Map uses public map tile URL', () => {
+    it('falls back to CartoDB when no public tile URL is configured', async () => {
+      renderSharedTrip('test-token');
+      await waitFor(() => {
+        expect(screen.getByTestId('tile-layer')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toContain('basemaps.cartocdn.com');
+    });
+
+    it('uses the admin-configured public tile URL when set', async () => {
+      useAuthStore.setState({ publicMapTileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' });
+      renderSharedTrip('test-token');
+      await waitFor(() => {
+        expect(screen.getByTestId('tile-layer')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toBe('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
     });
   });
 

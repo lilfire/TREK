@@ -606,6 +606,71 @@ describe('Bag tracking', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Public map tile URL
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('Public map tile URL', () => {
+  const OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+  it('ADMIN-PMT-001 — PUT stores the URL and app-config exposes it', async () => {
+    const { user: admin } = createAdmin(testDb);
+
+    const put = await request(app)
+      .put('/api/admin/public-map-tile-url')
+      .set('Cookie', authCookie(admin.id))
+      .send({ url: OSM });
+    expect(put.status).toBe(200);
+    expect(put.body.url).toBe(OSM);
+
+    const get = await request(app)
+      .get('/api/admin/public-map-tile-url')
+      .set('Cookie', authCookie(admin.id));
+    expect(get.body.url).toBe(OSM);
+
+    const config = await request(app).get('/api/auth/app-config');
+    expect(config.body.public_map_tile_url).toBe(OSM);
+  });
+
+  it('ADMIN-PMT-002 — PUT with null clears the URL', async () => {
+    const { user: admin } = createAdmin(testDb);
+    await request(app).put('/api/admin/public-map-tile-url').set('Cookie', authCookie(admin.id)).send({ url: OSM });
+
+    const res = await request(app)
+      .put('/api/admin/public-map-tile-url')
+      .set('Cookie', authCookie(admin.id))
+      .send({ url: null });
+    expect(res.status).toBe(200);
+    expect(res.body.url).toBeNull();
+
+    const config = await request(app).get('/api/auth/app-config');
+    expect(config.body.public_map_tile_url).toBeNull();
+  });
+
+  it.each([
+    'http://tile.example.com/{z}/{x}/{y}.png',
+    'https://tile.example.com/tiles.png',
+    'javascript:alert(1)',
+    123,
+  ])('ADMIN-PMT-003 — PUT rejects invalid url %s', async (url) => {
+    const { user: admin } = createAdmin(testDb);
+    const res = await request(app)
+      .put('/api/admin/public-map-tile-url')
+      .set('Cookie', authCookie(admin.id))
+      .send({ url });
+    expect(res.status).toBe(400);
+  });
+
+  it('ADMIN-PMT-004 — PUT is admin-only', async () => {
+    const { user } = createUser(testDb);
+    const res = await request(app)
+      .put('/api/admin/public-map-tile-url')
+      .set('Cookie', authCookie(user.id))
+      .send({ url: OSM });
+    expect(res.status).toBe(403);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // JWT rotation
 // ─────────────────────────────────────────────────────────────────────────────
 

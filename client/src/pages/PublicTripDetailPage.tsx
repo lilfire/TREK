@@ -10,6 +10,7 @@ import remarkBreaks from 'remark-breaks'
 import { publicTripsApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
+import { useAuthStore } from '../store/authStore'
 import { getCategoryIcon } from '../components/shared/categoryIcons'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
@@ -107,6 +108,7 @@ export default function PublicTripDetailPage() {
   const [showLangPicker, setShowLangPicker] = useState(false)
   const [selectedActivity, setSelectedActivity] = useState<any>(null)
   const isDark = useDarkMode()
+  const publicMapTileUrl = useAuthStore(state => state.publicMapTileUrl)
 
   // Silent refetch so the tier participant count reflects a fresh registration
   function refreshData() {
@@ -186,9 +188,9 @@ export default function PublicTripDetailPage() {
     })
   }
 
-  const tileUrl = isDark
+  const tileUrl = publicMapTileUrl || (isDark
     ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png')
 
   function formatDate(d: string) {
     return new Date(d + 'T00:00:00Z').toLocaleDateString(locale, {
