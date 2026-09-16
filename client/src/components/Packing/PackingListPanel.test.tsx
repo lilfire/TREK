@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
+import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
 import PackingListPanel from './PackingListPanel';
@@ -1517,5 +1518,49 @@ describe('PackingListPanel', () => {
     // Assert: no crash / no error UI surfaced (no rendered "error" text, panel still mounted).
     expect(container.querySelector('h2')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-070: duplicate category via context menu calls API and adds the copied items', async () => {
+    const user = userEvent.setup();
+    const item1 = buildPackingItem({ id: 100, name: 'Rope', category: 'Gear', checked: 1 });
+    const item2 = buildPackingItem({ id: 101, name: 'Map', category: 'Gear' });
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/1/packing/categories/duplicate', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({
+          category: 'Gear (copy)',
+          count: 2,
+          items: [
+            buildPackingItem({ id: 200, name: 'Rope', category: 'Gear (copy)', checked: 0 }),
+            buildPackingItem({ id: 201, name: 'Map', category: 'Gear (copy)', checked: 0 }),
+          ],
+        }, { status: 201 });
+      })
+    );
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), packingItems: [item1, item2] });
+    const { container } = render(<PackingListPanel tripId={1} items={[item1, item2]} />);
+
+    const moreBtn = container.querySelector('svg.lucide-more-horizontal')?.closest('button');
+    await user.click(moreBtn!);
+    await user.click(await screen.findByText('Duplicate'));
+
+    await waitFor(() => expect(body).toEqual({ category: 'Gear', suffix: 'copy' }));
+    await waitFor(() => {
+      const ids = useTripStore.getState().packingItems.map(i => i.id);
+      expect(ids).toEqual([100, 101, 200, 201]);
+    });
+  });
+
+  it('FE-COMP-PACKING-071: duplicate menu item is hidden without packing_edit', async () => {
+    const user = userEvent.setup();
+    seedStore(usePermissionsStore, { permissions: { packing_edit: 'admin' } });
+    const item = buildPackingItem({ id: 100, name: 'Rope', category: 'Gear' });
+    const { container } = render(<PackingListPanel tripId={1} items={[item]} />);
+
+    const moreBtn = container.querySelector('svg.lucide-more-horizontal')?.closest('button');
+    await user.click(moreBtn!);
+    expect(await screen.findByText('Check All')).toBeInTheDocument();
+    expect(screen.queryByText('Duplicate')).not.toBeInTheDocument();
   });
 });

@@ -85,7 +85,7 @@ export const useAuthStore = create<AuthState>()(
   placesPhotosEnabled: true,
   placesAutocompleteEnabled: true,
   placesDetailsEnabled: true,
-  githubRepo: 'mauriceboe/TREK',
+  githubRepo: 'lilfire/TREK',
 
   login: async (email: string, password: string) => {
     authSequence++

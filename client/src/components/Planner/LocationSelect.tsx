@@ -100,7 +100,7 @@ export default function LocationSelect({ value, onChange, placeholder, style }: 
           style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 13 }}
         />
         {value && (
-          <button type="button" onClick={clear} style={{ background: 'transparent', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }} aria-label="Clear">
+          <button type="button" onClick={clear} style={{ background: 'transparent', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }} aria-label={t('common.clear')}>
             <X size={14} />
           </button>
         )}

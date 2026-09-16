@@ -1,18 +1,48 @@
 import { useState, useEffect, createElement } from 'react'
 import { useParams } from 'react-router-dom'
-import { MapPin, Clock, FileText, ChevronRight, Paperclip } from 'lucide-react'
+import { MapPin, Clock, FileText, ChevronRight, Paperclip, Plane, Train, Bus, Car, Ship, Ticket } from 'lucide-react'
 import { MapContainer, TileLayer, Marker, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import { publicTripsApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { getCategoryIcon } from '../components/shared/categoryIcons'
 import { renderToStaticMarkup } from 'react-dom/server'
 import RsvpForm from '../components/Trips/RsvpForm'
+import AccommodationTierList from '../components/Trips/AccommodationTierList'
 import PublicActivityModal from '../components/PublicActivityModal'
 import UnplannedActivitiesSection from '../components/UnplannedActivitiesSection'
 import PublicThemeToggle from '../components/shared/PublicThemeToggle'
+import { getTransportForDay, getMergedItems, getDisplayTimeForDay } from '../utils/dayMerge'
+
+const TRANSPORT_ICONS: Record<string, typeof Plane> = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
+
+function formatTransportTime(time: string | null): string {
+  if (!time) return ''
+  return time.includes('T') ? time.split('T')[1]?.substring(0, 5) ?? '' : time.substring(0, 5)
+}
+
+function transportSubtitle(r: any, t: (key: string) => string): string {
+  let meta: any = r.metadata || {}
+  if (typeof meta === 'string') {
+    try { meta = JSON.parse(meta || '{}') } catch { meta = {} }
+  }
+  if (r.type === 'flight') {
+    return [
+      meta.airline,
+      meta.flight_number,
+      meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : '',
+    ].filter(Boolean).join(' · ')
+  }
+  if (r.type === 'train') {
+    return [meta.train_number, meta.platform ? `${t('reservations.meta.platform')} ${meta.platform}` : ''].filter(Boolean).join(' · ')
+  }
+  return ''
+}
 
 function createMarkerIcon(place: any) {
   const cat = place.category
@@ -77,6 +107,12 @@ export default function PublicTripDetailPage() {
   const [selectedActivity, setSelectedActivity] = useState<any>(null)
   const isDark = useDarkMode()
 
+  // Silent refetch so the tier participant count reflects a fresh registration
+  function refreshData() {
+    if (!id) return
+    publicTripsApi.get(id).then(d => setData(d)).catch(() => {})
+  }
+
   useEffect(() => {
     if (!id) return
     setLoading(true)
@@ -109,20 +145,24 @@ export default function PublicTripDetailPage() {
       <div data-testid="not-found" className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
         <div className="text-center px-4">
           <div className="text-5xl mb-4">🔒</div>
-          <h1 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Trip not found</h1>
-          <p className="text-zinc-500 dark:text-zinc-400 text-sm">This trip is not publicly available.</p>
+          <h1 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">{t('publicTrip.notFound')}</h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm">{t('publicTrip.notFoundMessage')}</p>
         </div>
       </div>
     )
   }
 
-  const { trip, days, assignments, dayNotes, budgetItems, places } = data
+  const { trip, days, assignments, dayNotes, budgetItems, places, reservations } = data
   const sortedDays: any[] = [...(days || [])].sort((a: any, b: any) => a.day_number - b.day_number)
 
   const assignedPlaceIds = new Set(
     Object.values(assignments).flat().map((a: any) => a.place.id)
   )
-  const unplannedPlaces = (places || []).filter((p: any) => !assignedPlaceIds.has(p.id))
+  // Places linked to an accommodation tier are shown in the tier section instead
+  const tierPlaceIds = new Set(
+    (data.accommodationTiers?.tiers || []).map((tier: any) => tier.place_id).filter(Boolean)
+  )
+  const unplannedPlaces = (places || []).filter((p: any) => !assignedPlaceIds.has(p.id) && !tierPlaceIds.has(p.id))
     .sort((a: any, b: any) => {
       const catA = (a.category_name || '').toLowerCase()
       const catB = (b.category_name || '').toLowerCase()
@@ -211,7 +251,7 @@ export default function PublicTripDetailPage() {
                 color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || t('settings.language')}
             </button>
             {showLangPicker && (
               <div
@@ -248,12 +288,6 @@ export default function PublicTripDetailPage() {
             {trip.title}
           </h1>
 
-          {trip.description && (
-            <p style={{ fontSize: 13, opacity: 0.5, maxWidth: 400, margin: '0 auto', lineHeight: 1.5 }}>
-              {trip.description}
-            </p>
-          )}
-
           {(trip.start_date || trip.end_date) && (
             <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8 }}>
@@ -265,51 +299,52 @@ export default function PublicTripDetailPage() {
               {sortedDays.length > 0 && (
                 <>
                   <span style={{ fontSize: 11, opacity: 0.4 }}>·</span>
-                  <span style={{ fontSize: 11, opacity: 0.5 }}>{sortedDays.length} days</span>
+                  <span style={{ fontSize: 11, opacity: 0.5 }}>{t(sortedDays.length === 1 ? 'common.dayCountOne' : 'common.dayCount', { count: sortedDays.length })}</span>
                 </>
               )}
             </div>
           )}
 
           <div style={{ marginTop: 12, fontSize: 9, fontWeight: 500, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.25 }}>
-            Read-only view
+            {t('publicTrip.readOnly')}
           </div>
         </div>
       </div>
 
       {/* Content */}
       <div className="max-w-[900px] mx-auto px-4 py-6">
-        {/* Map */}
-        {mapPlaces.length > 0 && (
-          <div data-testid="trip-map" style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-            <MapContainer
-              center={[mapPlaces[0].lat, mapPlaces[0].lng]}
-              zoom={11}
-              zoomControl={false}
-              style={{ width: '100%', height: '100%' }}
-            >
-              <TileLayer key={tileUrl} url={tileUrl} referrerPolicy="strict-origin-when-cross-origin" />
-              <FitBoundsToPlaces places={mapPlaces} />
-              {mapPlaces.map((p: any) => (
-                <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
-                  <Tooltip>{p.name}</Tooltip>
-                </Marker>
-              ))}
-            </MapContainer>
-          </div>
+        {/* Description */}
+        {trip.description && (
+          <section data-testid="trip-description" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-5 mb-6">
+            <div className="collab-note-md text-sm leading-relaxed text-zinc-700 dark:text-zinc-300" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{trip.description}</Markdown>
+            </div>
+          </section>
         )}
 
         {/* Itinerary */}
-        <section data-testid="itinerary" aria-label="Trip itinerary" className="flex flex-col gap-3 mb-10">
-          <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">Itinerary</h2>
+        <section data-testid="itinerary" aria-label={t('publicTrip.itineraryAria')} className="flex flex-col gap-3 mb-10">
+          <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">{t('publicTrip.itinerary')}</h2>
 
           {sortedDays.length === 0 && (
-            <p className="text-zinc-500 dark:text-zinc-400 text-sm">No days planned yet.</p>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">{t('publicTrip.noDays')}</p>
           )}
 
           {sortedDays.map((day: any, di: number) => {
             const dayAssignments: any[] = (assignments[String(day.id)] || [])
             const notes: any[] = (dayNotes[String(day.id)] || [])
+            const dayTransports = getTransportForDay({
+              reservations: reservations || [],
+              dayId: day.id,
+              dayAssignmentIds: dayAssignments.map((a: any) => a.id),
+              days: sortedDays,
+            })
+            const merged = getMergedItems({
+              dayAssignments,
+              dayNotes: notes,
+              dayTransports,
+              dayId: day.id,
+            })
             const isExpanded = expandedDays.has(day.id)
 
             return (
@@ -331,7 +366,7 @@ export default function PublicTripDetailPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-semibold text-zinc-900 dark:text-white">
-                      {day.title || `Day ${day.day_number}`}
+                      {day.title || t('dayplan.dayN', { n: day.day_number })}
                     </div>
                     {day.date && (
                       <div className="text-xs text-zinc-400 mt-0.5">
@@ -342,25 +377,56 @@ export default function PublicTripDetailPage() {
                     )}
                   </div>
                   <span className="text-xs text-zinc-400 flex-shrink-0">
-                    {dayAssignments.length} {dayAssignments.length === 1 ? 'place' : 'places'}
+                    {t(dayAssignments.length === 1 ? 'common.placeCountOne' : 'common.placeCount', { count: dayAssignments.length })}
                   </span>
                 </button>
 
-                {isExpanded && (dayAssignments.length > 0 || notes.length > 0) && (
+                {isExpanded && merged.length > 0 && (
                   <div className="px-4 pb-3 flex flex-col gap-2 border-t border-zinc-100 dark:border-zinc-800 pt-2">
-                    {notes.map((note: any) => (
-                      <div key={`n-${note.id}`} className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                        <FileText size={13} className="flex-shrink-0 mt-0.5 text-zinc-400" />
-                        <span>{note.text}</span>
-                        {note.time && (
-                          <span className="ml-auto text-xs text-zinc-400 flex items-center gap-1 flex-shrink-0">
-                            <Clock size={10} />{note.time}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                    {merged.map((item) => {
+                      if (item.type === 'transport') {
+                        const r = item.data
+                        const TIcon = TRANSPORT_ICONS[r.type] || Ticket
+                        const time = formatTransportTime(getDisplayTimeForDay(r, day.id))
+                        const sub = transportSubtitle(r, t)
+                        return (
+                          <div
+                            key={`t-${r.id}`}
+                            data-testid="itinerary-transport"
+                            className="flex items-center gap-3 rounded-lg px-2 py-1.5 -mx-2 bg-blue-500/5 border border-blue-500/15"
+                          >
+                            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 bg-blue-500/15">
+                              <TIcon size={13} color="#3b82f6" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-zinc-900 dark:text-white truncate">{r.title}</div>
+                              {sub && <div className="text-xs text-zinc-400 truncate">{sub}</div>}
+                            </div>
+                            {time && (
+                              <span className="text-xs text-zinc-400 flex items-center gap-1 flex-shrink-0">
+                                <Clock size={10} />{time}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      }
 
-                    {dayAssignments.map((a: any) => {
+                      if (item.type === 'note') {
+                        const note = item.data
+                        return (
+                          <div key={`n-${note.id}`} className="flex items-start gap-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <FileText size={13} className="flex-shrink-0 mt-0.5 text-zinc-400" />
+                            <span>{note.text}</span>
+                            {note.time && (
+                              <span className="ml-auto text-xs text-zinc-400 flex items-center gap-1 flex-shrink-0">
+                                <Clock size={10} />{note.time}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      }
+
+                      const a = item.data
                       const place = a.place
                       if (!place) return null
                       return (
@@ -426,6 +492,34 @@ export default function PublicTripDetailPage() {
           />
         )}
 
+        {/* Accommodation tiers — which accommodation applies depends on confirmed participants */}
+        {data.accommodationTiers?.tiers?.length > 0 && (
+          <AccommodationTierList
+            status={data.accommodationTiers}
+            requiresPayment={(trip.registration_fee ?? 0) > 0}
+          />
+        )}
+
+        {/* Map — secondary info, placed below the itinerary */}
+        {mapPlaces.length > 0 && (
+          <div data-testid="trip-map" style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 32, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+            <MapContainer
+              center={[mapPlaces[0].lat, mapPlaces[0].lng]}
+              zoom={11}
+              zoomControl={false}
+              style={{ width: '100%', height: '100%' }}
+            >
+              <TileLayer key={tileUrl} url={tileUrl} referrerPolicy="strict-origin-when-cross-origin" />
+              <FitBoundsToPlaces places={mapPlaces} />
+              {mapPlaces.map((p: any) => (
+                <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>
+                  <Tooltip>{p.name}</Tooltip>
+                </Marker>
+              ))}
+            </MapContainer>
+          </div>
+        )}
+
         {/* RSVP section */}
         <section data-testid="rsvp-section" aria-label="RSVP" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-6 mb-8">
           <h2 data-testid="rsvp-section-heading" className="text-base font-bold text-zinc-900 dark:text-white mb-1">{t(rsvpHeadingKey)}</h2>
@@ -439,6 +533,7 @@ export default function PublicTripDetailPage() {
             feeDeadline={data?.trip?.fee_deadline ?? null}
             currency={data?.trip?.fee_currency ?? data?.trip?.currency ?? 'NOK'}
             paypalClientId={data?.trip?.paypalClientId ?? null}
+            onRegistered={refreshData}
           />
         </section>
 

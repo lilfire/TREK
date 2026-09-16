@@ -5,9 +5,9 @@
 # Instead we build the image ourselves and tag it as the name Compose expects,
 # then bring the stack up so it uses the freshly built image.
 #
-# `trek:local` is a local-only tag (this is a fork) — it deliberately does NOT
-# use the upstream `mauriceboe/trek` namespace, so `docker compose pull` can
-# never overwrite the local build with an upstream image.
+# `trek:local` is a local-only tag — it deliberately does NOT
+# use the published `ghcr.io/lilfire/trek` namespace, so `docker compose pull` can
+# never overwrite the local build with a registry image.
 
 $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot

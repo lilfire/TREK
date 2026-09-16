@@ -38,6 +38,7 @@ vi.mock('../../../src/services/apiKeyCrypto', () => ({
 }));
 
 vi.mock('../../../src/config', () => ({
+  USER_AGENT: 'TREK Travel Planner (https://github.com/lilfire/TREK)',
   JWT_SECRET: 'test-secret',
   ENCRYPTION_KEY: '0'.repeat(64),
 }));

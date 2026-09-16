@@ -22,6 +22,7 @@ const { testDb, dbMock } = vi.hoisted(() => {
 
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/config', () => ({
+  USER_AGENT: 'TREK Travel Planner (https://github.com/lilfire/TREK)',
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
@@ -91,25 +92,24 @@ describe('isEnabledForEvent', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('getPreferencesMatrix', () => {
-  it('NPREF-004 — regular user does not see version_available in event_types', () => {
+  it('NPREF-004 — user scope returns every implemented event type', () => {
     const { user } = createUser(testDb);
-    const { event_types } = getPreferencesMatrix(user.id, 'user');
-    expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(9);
+    const { event_types, implemented_combos } = getPreferencesMatrix(user.id, 'user');
+    expect(event_types.length).toBe(Object.keys(implemented_combos).length);
+    expect(event_types).toContain('trip_invite');
   });
 
-  it('NPREF-005 — user scope excludes version_available for everyone including admins', () => {
+  it('NPREF-005 — user scope is identical for admins', () => {
     const { user } = createAdmin(testDb);
-    const { event_types } = getPreferencesMatrix(user.id, 'admin', 'user');
-    expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(9);
+    const { event_types, implemented_combos } = getPreferencesMatrix(user.id, 'admin', 'user');
+    expect(event_types.length).toBe(Object.keys(implemented_combos).length);
+    expect(event_types).toContain('trip_invite');
   });
 
-  it('NPREF-005b — admin scope returns only version_available', () => {
+  it('NPREF-005b — admin scope is empty while no admin-scoped events are defined', () => {
     const { user } = createAdmin(testDb);
     const { event_types } = getPreferencesMatrix(user.id, 'admin', 'admin');
-    expect(event_types).toContain('version_available');
-    expect(event_types.length).toBe(1);
+    expect(event_types).toEqual([]);
   });
 
   it('NPREF-006 — returns default true for all preferences when no stored prefs', () => {
@@ -154,10 +154,10 @@ describe('getPreferencesMatrix', () => {
     expect(available_channels.email).toBe(false);
   });
 
-  it('NPREF-011 — implemented_combos maps version_available to [inapp, email, webhook, ntfy]', () => {
+  it('NPREF-011 — implemented_combos maps trip_invite to [inapp, email, webhook, ntfy]', () => {
     const { user } = createAdmin(testDb);
-    const { implemented_combos } = getPreferencesMatrix(user.id, 'admin', 'admin');
-    expect(implemented_combos['version_available']).toEqual(['inapp', 'email', 'webhook', 'ntfy']);
+    const { implemented_combos } = getPreferencesMatrix(user.id, 'admin', 'user');
+    expect(implemented_combos['trip_invite']).toEqual(['inapp', 'email', 'webhook', 'ntfy']);
     // All events now support all four channels
     expect(implemented_combos['trip_invite']).toContain('inapp');
     expect(implemented_combos['trip_invite']).toContain('email');
@@ -276,46 +276,46 @@ describe('getAvailableChannels', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('setAdminPreferences', () => {
-  it('NPREF-022 — disabling email for version_available stores global pref in app_settings', () => {
+  it('NPREF-022 — disabling email for trip_invite stores global pref in app_settings', () => {
     const { user } = createAdmin(testDb);
-    setAdminPreferences(user.id, { version_available: { email: false } });
-    expect(getAdminGlobalPref('version_available', 'email')).toBe(false);
-    const row = testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get('admin_notif_pref_version_available_email') as { value: string } | undefined;
+    setAdminPreferences(user.id, { trip_invite: { email: false } });
+    expect(getAdminGlobalPref('trip_invite', 'email')).toBe(false);
+    const row = testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get('admin_notif_pref_trip_invite_email') as { value: string } | undefined;
     expect(row?.value).toBe('0');
   });
 
-  it('NPREF-023 — disabling inapp for version_available stores per-user row in notification_channel_preferences', () => {
+  it('NPREF-023 — disabling inapp for trip_invite stores per-user row in notification_channel_preferences', () => {
     const { user } = createAdmin(testDb);
-    setAdminPreferences(user.id, { version_available: { inapp: false } });
+    setAdminPreferences(user.id, { trip_invite: { inapp: false } });
     const row = testDb.prepare(
       'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-    ).get(user.id, 'version_available', 'inapp') as { enabled: number } | undefined;
+    ).get(user.id, 'trip_invite', 'inapp') as { enabled: number } | undefined;
     expect(row).toBeDefined();
     expect(row!.enabled).toBe(0);
     // Global app_settings should NOT have an inapp key
-    const globalRow = testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get('admin_notif_pref_version_available_inapp');
+    const globalRow = testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get('admin_notif_pref_trip_invite_inapp');
     expect(globalRow).toBeUndefined();
   });
 
   it('NPREF-024 — re-enabling inapp removes the disabled per-user row', () => {
     const { user } = createAdmin(testDb);
     // First disable
-    disableNotificationPref(testDb, user.id, 'version_available', 'inapp');
+    disableNotificationPref(testDb, user.id, 'trip_invite', 'inapp');
     // Then re-enable via setAdminPreferences
-    setAdminPreferences(user.id, { version_available: { inapp: true } });
+    setAdminPreferences(user.id, { trip_invite: { inapp: true } });
     const row = testDb.prepare(
       'SELECT enabled FROM notification_channel_preferences WHERE user_id = ? AND event_type = ? AND channel = ?'
-    ).get(user.id, 'version_available', 'inapp');
+    ).get(user.id, 'trip_invite', 'inapp');
     expect(row).toBeUndefined();
   });
 
   it('NPREF-025 — enabling email stores global pref as "1" in app_settings', () => {
     const { user } = createAdmin(testDb);
     // First disable, then re-enable
-    setAdminPreferences(user.id, { version_available: { email: false } });
-    setAdminPreferences(user.id, { version_available: { email: true } });
-    expect(getAdminGlobalPref('version_available', 'email')).toBe(true);
-    const row = testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get('admin_notif_pref_version_available_email') as { value: string } | undefined;
+    setAdminPreferences(user.id, { trip_invite: { email: false } });
+    setAdminPreferences(user.id, { trip_invite: { email: true } });
+    expect(getAdminGlobalPref('trip_invite', 'email')).toBe(true);
+    const row = testDb.prepare("SELECT value FROM app_settings WHERE key = ?").get('admin_notif_pref_trip_invite_email') as { value: string } | undefined;
     expect(row?.value).toBe('1');
   });
 });

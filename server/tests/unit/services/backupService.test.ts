@@ -49,6 +49,7 @@ const dbMock = vi.hoisted(() => ({
 
 vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/config', () => ({
+  USER_AGENT: 'TREK Travel Planner (https://github.com/lilfire/TREK)',
   JWT_SECRET: 'test-secret',
   ENCRYPTION_KEY: 'a'.repeat(64),
   updateJwtSecret: () => {},

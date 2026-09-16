@@ -40,6 +40,12 @@ export const PERMISSION_ACTIONS: PermissionAction[] = [
 
   // Packing
   { key: 'packing_edit',       defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },
+  // Toggling an item's `checked` state — kept separate from `packing_edit` so
+  // that admins can lock down item/bag CRUD without blocking members from
+  // checking off the items they've been assigned. Defaults to `trip_member`
+  // (matches the historical expectation that members can mark their own
+  // items done) and may be opened up to `everybody`.
+  { key: 'packing_check',      defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member', 'everybody'] },
 
   // Reservations
   { key: 'reservation_edit',   defaultLevel: 'trip_member',  allowedLevels: ['trip_owner', 'trip_member'] },

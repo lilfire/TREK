@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
+import { useTranslation } from '../../i18n'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { isStandardFamily, supportsCustom3d, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function MapboxPreview({ token, style, lat, lng, zoom, enable3d, quality = false, onClick }: Props) {
+  const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const onClickRef = useRef(onClick)
@@ -68,7 +70,7 @@ export default function MapboxPreview({ token, style, lat, lng, zoom, enable3d, 
   if (!token) {
     return (
       <div className="flex items-center justify-center h-full bg-slate-100 dark:bg-slate-800 text-xs text-slate-500 rounded-lg border border-slate-200 dark:border-slate-700">
-        Enter a Mapbox access token to preview
+        {t('map.mapboxPreviewHint')}
       </div>
     )
   }

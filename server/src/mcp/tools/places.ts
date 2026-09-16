@@ -37,13 +37,14 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         notes: z.string().max(2000).optional(),
         website: z.string().max(500).optional(),
         phone: z.string().max(50).optional(),
+        budget_category: z.string().max(100).nullable().optional().describe('Budget group (budget item category) this place belongs to. Use an existing category name exactly as stored (case-sensitive); null unlinks.'),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone }) => {
+    async ({ tripId, name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone, budget_category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone });
+      const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes, website, phone, budget_category });
       safeBroadcast(tripId, 'place:created', { place });
       return ok({ place });
     }
@@ -68,16 +69,17 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         website: z.string().max(500).optional(),
         phone: z.string().max(50).optional(),
         assignment_notes: z.string().max(500).optional().describe('Notes for this day assignment'),
+        budget_category: z.string().max(100).nullable().optional().describe('Budget group (budget item category) this place belongs to. Use an existing category name exactly as stored (case-sensitive); null unlinks.'),
       },
       annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     },
-    async ({ tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, assignment_notes }) => {
+    async ({ tripId, dayId, name, description, lat, lng, address, category_id, google_place_id, osm_id, place_notes, website, phone, assignment_notes, budget_category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
       if (!dayExists(dayId, tripId)) return { content: [{ type: 'text' as const, text: 'Day not found.' }], isError: true };
       try {
         const run = db.transaction(() => {
-          const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes: place_notes, website, phone });
+          const place = createPlace(String(tripId), { name, description, lat, lng, address, category_id, google_place_id, osm_id, notes: place_notes, website, phone, budget_category });
           const assignment = createAssignment(dayId, place.id, assignment_notes ?? null);
           return { place, assignment };
         });
@@ -94,7 +96,7 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
   if (W) server.registerTool(
     'update_place',
     {
-      description: 'Update an existing place in a trip.',
+      description: 'Update an existing place in a trip. Note: when the place is linked to a budget_category and has a price, the price is synced to total_price of the budget items in that category.',
       inputSchema: {
         tripId: z.number().int().positive(),
         placeId: z.number().int().positive(),
@@ -115,13 +117,14 @@ export function registerPlaceTools(server: McpServer, userId: number, scopes: st
         transport_mode: z.enum(['walking', 'driving', 'cycling', 'transit', 'flight']).optional(),
         osm_id: z.string().optional().describe('OpenStreetMap ID (e.g. "way:12345")'),
         google_place_id: z.string().optional().describe('Google Place ID (e.g. "ChIJd8BlQ2BZwokRAFUEcm_qrcA")'),
+        budget_category: z.string().max(100).nullable().optional().describe('Budget group (budget item category) this place belongs to. Use an existing category name exactly as stored (case-sensitive); null unlinks.'),
       },
       annotations: TOOL_ANNOTATIONS_WRITE,
     },
-    async ({ tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id }) => {
+    async ({ tripId, placeId, name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, budget_category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const place = updatePlace(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id });
+      const place = updatePlace(String(tripId), String(placeId), { name, description, lat, lng, address, category_id, price, currency, place_time, end_time, duration_minutes, notes, website, phone, transport_mode, osm_id, google_place_id, budget_category });
       if (!place) return { content: [{ type: 'text' as const, text: 'Place not found.' }], isError: true };
       safeBroadcast(tripId, 'place:updated', { place });
       return ok({ place });

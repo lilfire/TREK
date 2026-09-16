@@ -35,7 +35,8 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
-  GITHUB_REPO: process.env.GITHUB_REPO || 'mauriceboe/TREK',
+  GITHUB_REPO: process.env.GITHUB_REPO || 'lilfire/TREK',
+  USER_AGENT: `TREK Travel Planner (https://github.com/${process.env.GITHUB_REPO || 'lilfire/TREK'})`,
 }));
 
 import { createApp } from '../../src/app';
@@ -943,32 +944,6 @@ describe('Demo baseline', () => {
       .post('/api/admin/save-demo-baseline')
       .set('Cookie', authCookie(admin.id));
     expect(res.status).toBe(404);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// GitHub releases / version check
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('GitHub releases and version check', () => {
-  it('ADMIN-030 — GET /admin/github-releases returns array (even if GitHub unreachable)', async () => {
-    const { user: admin } = createAdmin(testDb);
-
-    const res = await request(app)
-      .get('/api/admin/github-releases?per_page=5&page=1')
-      .set('Cookie', authCookie(admin.id));
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-  });
-
-  it('ADMIN-031 — GET /admin/version-check returns version info', async () => {
-    const { user: admin } = createAdmin(testDb);
-
-    const res = await request(app)
-      .get('/api/admin/version-check')
-      .set('Cookie', authCookie(admin.id));
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('current');
   });
 });
 

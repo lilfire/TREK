@@ -976,7 +976,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
           <>
             {lightboxInfo.takenAt && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>Date</div>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>{t('common.date')}</div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>{new Date(lightboxInfo.takenAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</div>
                 <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{new Date(lightboxInfo.takenAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
@@ -984,7 +984,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
             {(lightboxInfo.city || lightboxInfo.country) && (
               <div>
                 <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
-                  <MapPin size={9} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 3 }} />Location
+                  <MapPin size={9} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 3 }} />{t('journey.editor.location')}
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 600 }}>
                   {[lightboxInfo.city, lightboxInfo.state, lightboxInfo.country].filter(Boolean).join(', ')}
@@ -993,7 +993,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
             )}
             {lightboxInfo.camera && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>Camera</div>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>{t('memories.exif.camera')}</div>
                 <div style={{ fontSize: 12, fontWeight: 500 }}>{lightboxInfo.camera}</div>
                 {lightboxInfo.lens && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{lightboxInfo.lens}</div>}
               </div>
@@ -1002,19 +1002,19 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {lightboxInfo.focalLength && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Focal</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('memories.exif.focal')}</div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.focalLength}</div>
                   </div>
                 )}
                 {lightboxInfo.aperture && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Aperture</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('memories.exif.aperture')}</div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.aperture}</div>
                   </div>
                 )}
                 {lightboxInfo.shutter && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shutter</div>
+                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('memories.exif.shutter')}</div>
                     <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.shutter}</div>
                   </div>
                 )}

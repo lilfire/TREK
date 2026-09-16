@@ -61,7 +61,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
                 {opt.value === 'auto' ? (
                   <>
                     <span className="hidden sm:inline">{opt.label}</span>
-                    <span className="sm:hidden">Auto</span>
+                    <span className="sm:hidden">{t('settings.auto')}</span>
                   </>
                 ) : opt.label}
               </button>

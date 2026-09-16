@@ -5,6 +5,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Wifi, RefreshCw, Trash2, Database } from 'lucide-react'
 import Section from './Section'
+import { useTranslation } from '../../i18n'
 import { offlineDb, clearAll } from '../../db/offlineDb'
 import { tripSyncManager } from '../../sync/tripSyncManager'
 import { mutationQueue } from '../../sync/mutationQueue'
@@ -19,6 +20,7 @@ interface CachedTripRow {
 }
 
 export default function OfflineTab(): React.ReactElement {
+  const { t } = useTranslation()
   const [rows, setRows] = useState<CachedTripRow[]>([])
   const [pendingCount, setPendingCount] = useState(0)
   const [syncing, setSyncing] = useState(false)
@@ -64,7 +66,7 @@ export default function OfflineTab(): React.ReactElement {
   }
 
   async function handleClear() {
-    if (!window.confirm('Clear all offline trip data? You can re-sync anytime while online.')) return
+    if (!window.confirm(t('offline.clearConfirm'))) return
     setClearing(true)
     try {
       await clearAll()
@@ -78,13 +80,13 @@ export default function OfflineTab(): React.ReactElement {
     d ? new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
 
   return (
-    <Section title="Offline Cache" icon={Database}>
+    <Section title={t('offline.title')} icon={Database}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <Stat label="Cached trips" value={rows.length} />
-          <Stat label="Pending changes" value={pendingCount} />
+          <Stat label={t('offline.cachedTrips')} value={rows.length} />
+          <Stat label={t('offline.pendingChanges')} value={pendingCount} />
         </div>
 
         {/* Actions */}
@@ -101,7 +103,7 @@ export default function OfflineTab(): React.ReactElement {
             }}
           >
             <RefreshCw size={14} style={syncing ? { animation: 'spin 1s linear infinite' } : {}} />
-            {syncing ? 'Syncing…' : 'Re-sync now'}
+            {syncing ? t('offline.syncing') : t('offline.resync')}
           </button>
 
           <button
@@ -116,16 +118,16 @@ export default function OfflineTab(): React.ReactElement {
             }}
           >
             <Trash2 size={14} />
-            Clear cache
+            {t('offline.clearCache')}
           </button>
         </div>
 
         {/* Cached trip list */}
         {loading ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>{t('common.loading')}</p>
         ) : rows.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-            No trips cached yet. Connect to internet to sync.
+            {t('offline.empty')}
           </p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -153,9 +155,9 @@ export default function OfflineTab(): React.ReactElement {
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
                   {' · '}
-                  {placeCount} place{placeCount !== 1 ? 's' : ''}
+                  {t(placeCount === 1 ? 'common.placeCountOne' : 'common.placeCount', { count: placeCount })}
                   {' · '}
-                  {fileCount} file{fileCount !== 1 ? 's' : ''}
+                  {t(fileCount === 1 ? 'common.fileCountOne' : 'common.fileCount', { count: fileCount })}
                 </span>
               </div>
             ))}

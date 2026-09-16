@@ -5,7 +5,7 @@ Deploy TREK on Kubernetes using the official Helm chart.
 ## Add the Chart Repository
 
 ```bash
-helm repo add trek https://mauriceboe.github.io/TREK
+helm repo add trek https://lilfire.github.io/TREK
 helm repo update
 ```
 
@@ -72,7 +72,7 @@ helm install trek trek/trek \
 
 ```yaml
 image:
-  repository: mauriceboe/trek
+  repository: ghcr.io/lilfire/trek
   # tag: latest        # defaults to the chart's appVersion
   pullPolicy: IfNotPresent
 
@@ -187,7 +187,7 @@ helm upgrade trek trek/trek
 
 ## Full Values Reference
 
-See the [`charts/README.md`](https://github.com/mauriceboe/TREK/blob/main/charts/README.md) for all available values.
+See the [`charts/README.md`](https://github.com/lilfire/TREK/blob/main/charts/README.md) for all available values.
 
 ## Next Steps
 

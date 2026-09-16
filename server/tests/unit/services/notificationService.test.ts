@@ -1,6 +1,6 @@
 /**
  * Unit tests for the unified notificationService.send().
- * Covers NSVC-001 to NSVC-014.
+ * Covers NSVC-001 to NSVC-013.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
@@ -24,7 +24,8 @@ vi.mock('../../../src/db/database', () => dbMock);
 vi.mock('../../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
-  GITHUB_REPO: 'mauriceboe/TREK',
+  GITHUB_REPO: 'lilfire/TREK',
+  USER_AGENT: `TREK Travel Planner (https://github.com/${'lilfire/TREK'})`,
   updateJwtSecret: () => {},
 }));
 vi.mock('../../../src/services/apiKeyCrypto', () => ({
@@ -263,7 +264,7 @@ describe('send() — recipient resolution', () => {
     createUser(testDb); // regular user — should NOT receive
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '2.0.0' } });
+    await send({ event: 'trip_invite', actorId: null, scope: 'admin', targetId: 0, params: { trip: 'Rome' } });
 
     expect(countAllNotifications()).toBe(2);
     const recipients = (testDb.prepare('SELECT recipient_id FROM notifications ORDER BY recipient_id').all() as { recipient_id: number }[]).map(r => r.recipient_id);
@@ -276,7 +277,7 @@ describe('send() — recipient resolution', () => {
     setAdminWebhookUrl();
     setNotificationChannels(testDb, 'none');
 
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '2.0.0' } });
+    await send({ event: 'trip_invite', actorId: null, scope: 'admin', targetId: 0, params: { trip: 'Rome' } });
 
     // Wait for fire-and-forget admin webhook
     await new Promise(r => setTimeout(r, 10));
@@ -331,17 +332,6 @@ describe('send() — in-app notification content', () => {
     expect(notifs[0].navigate_target).toBeNull();
   });
 
-  it('NSVC-014 — navigate_target uses /admin for version_available event', async () => {
-    const { user: admin } = createAdmin(testDb);
-    setNotificationChannels(testDb, 'none');
-
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '9.9.9' } });
-
-    const notifs = getInAppNotifications(admin.id);
-    expect(notifs.length).toBe(1);
-    expect(notifs[0].navigate_target).toBe('/admin');
-    expect(notifs[0].title_key).toBe('notif.version_available.title');
-  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -514,17 +504,49 @@ describe('send() — ntfy channel dispatch', () => {
     expect(ntfyCalls.length).toBe(0);
   });
 
-  it('NTFY-SVCB-004 — admin-scoped version_available fires admin ntfy topic', async () => {
+  it('NTFY-SVCB-004 — admin-scoped send fires admin ntfy topic', async () => {
     createAdmin(testDb);
     setAdminNtfyTopic();
     setNotificationChannels(testDb, 'none');
 
     fetchMock.mockClear();
-    await send({ event: 'version_available', actorId: null, scope: 'admin', targetId: 0, params: { version: '3.0.0' } });
+    await send({ event: 'trip_invite', actorId: null, scope: 'admin', targetId: 0, params: { trip: 'Rome' } });
 
     const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.sh'));
     expect(ntfyCalls.length).toBeGreaterThan(0);
-    expect(ntfyCalls[0][1].headers['Priority']).toBe('4'); // version_available = high priority
-    expect(ntfyCalls[0][1].headers['Tags']).toContain('package');
+    expect(ntfyCalls[0][1].headers['Priority']).toBe('4'); // trip_invite = high priority
+    expect(ntfyCalls[0][1].headers['Tags']).toContain('loudspeaker');
+  });
+
+  it('NTFY-SVCB-005 — admin ntfy token is withheld when the user points ntfy at their own server', async () => {
+    const { user } = createUser(testDb);
+    setUserNtfyTopic(user.id);
+    testDb.prepare("INSERT OR REPLACE INTO settings (user_id, key, value) VALUES (?, 'ntfy_server', 'https://attacker.example')").run(user.id);
+    setAppSetting(testDb, 'admin_ntfy_token', 'super-secret-operator-token');
+    setNotificationChannels(testDb, 'ntfy');
+    const tripId = (testDb.prepare('INSERT INTO trips (title, user_id) VALUES (?, ?)').run('Berlin', user.id)).lastInsertRowid as number;
+
+    fetchMock.mockClear();
+    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Berlin', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+
+    const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('attacker.example'));
+    expect(ntfyCalls.length).toBeGreaterThan(0);
+    expect(ntfyCalls[0][1].headers['Authorization']).toBeUndefined();
+  });
+
+  it('NTFY-SVCB-006 — admin ntfy token still reaches the admin\'s own server when the user only sets a topic', async () => {
+    const { user } = createUser(testDb);
+    setUserNtfyTopic(user.id);
+    setAppSetting(testDb, 'admin_ntfy_server', 'https://ntfy.operator.example');
+    setAppSetting(testDb, 'admin_ntfy_token', 'super-secret-operator-token');
+    setNotificationChannels(testDb, 'ntfy');
+    const tripId = (testDb.prepare('INSERT INTO trips (title, user_id) VALUES (?, ?)').run('Oslo', user.id)).lastInsertRowid as number;
+
+    fetchMock.mockClear();
+    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { trip: 'Oslo', actor: 'Alice', invitee: 'Bob', tripId: String(tripId) } });
+
+    const ntfyCalls = fetchMock.mock.calls.filter(([url]: [string]) => url.includes('ntfy.operator.example'));
+    expect(ntfyCalls.length).toBeGreaterThan(0);
+    expect(ntfyCalls[0][1].headers['Authorization']).toBe('Bearer super-secret-operator-token');
   });
 });

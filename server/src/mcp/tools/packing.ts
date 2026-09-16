@@ -1,8 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
-import { canAccessTrip } from '../../db/database';
+import { db, canAccessTrip } from '../../db/database';
 import { isDemoUser } from '../../services/authService';
 import {
+  canMemberAccessItem as canMemberAccessPackingItem,
   createItem as createPackingItem, updateItem as updatePackingItem,
   deleteItem as deletePackingItem,
   reorderItems as reorderPackingItems,
@@ -14,11 +15,20 @@ import {
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, noPermission, hasTripPermission, ok,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
+
+/** Mirrors routes/packing.ts: hidden item → permission error, missing item → not found. */
+function packingItemAccessError(tripId: number, itemId: number, userId: number) {
+  if (canMemberAccessPackingItem(tripId, itemId, userId)) return null;
+  const exists = !!db.prepare('SELECT 1 FROM packing_items WHERE id = ? AND trip_id = ?').get(itemId, tripId);
+  return exists
+    ? noPermission('No permission for this item.')
+    : { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
+}
 
 export function registerPackingTools(server: McpServer, userId: number, scopes: string[] | null): void {
   const R = canRead(scopes, 'packing');
@@ -42,6 +52,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, name, category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       const item = createPackingItem(tripId, { name, category: category || 'General' });
       safeBroadcast(tripId, 'packing:created', { item });
       return ok({ item });
@@ -62,6 +73,10 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, itemId, checked }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      // Check-only toggles use packing_check so members can tick items even when packing_edit is locked.
+      if (!hasTripPermission('packing_check', tripId, userId)) return noPermission();
+      const accessError = packingItemAccessError(tripId, itemId, userId);
+      if (accessError) return accessError;
       const item = updatePackingItem(tripId, itemId, { checked: checked ? 1 : 0 }, ['checked'], userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
       safeBroadcast(tripId, 'packing:updated', { item });
@@ -82,6 +97,9 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, itemId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
+      const accessError = packingItemAccessError(tripId, itemId, userId);
+      if (accessError) return accessError;
       const deleted = deletePackingItem(tripId, itemId);
       if (!deleted) return { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
       safeBroadcast(tripId, 'packing:deleted', { itemId });
@@ -106,6 +124,9 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, itemId, name, category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
+      const accessError = packingItemAccessError(tripId, itemId, userId);
+      if (accessError) return accessError;
       const bodyKeys = ['name', 'category'].filter(k => k === 'name' ? name !== undefined : category !== undefined);
       const item = updatePackingItem(tripId, itemId, { name, category }, bodyKeys, userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
@@ -129,6 +150,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, orderedIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       reorderPackingItems(tripId, orderedIds);
       safeBroadcast(tripId, 'packing:reordered', { orderedIds });
       return ok({ success: true });
@@ -165,6 +187,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, name, color }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       const bag = createBag(tripId, { name, color });
       safeBroadcast(tripId, 'packing:bag-created', { bag });
       return ok({ bag });
@@ -186,6 +209,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, bagId, name, color }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       const fields: Record<string, unknown> = {};
       const bodyKeys: string[] = [];
       if (name !== undefined) { fields.name = name; bodyKeys.push('name'); }
@@ -209,6 +233,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, bagId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       deleteBag(tripId, bagId);
       safeBroadcast(tripId, 'packing:bag-deleted', { id: bagId });
       return ok({ success: true });
@@ -229,6 +254,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, bagId, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       setBagMembers(tripId, bagId, userIds);
       safeBroadcast(tripId, 'packing:bag-members-updated', { bagId, userIds });
       return ok({ success: true });
@@ -265,6 +291,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, categoryName, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       updatePackingCategoryAssignees(tripId, categoryName, userIds);
       safeBroadcast(tripId, 'packing:assignees', { categoryName, userIds });
       return ok({ success: true });
@@ -284,6 +311,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, templateId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       const applied = applyTemplate(tripId, templateId);
       if (applied === null) return { content: [{ type: 'text' as const, text: 'Template not found.' }], isError: true };
       safeBroadcast(tripId, 'packing:template-applied', { templateId });
@@ -326,6 +354,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, items }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       bulkImport(tripId, items);
       safeBroadcast(tripId, 'packing:updated', {});
       return ok({ success: true, count: items.length });

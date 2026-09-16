@@ -2,6 +2,7 @@ import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTranslation } from '../../i18n'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
 
 export interface JourneyMapGLHandle {
@@ -197,6 +198,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
   ref
 ) {
+  const { t } = useTranslation()
   const stableTrail = trail || EMPTY_TRAIL
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
@@ -446,8 +448,8 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         className="flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-center px-6"
       >
         <div className="text-sm text-zinc-500">
-          No Mapbox access token configured.<br />
-          <span className="text-xs">Settings → Map → Mapbox GL</span>
+          {t('map.mapboxTokenMissing')}<br />
+          <span className="text-xs">{t('map.mapboxTokenMissingHint')}</span>
         </div>
       </div>
     )

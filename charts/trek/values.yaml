@@ -1,6 +1,6 @@
 
 image:
-  repository: mauriceboe/trek
+  repository: ghcr.io/lilfire/trek
   # tag: latest
   pullPolicy: IfNotPresent
 

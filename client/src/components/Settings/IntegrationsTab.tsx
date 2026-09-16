@@ -303,7 +303,7 @@ export default function IntegrationsTab(): React.ReactElement {
               {t('settings.mcp.apiTokens')}
               <span className="px-1.5 py-0.5 rounded text-[10px] font-medium"
                 style={{ background: 'rgba(245,158,11,0.15)', color: '#b45309', border: '1px solid rgba(245,158,11,0.4)' }}>
-                Deprecated
+                {t('settings.mcp.deprecated')}
               </span>
             </button>
           </div>

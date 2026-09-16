@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor } from '../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -12,6 +12,10 @@ import DashboardPage from './DashboardPage';
 beforeEach(() => {
   vi.clearAllMocks();
   resetAllStores();
+  // Pin "today" before the MSW fixture trips (Paris 2026-07-01, Tokyo 2026-09-01)
+  // so upcoming/past sorting doesn't drift as the real calendar moves on.
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-06-01T12:00:00Z'));
   // Seed auth with authenticated user
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   // Grant all permissions so buttons are visible
@@ -24,6 +28,10 @@ beforeEach(() => {
       return HttpResponse.json({ rates: { USD: 1.08, EUR: 1, CHF: 0.97 } });
     }),
   );
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('DashboardPage', () => {

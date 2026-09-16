@@ -89,3 +89,34 @@ export function listRsvpsForTrip(tripId: number): TripRsvp[] {
     'SELECT * FROM trip_rsvps WHERE trip_id = ? ORDER BY created_at ASC',
   ).all(tripId) as TripRsvp[];
 }
+
+export interface TripRsvpWithPayment extends TripRsvp {
+  payment: { amount: number; currency: string; status: string; updated_at: string } | null;
+}
+
+/** RSVPs for a trip with the most recent registration-fee payment attempt (provider IDs omitted). */
+export function listRsvpsWithPaymentsForTrip(tripId: number): TripRsvpWithPayment[] {
+  const rows = db.prepare(`
+    SELECT r.*, p.amount AS payment_amount, p.currency AS payment_currency,
+           p.status AS payment_status, p.updated_at AS payment_updated_at
+    FROM trip_rsvps r
+    LEFT JOIN trip_rsvp_payments p ON p.id = (
+      SELECT id FROM trip_rsvp_payments WHERE rsvp_id = r.id ORDER BY id DESC LIMIT 1
+    )
+    WHERE r.trip_id = ?
+    ORDER BY r.created_at ASC, r.id ASC
+  `).all(tripId) as Array<TripRsvp & {
+    payment_amount: number | null; payment_currency: string | null;
+    payment_status: string | null; payment_updated_at: string | null;
+  }>;
+
+  return rows.map(({ payment_amount, payment_currency, payment_status, payment_updated_at, ...rsvp }) => ({
+    ...rsvp,
+    payment: payment_status === null ? null : {
+      amount: payment_amount as number,
+      currency: payment_currency as string,
+      status: payment_status,
+      updated_at: payment_updated_at as string,
+    },
+  }));
+}

@@ -1,8 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import { z } from 'zod';
-import { canAccessTrip } from '../../db/database';
+import { db, canAccessTrip } from '../../db/database';
 import { isDemoUser } from '../../services/authService';
 import {
+  canMemberAccessItem as canMemberAccessTodoItem,
   listItems as listTodoItems, createItem as createTodoItem, updateItem as updateTodoItem,
   deleteItem as deleteTodoItem, reorderItems as reorderTodoItems,
   getCategoryAssignees as getTodoCategoryAssignees, updateCategoryAssignees as updateTodoCategoryAssignees,
@@ -10,11 +11,21 @@ import {
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE,
   TOOL_ANNOTATIONS_DELETE, TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, noPermission, hasTripPermission, ok,
 } from './_shared';
 import { canRead, canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
+
+/** Mirrors routes/todo.ts: to-dos are gated by packing_edit; hidden item → permission error. */
+function todoItemAccessError(tripId: number, itemId: number, userId: number) {
+  if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
+  if (canMemberAccessTodoItem(tripId, itemId, userId)) return null;
+  const exists = !!db.prepare('SELECT 1 FROM todo_items WHERE id = ? AND trip_id = ?').get(itemId, tripId);
+  return exists
+    ? noPermission('No permission for this item.')
+    : { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
+}
 
 export function registerTodoTools(server: McpServer, userId: number, scopes: string[] | null): void {
   const R = canRead(scopes, 'todos');
@@ -58,6 +69,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, name, category, due_date, description, assigned_user_id, priority }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       const item = createTodoItem(tripId, { name, category, due_date, description, assigned_user_id, priority });
       safeBroadcast(tripId, 'todo:created', { item });
       return ok({ item });
@@ -83,6 +95,8 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId, name, category, due_date, description, assigned_user_id, priority }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      const accessError = todoItemAccessError(tripId, itemId, userId);
+      if (accessError) return accessError;
       // Build bodyKeys to signal which nullable fields were explicitly provided
       const bodyKeys: string[] = [];
       if (due_date !== undefined) bodyKeys.push('due_date');
@@ -110,6 +124,8 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId, checked }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      const accessError = todoItemAccessError(tripId, itemId, userId);
+      if (accessError) return accessError;
       const item = updateTodoItem(tripId, itemId, { checked: checked ? 1 : 0 }, [], userId);
       if (!item) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:updated', { item });
@@ -130,6 +146,8 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, itemId }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      const accessError = todoItemAccessError(tripId, itemId, userId);
+      if (accessError) return accessError;
       const deleted = deleteTodoItem(tripId, itemId);
       if (!deleted) return { content: [{ type: 'text' as const, text: 'To-do item not found.' }], isError: true };
       safeBroadcast(tripId, 'todo:deleted', { itemId });
@@ -150,6 +168,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, orderedIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       reorderTodoItems(tripId, orderedIds);
       return ok({ success: true });
     }
@@ -185,6 +204,7 @@ export function registerTodoTools(server: McpServer, userId: number, scopes: str
     async ({ tripId, categoryName, userIds }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('packing_edit', tripId, userId)) return noPermission();
       const assignees = updateTodoCategoryAssignees(tripId, categoryName, userIds);
       safeBroadcast(tripId, 'todo:assignees', { category: categoryName, assignees });
       return ok({ assignees });

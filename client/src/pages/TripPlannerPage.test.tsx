@@ -273,7 +273,7 @@ describe('TripPlannerPage', () => {
       renderPlannerPage(99);
 
       // Loading state: shows loading gif
-      const loadingImg = document.querySelector('img[alt="Loading"]');
+      const loadingImg = document.querySelector('img[alt^="Loading"]');
       expect(loadingImg).toBeInTheDocument();
     });
   });

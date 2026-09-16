@@ -62,7 +62,7 @@ export function PhotoLightbox({ photos, initialIndex, onClose, onUpdate, onDelet
   }
 
   const handleDelete = async () => {
-    if (!confirm('Foto löschen?')) return
+    if (!confirm(t('photos.deleteConfirm'))) return
     await onDelete(photo.id)
     if (photos.length <= 1) {
       onClose()
@@ -192,7 +192,7 @@ export function PhotoLightbox({ photos, initialIndex, onClose, onUpdate, onDelet
             {photo.created_at && (
               <span>{formatDate(photo.created_at)}</span>
             )}
-            {day && <span>📅 Tag {day.day_number}</span>}
+            {day && <span>📅 {t('photos.dayLabel', { number: day.day_number })}</span>}
             {place && <span>📍 {place.name}</span>}
             {photo.file_size && <span>{formatSize(photo.file_size)}</span>}
           </div>

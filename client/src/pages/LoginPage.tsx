@@ -422,7 +422,7 @@ export default function LoginPage(): React.ReactElement {
           onClick={(e) => { e.stopPropagation(); setLangDropdownOpen(o => !o) }}
           aria-haspopup="listbox"
           aria-expanded={langDropdownOpen}
-          aria-label="Change language"
+          aria-label={t('login.changeLanguage')}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 12px', borderRadius: 99,
@@ -442,7 +442,7 @@ export default function LoginPage(): React.ReactElement {
         {langDropdownOpen && (
           <div
             role="listbox"
-            aria-label="Select language"
+            aria-label={t('login.selectLanguage')}
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'absolute', top: '100%', right: 0, marginTop: 4,

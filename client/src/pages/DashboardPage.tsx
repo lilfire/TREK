@@ -189,7 +189,7 @@ export default function DashboardPage(): React.ReactElement {
           {/* Widget settings dropdown */}
           {showWidgetSettings && activeTab === 'trips' && (
             <div className="rounded-xl border p-3 mb-4 flex items-center gap-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>Widgets:</span>
+              <span className="text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>{t('dashboard.widgets')}:</span>
               <label className="flex items-center gap-2 cursor-pointer">
                 <button onClick={() => updateSetting('dashboard_currency', showCurrency ? 'off' : 'on')}
                   className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"

@@ -860,7 +860,7 @@ export default function AtlasPage(): React.ReactElement {
                     set_atlas_country_open(false)
                   }}
                   style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}
-                  aria-label="Clear"
+                  aria-label={t('common.clear')}
                 >
                   <X size={14} />
                 </button>
@@ -1487,7 +1487,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
             <span className="text-3xl">{countryCodeToFlag(selectedCountry)}</span>
             <div>
               <p className="text-sm font-bold" style={{ color: tp }}>{resolveName(selectedCountry)}</p>
-              <p className="text-[10px] mb-1" style={{ color: tf }}>{countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} Trips</p>
+              <p className="text-[10px] mb-1" style={{ color: tf }}>{countryDetail.places.length} {t('atlas.places')} · {countryDetail.trips.length} {t('atlas.trips')}</p>
               <div className="flex flex-wrap gap-1">
                 {countryDetail.trips.slice(0, 3).map(trip => (
                   <button key={trip.id} onClick={() => onTripClick(trip.id)}

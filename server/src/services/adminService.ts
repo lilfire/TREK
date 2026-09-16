@@ -15,14 +15,6 @@ import { resolveAuthToggles } from './authService';
 // Re-exports keep the existing route handlers importing from adminService while
 // the underlying logic lives in focused per-concern modules.
 export {
-  compareVersions,
-  isDocker,
-  getGithubReleases,
-  checkVersion,
-  checkAndNotifyVersion,
-  __clearVersionCacheForTests,
-} from './versionCheckService';
-export {
   listPackingTemplates,
   getPackingTemplate,
   createPackingTemplate,

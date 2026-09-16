@@ -556,7 +556,6 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'admin.oauthSessions.revokeSuccess': 'تم إلغاء الجلسة',
   'admin.oauthSessions.revokeError': 'فشل إلغاء الجلسة',
   'admin.oauthSessions.loadError': 'فشل تحميل جلسات OAuth',
-  'admin.tabs.github': 'GitHub',
   'admin.stats.users': 'المستخدمون',
   'admin.stats.trips': 'الرحلات',
   'admin.stats.places': 'الأماكن',
@@ -738,35 +737,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'admin.audit.col.ip': 'عنوان IP',
   'admin.audit.col.details': 'التفاصيل',
 
-  'admin.github.title': 'سجل الإصدارات',
-  'admin.github.subtitle': 'آخر التحديثات من {repo}',
-  'admin.github.latest': 'الأحدث',
-  'admin.github.prerelease': 'إصدار تجريبي',
-  'admin.github.showDetails': 'إظهار التفاصيل',
-  'admin.github.hideDetails': 'إخفاء التفاصيل',
-  'admin.github.loadMore': 'تحميل المزيد',
-  'admin.github.loading': 'جارٍ التحميل...',
-  'admin.github.error': 'فشل تحميل الإصدارات',
-  'admin.github.by': 'بواسطة',
-  'admin.github.support': 'يساعدني في تطوير TREK',
+  'admin.version.prerelease': 'إصدار تجريبي',
 
-  'admin.update.available': 'يتوفر تحديث',
-  'admin.update.text': 'TREK {version} متوفر. أنت تستخدم {current}.',
-  'admin.update.button': 'عرض على GitHub',
-  'admin.update.install': 'تثبيت التحديث',
-  'admin.update.confirmTitle': 'تثبيت التحديث؟',
-  'admin.update.confirmText': 'سيتم تحديث TREK من {current} إلى {version}. سيُعاد تشغيل الخادم تلقائيًا بعد ذلك.',
-  'admin.update.dataInfo': 'جميع بياناتك (الرحلات، المستخدمون، مفاتيح API، المرفوعات، الإجازة، الأطلس، الميزانيات) ستبقى محفوظة.',
-  'admin.update.warning': 'سيكون التطبيق غير متاح لفترة وجيزة أثناء إعادة التشغيل.',
-  'admin.update.confirm': 'حدّث الآن',
-  'admin.update.installing': 'جارٍ التحديث…',
-  'admin.update.success': 'تم تثبيت التحديث. ستتم إعادة تشغيل الخادم…',
-  'admin.update.failed': 'فشل التحديث',
-  'admin.update.backupHint': 'نوصي بإنشاء نسخة احتياطية قبل التحديث.',
-  'admin.update.backupLink': 'الذهاب إلى النسخ الاحتياطي',
-  'admin.update.howTo': 'كيفية التحديث',
-  'admin.update.dockerText': 'يعمل TREK الخاص بك في Docker. للتحديث إلى {version}، نفّذ الأوامر التالية على الخادم:',
-  'admin.update.reloadHint': 'يرجى إعادة تحميل الصفحة بعد بضع ثوانٍ.',
 
   // Vacay addon
   'vacay.subtitle': 'خطط وأدر أيام الإجازة',
@@ -1308,6 +1280,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'إعادة تسمية',
   'packing.menuCheckAll': 'تحديد الكل',
   'packing.menuUncheckAll': 'إلغاء تحديد الكل',
+  'packing.menuDuplicate': 'تكرار',
+  'packing.copySuffix': 'نسخة',
   'packing.menuDeleteCat': 'حذف الفئة',
   'packing.noMembers': 'لا أعضاء',
   'packing.addItem': 'إضافة عنصر',
@@ -1333,6 +1307,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'فشل الحفظ',
   'packing.toast.deleteError': 'فشل الحذف',
   'packing.toast.renameError': 'فشلت إعادة التسمية',
+  'packing.toast.duplicated': 'تم تكرار الفئة',
+  'packing.toast.duplicateError': 'فشل تكرار الفئة',
   'packing.toast.addError': 'فشلت الإضافة',
 
   // Packing suggestions
@@ -1932,7 +1908,6 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'todo.sortByPrio': 'الأولوية',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'إصدار جديد متاح',
   'settings.notificationPreferences.noChannels': 'لم يتم تكوين قنوات إشعارات. اطلب من المسؤول إعداد إشعارات البريد الإلكتروني أو webhook.',
   'settings.webhookUrl.label': 'رابط Webhook',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1992,9 +1967,6 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'admin.notifications.tripReminders.enabled': 'تم تفعيل تذكيرات الرحلات',
   'admin.notifications.tripReminders.disabled': 'تم تعطيل تذكيرات الرحلات',
   'admin.tabs.notifications': 'الإشعارات',
-  'notifications.versionAvailable.title': 'تحديث متاح',
-  'notifications.versionAvailable.text': 'TREK {version} متاح الآن.',
-  'notifications.versionAvailable.button': 'عرض التفاصيل',
   'notif.test.title': '[اختبار] إشعار',
   'notif.test.simple.text': 'هذا إشعار اختبار بسيط.',
   'notif.test.boolean.text': 'هل تقبل هذا الإشعار الاختباري؟',
@@ -2017,8 +1989,6 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'notif.collab_message.text': '{actor} أرسل رسالة في {trip}',
   'notif.packing_tagged.title': 'مهمة التعبئة',
   'notif.packing_tagged.text': '{actor} عيّنك في {category} في {trip}',
-  'notif.version_available.title': 'إصدار جديد متاح',
-  'notif.version_available.text': 'TREK {version} متاح الآن',
   'notif.action.view_trip': 'عرض الرحلة',
   'notif.action.view_collab': 'عرض الرسائل',
   'notif.action.view_packing': 'عرض التعبئة',
@@ -2145,8 +2115,6 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'system_notice.v3_mcp.highlight_tools':      'مجموعة أدوات وإرشادات موسعة',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'كلمة شخصية مني',
-  'system_notice.v3_thankyou.body': 'قبل أن تمضي — أريد أن أتوقف لحظة.\n\nبدأ TREK كمشروع جانبي بنيته لرحلاتي الخاصة. لم أتخيل يومًا أنه سيكبر ليصبح شيئًا يعتمد عليه 4,000 منكم لتخطيط مغامراتهم. كل نجمة، كل مشكلة، كل طلب ميزة — أقرأها جميعًا، وهي ما يبقيني مستمرًا في الليالي المتأخرة بين عمل بدوام كامل والجامعة.\n\nأريدكم أن تعرفوا: TREK سيبقى دائمًا مفتوح المصدر، دائمًا مستضافًا ذاتيًا، دائمًا ملككم. لا تتبع، لا اشتراكات، لا شروط خفية. مجرد أداة بناها شخص يحب السفر بقدر ما تحبونه.\n\nشكر خاص لـ [jubnl](https://github.com/jubnl) — لقد أصبحت متعاونًا رائعًا. الكثير مما يجعل الإصدار 3.0 عظيمًا يحمل بصماتك. شكرًا لإيمانك بهذا المشروع عندما كان لا يزال في بداياته.\n\nولكل واحد منكم ممن أبلغ عن خطأ، أو ترجم نصًا، أو شارك TREK مع صديق، أو ببساطة استخدمه لتخطيط رحلة — **شكرًا لكم**. أنتم السبب في وجود هذا.\n\nإلى المزيد من المغامرات معًا.\n\n— Maurice\n\n---\n\n[انضم إلى المجتمع على Discord](https://discord.gg/7Q6M6jDwzf)\n\nإذا جعل TREK رحلاتك أفضل، [فنجان قهوة صغير](https://ko-fi.com/mauriceboe) يبقي الأضواء مشتعلة.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'إجراء مطلوب: تعارض في حسابات المستخدمين',
   'system_notice.v3014_whitespace_collision.body': 'اكتشف ترقية 3.0.14 تعارضًا في أسماء مستخدمين أو بريد إلكتروني ناتجًا عن مسافات بيضاء في بداية أو نهاية القيم المخزنة. تمت إعادة تسمية الحسابات المتأثرة تلقائيًا. تحقق من سجلات الخادم بحثًا عن أسطر تبدأ بـ **[migration] WHITESPACE COLLISION** لتحديد الحسابات التي تحتاج إلى مراجعة.',
@@ -2209,6 +2177,40 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.unplanned.subheading': 'أماكن أُضيفت إلى هذه الرحلة ولم يتم جدولتها بعد.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'الإقامة',
+  'publicTrip.tiers.subheading': 'يعتمد مكان إقامتنا على عدد المسجلين.',
+  'publicTrip.tiers.participants': '{count} مؤكد',
+  'publicTrip.tiers.nextTier': '{count} إضافيون لفتح {name}',
+  'publicTrip.tiers.allReached': 'تم الوصول إلى أعلى مستوى!',
+  'publicTrip.tiers.paidNote': 'تُحتسب التسجيلات المدفوعة فقط.',
+  'publicTrip.tiers.active': 'الحالي',
+  'publicTrip.tiers.range': '{min}–{max} مشاركين',
+  'publicTrip.tiers.rangeSingle': '{min} مشاركين',
+  'publicTrip.tiers.rangeOpen': '{min}+ مشاركين',
+  'publicTrip.tiers.viewPlace': "عرض مكان الإقامة",
+  'publicTrip.tiers.viewOnMap': "عرض على الخريطة",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "مستويات الإقامة",
+  'tripForm.tiers.hint': "تعتمد الإقامة على عدد المشاركين المؤكدين (المالك + التسجيلات؛ المدفوعة فقط عند وجود رسوم). تُعرض في صفحة الرحلة العامة.",
+  'tripForm.tiers.status': "{count} مؤكد",
+  'tripForm.tiers.current': "الحالي: {name}",
+  'tripForm.tiers.add': "إضافة مستوى",
+  'tripForm.tiers.name': "الاسم",
+  'tripForm.tiers.namePlaceholder': "مثال: كوخ Fjellro",
+  'tripForm.tiers.minParticipants': "ابتداءً من عدد المشاركين",
+  'tripForm.tiers.place': "المكان (اختياري)",
+  'tripForm.tiers.noPlace': "بدون مكان",
+  'tripForm.tiers.pricePerPerson': "السعر/الشخص ({currency})",
+  'tripForm.tiers.description': "الوصف (اختياري)",
+  'tripForm.tiers.nameRequired': "الاسم مطلوب",
+  'tripForm.tiers.minInvalid': "يجب أن يكون عدد المشاركين عددًا صحيحًا لا يقل عن 1",
+  'tripForm.tiers.priceInvalid': "يجب أن يكون السعر 0 أو أكثر",
+  'tripForm.tiers.saveError': "تعذر حفظ المستوى",
+  'tripForm.tiers.deleteError': "تعذر حذف المستوى",
+  'tripForm.tiers.confirmDelete': "حذف المستوى \"{name}\"؟",
 }
 
 export default ar

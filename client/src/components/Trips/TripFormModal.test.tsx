@@ -576,3 +576,18 @@ describe('Fee Currency dropdown', () => {
     }));
   });
 });
+
+describe('TripFormModal — accommodation tiers', () => {
+  it('TIERS-001: shows the tier editor when editing an existing trip', async () => {
+    const user = buildUser();
+    seedStore(useAuthStore, { user, isAuthenticated: true });
+    const trip = buildTrip({ id: 1, user_id: user.id } as any);
+    render(<TripFormModal {...defaultProps} trip={trip} />);
+    expect(await screen.findByTestId('tier-editor')).toBeInTheDocument();
+  });
+
+  it('TIERS-002: hides the tier editor when creating a trip', () => {
+    render(<TripFormModal {...defaultProps} trip={null} />);
+    expect(screen.queryByTestId('tier-editor')).not.toBeInTheDocument();
+  });
+});

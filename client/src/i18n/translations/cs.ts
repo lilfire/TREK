@@ -723,18 +723,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'admin.oauthSessions.loadError': 'Nepodařilo se načíst OAuth relace',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
-  'admin.github.title': 'Historie verzí',
-  'admin.github.subtitle': 'Nejnovější aktualizace z {repo}',
-  'admin.github.latest': 'Nejnovější',
-  'admin.github.prerelease': 'Předběžná verze',
-  'admin.github.showDetails': 'Zobrazit podrobnosti',
-  'admin.github.hideDetails': 'Skrýt podrobnosti',
-  'admin.github.loadMore': 'Načíst další',
-  'admin.github.loading': 'Načítání...',
-  'admin.github.error': 'Nepodařilo se načíst verze',
-  'admin.github.by': 'od',
-  'admin.github.support': 'Pomáhá udržovat vývoj TREK',
+  'admin.version.prerelease': 'Předběžná verze',
 
   // Počasí (Weather)
   'admin.weather.title': 'Data o počasí',
@@ -749,23 +738,6 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'admin.weather.locationHint': 'Počasí se určuje podle prvního místa se souřadnicemi v daném dni.',
 
   // Aktualizace (Updates)
-  'admin.update.available': 'Dostupná aktualizace',
-  'admin.update.text': 'TREK {version} je k dispozici. Aktuálně používáte verzi {current}.',
-  'admin.update.button': 'Zobrazit na GitHubu',
-  'admin.update.install': 'Instalovat aktualizaci',
-  'admin.update.confirmTitle': 'Instalovat aktualizaci?',
-  'admin.update.confirmText': 'TREK bude aktualizován z verze {current} na {version}. Server se poté automaticky restartuje.',
-  'admin.update.dataInfo': 'Všechna vaše data (cesty, uživatelé, API klíče, soubory) budou zachována.',
-  'admin.update.warning': 'Aplikace bude během restartu krátce nedostupná.',
-  'admin.update.confirm': 'Aktualizovat nyní',
-  'admin.update.installing': 'Aktualizace probíhá…',
-  'admin.update.success': 'Aktualizace byla nainstalována! Server se restartuje…',
-  'admin.update.failed': 'Aktualizace se nezdařila',
-  'admin.update.backupHint': 'Před aktualizací doporučujeme vytvořit zálohu.',
-  'admin.update.backupLink': 'Přejít na zálohování',
-  'admin.update.howTo': 'Jak aktualizovat',
-  'admin.update.dockerText': 'Váš TREK běží v Dockeru. Pro aktualizaci na verzi {version} spusťte na svém serveru tyto příkazy:',
-  'admin.update.reloadHint': 'Prosím obnovte stránku za několik sekund.',
 
   // Vacay doplněk
   'vacay.subtitle': 'Plánování a správa dovolené',
@@ -1306,6 +1278,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Přejmenovat',
   'packing.menuCheckAll': 'Označit vše',
   'packing.menuUncheckAll': 'Odznačit vše',
+  'packing.menuDuplicate': 'Duplikovat',
+  'packing.copySuffix': 'kopie',
   'packing.menuDeleteCat': 'Smazat kategorii',
   'packing.noMembers': 'Žádní členové cesty',
   'packing.addItem': 'Přidat položku',
@@ -1331,6 +1305,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Uložení se nezdařilo',
   'packing.toast.deleteError': 'Smazání se nezdařilo',
   'packing.toast.renameError': 'Přejmenování se nezdařilo',
+  'packing.toast.duplicated': 'Kategorie duplikována',
+  'packing.toast.duplicateError': 'Duplikování kategorie se nezdařilo',
   'packing.toast.addError': 'Přidání se nezdařilo',
 
   // Návrhy balení (Packing suggestions)
@@ -1875,7 +1851,6 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'todo.sortByPrio': 'Priorita',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'Nová verze k dispozici',
   'settings.notificationPreferences.noChannels': 'Nejsou nakonfigurovány žádné kanály oznámení. Požádejte správce o nastavení e-mailových nebo webhook oznámení.',
   'settings.webhookUrl.label': 'URL webhooku',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1935,9 +1910,6 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'admin.notifications.tripReminders.enabled': 'Připomínky výletů aktivovány',
   'admin.notifications.tripReminders.disabled': 'Připomínky výletů deaktivovány',
   'admin.tabs.notifications': 'Oznámení',
-  'notifications.versionAvailable.title': 'Dostupná aktualizace',
-  'notifications.versionAvailable.text': 'TREK {version} je nyní k dispozici.',
-  'notifications.versionAvailable.button': 'Zobrazit podrobnosti',
   'notif.test.title': '[Test] Oznámení',
   'notif.test.simple.text': 'Toto je jednoduché testovací oznámení.',
   'notif.test.boolean.text': 'Přijmete toto testovací oznámení?',
@@ -1960,8 +1932,6 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'notif.collab_message.text': '{actor} poslal zprávu v {trip}',
   'notif.packing_tagged.title': 'Přiřazení balení',
   'notif.packing_tagged.text': '{actor} vás přiřadil k {category} v {trip}',
-  'notif.version_available.title': 'Nová verze dostupná',
-  'notif.version_available.text': 'TREK {version} je nyní dostupný',
   'notif.action.view_trip': 'Zobrazit výlet',
   'notif.action.view_collab': 'Zobrazit zprávy',
   'notif.action.view_packing': 'Zobrazit balení',
@@ -2352,8 +2322,6 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'system_notice.v3_mcp.highlight_tools':      'Rozšířená sada nástrojů a promptů',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Osobní slovo ode mě',
-  'system_notice.v3_thankyou.body': 'Než budete pokračovat — chci se na chvíli zastavit.\n\nTREK začal jako vedlejší projekt, který jsem vytvořil pro své vlastní cesty. Nikdy jsem si nepředstavoval, že vyroste v něco, čemu 4 000 z vás důvěřuje při plánování svých dobrodružství. Každou hvězdičku, každý issue, každý požadavek na funkci — všechny čtu a právě ony mě drží při životě během pozdních nocí mezi prací na plný úvazek a univerzitou.\n\nChci, abyste věděli: TREK bude vždy open source, vždy self-hosted, vždy váš. Žádné sledování, žádná předplatná, žádné háčky. Jen nástroj vytvořený někým, kdo miluje cestování stejně jako vy.\n\nZvláštní poděkování patří [jubnl](https://github.com/jubnl) — stal ses neuvěřitelným spolupracovníkem. Tolik z toho, co dělá verzi 3.0 skvělou, nese tvůj rukopis. Děkuji, že jsi věřil tomuto projektu, když byl ještě v plenkách.\n\nA každému z vás, kdo nahlásil chybu, přeložil řetězec, sdílel TREK s přítelem nebo ho jednoduše použil k plánování cesty — **děkuji**. Vy jste důvod, proč tohle existuje.\n\nNa mnoho dalších dobrodružství společně.\n\n— Maurice\n\n---\n\n[Přidej se ke komunitě na Discordu](https://discord.gg/7Q6M6jDwzf)\n\nPokud ti TREK zlepšuje cestování, [malá káva](https://ko-fi.com/mauriceboe) vždy pomůže udržet světla rozsvícená.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Vyžadována akce: konflikt uživatelského účtu',
   'system_notice.v3014_whitespace_collision.body': 'Aktualizace 3.0.14 zjistila jeden nebo více konfliktů uživatelského jména nebo e-mailu způsobených mezerami na začátku nebo konci uložených hodnot. Dotčené účty byly automaticky přejmenovány. Zkontrolujte protokoly serveru na řádky začínající **[migration] WHITESPACE COLLISION** a zjistěte, které účty vyžadují kontrolu.',
@@ -2416,6 +2384,40 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.unplanned.subheading': 'Místa přidaná do tohoto výletu, ale dosud neplánovaná.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Ubytování',
+  'publicTrip.tiers.subheading': 'Kde budeme bydlet, závisí na počtu přihlášených.',
+  'publicTrip.tiers.participants': '{count} potvrzeno',
+  'publicTrip.tiers.nextTier': 'Ještě {count} k odemčení {name}',
+  'publicTrip.tiers.allReached': 'Nejvyšší úroveň dosažena!',
+  'publicTrip.tiers.paidNote': 'Počítají se jen zaplacené registrace.',
+  'publicTrip.tiers.active': 'Aktuální',
+  'publicTrip.tiers.range': '{min}–{max} účastníků',
+  'publicTrip.tiers.rangeSingle': '{min} účastníků',
+  'publicTrip.tiers.rangeOpen': '{min}+ účastníků',
+  'publicTrip.tiers.viewPlace': "Zobrazit ubytování",
+  'publicTrip.tiers.viewOnMap': "Zobrazit na mapě",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Úrovně ubytování",
+  'tripForm.tiers.hint': "Ubytování závisí na počtu potvrzených účastníků (vlastník + registrace; při poplatku jen zaplacené). Zobrazuje se na veřejné stránce cesty.",
+  'tripForm.tiers.status': "{count} potvrzeno",
+  'tripForm.tiers.current': "aktuální: {name}",
+  'tripForm.tiers.add': "Přidat úroveň",
+  'tripForm.tiers.name': "Název",
+  'tripForm.tiers.namePlaceholder': "např. Chata Fjellro",
+  'tripForm.tiers.minParticipants': "Od počtu účastníků",
+  'tripForm.tiers.place': "Místo (volitelné)",
+  'tripForm.tiers.noPlace': "Žádné místo",
+  'tripForm.tiers.pricePerPerson': "Cena/osoba ({currency})",
+  'tripForm.tiers.description': "Popis (volitelný)",
+  'tripForm.tiers.nameRequired': "Název je povinný",
+  'tripForm.tiers.minInvalid': "Počet účastníků musí být celé číslo alespoň 1",
+  'tripForm.tiers.priceInvalid': "Cena musí být 0 nebo více",
+  'tripForm.tiers.saveError': "Úroveň se nepodařilo uložit",
+  'tripForm.tiers.deleteError': "Úroveň se nepodařilo smazat",
+  'tripForm.tiers.confirmDelete': "Smazat úroveň „{name}“?",
 }
 
 export default cs

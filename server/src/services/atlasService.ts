@@ -1,5 +1,6 @@
 import { db } from '../db/database';
 import { Trip, Place } from '../types';
+import { USER_AGENT } from '../config';
 
 // ── Admin-1 GeoJSON cache (sub-national regions) ─────────────────────────
 
@@ -186,7 +187,7 @@ export async function reverseGeocodeCountry(lat: number, lng: number): Promise<s
   await throttleNominatim();
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=3&accept-language=en`, {
-      headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+      headers: { 'User-Agent': USER_AGENT },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return null;
@@ -526,7 +527,7 @@ async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInf
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=8&accept-language=en`,
       {
-        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+        headers: { 'User-Agent': USER_AGENT },
         signal: AbortSignal.timeout(10_000),
       }
     );

@@ -6,20 +6,66 @@ import {
   createBudgetItem, updateBudgetItem, deleteBudgetItem,
   updateMembers as updateBudgetMembers,
   toggleMemberPaid,
+  listCategoriesWithCurrency, updateCategoryCurrency,
 } from '../../services/budgetService';
+import { getTripRaw } from '../../services/tripService';
 import {
-  safeBroadcast, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
+  safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
-  demoDenied, noAccess, ok,
+  demoDenied, noAccess, noPermission, hasTripPermission, ok,
 } from './_shared';
-import { canWrite } from '../scopes';
+import { canRead, canWrite } from '../scopes';
 import { isAddonEnabled } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
 
 export function registerBudgetTools(server: McpServer, userId: number, scopes: string[] | null): void {
+  const R = canRead(scopes, 'budget');
   const W = canWrite(scopes, 'budget');
 
   if (isAddonEnabled(ADDON_IDS.BUDGET)) {
+  // --- BUDGET CATEGORIES ---
+
+  if (R) server.registerTool(
+    'list_budget_categories',
+    {
+      description: "List a trip's budget categories (budget groups) in display order with their currency, item count and subtotal. A null currency means the category inherits the trip's base currency (returned as trip_currency). Subtotals are in the category's own currency — never sum across currencies.",
+      inputSchema: {
+        tripId: z.number().int().positive(),
+      },
+      annotations: TOOL_ANNOTATIONS_READONLY,
+    },
+    async ({ tripId }) => {
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      const tripCurrency = getTripRaw(tripId)?.currency ?? null;
+      const categories = listCategoriesWithCurrency(tripId).map(c => ({
+        ...c,
+        effective_currency: c.currency ?? tripCurrency,
+      }));
+      return ok({ trip_currency: tripCurrency, categories });
+    }
+  );
+
+  if (W) server.registerTool(
+    'set_budget_category_currency',
+    {
+      description: "Set or change the currency of a budget category (all items in the category share it). Pass null to make the category inherit the trip's base currency. Creates the category entry if it does not exist yet. Amounts are not converted.",
+      inputSchema: {
+        tripId: z.number().int().positive(),
+        category: z.string().min(1).max(100).describe('Category name exactly as stored (case-sensitive)'),
+        currency: z.string().regex(/^[A-Z]{3}$/).nullable().describe('Uppercase ISO 4217 code (e.g. EUR, NOK), or null to inherit the trip currency'),
+      },
+      annotations: TOOL_ANNOTATIONS_WRITE,
+    },
+    async ({ tripId, category, currency }) => {
+      if (isDemoUser(userId)) return demoDenied();
+      if (!canAccessTrip(tripId, userId)) return noAccess();
+      if (!hasTripPermission('budget_edit', tripId, userId)) return noPermission();
+      updateCategoryCurrency(tripId, category, currency);
+      safeBroadcast(tripId, 'budget:category-currency-updated', { category, currency });
+      return ok({ category, currency });
+    }
+  );
+
   // --- BUDGET ---
 
   if (W) server.registerTool(

@@ -734,36 +734,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'admin.oauthSessions.loadError': 'Nem sikerült betölteni az OAuth munkameneteket',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
-  'admin.github.title': 'Frissítési előzmények',
-  'admin.github.subtitle': 'Legújabb frissítések: {repo}',
-  'admin.github.latest': 'Legújabb',
-  'admin.github.prerelease': 'Előzetes kiadás',
-  'admin.github.showDetails': 'Részletek megjelenítése',
-  'admin.github.hideDetails': 'Részletek elrejtése',
-  'admin.github.loadMore': 'Továbbiak betöltése',
-  'admin.github.loading': 'Betöltés...',
-  'admin.github.error': 'Nem sikerült betölteni a kiadásokat',
-  'admin.github.by': 'készítette',
-  'admin.github.support': 'Segít fenntartani a TREK fejlesztését',
+  'admin.version.prerelease': 'Előzetes kiadás',
 
-  'admin.update.available': 'Frissítés elérhető',
-  'admin.update.text': 'A TREK {version} elérhető. Jelenleg a {current} verziót használod.',
-  'admin.update.button': 'Megtekintés a GitHubon',
-  'admin.update.install': 'Frissítés telepítése',
-  'admin.update.confirmTitle': 'Frissítés telepítése?',
-  'admin.update.confirmText': 'A TREK frissítésre kerül {current} verzióról {version} verzióra. A szerver ezután automatikusan újraindul.',
-  'admin.update.dataInfo': 'Minden adat (utazások, felhasználók, API kulcsok, feltöltések, Vacay, Atlas, költségvetések) megmarad.',
-  'admin.update.warning': 'Az alkalmazás az újraindítás alatt rövid ideig nem lesz elérhető.',
-  'admin.update.confirm': 'Frissítés most',
-  'admin.update.installing': 'Frissítés…',
-  'admin.update.success': 'Frissítés telepítve! A szerver újraindul…',
-  'admin.update.failed': 'Frissítés sikertelen',
-  'admin.update.backupHint': 'Javasoljuk, hogy frissítés előtt készíts biztonsági mentést.',
-  'admin.update.backupLink': 'Biztonsági mentéshez',
-  'admin.update.howTo': 'Frissítési útmutató',
-  'admin.update.dockerText': 'A TREK példányod Dockerben fut. A {version} verzióra frissítéshez futtasd a következő parancsokat a szervereden:',
-  'admin.update.reloadHint': 'Kérjük, töltsd újra az oldalt néhány másodperc múlva.',
 
   // Vacay bővítmény
   'vacay.subtitle': 'Szabadságnapok tervezése és kezelése',
@@ -1305,6 +1277,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Átnevezés',
   'packing.menuCheckAll': 'Összes kipipálása',
   'packing.menuUncheckAll': 'Összes jelölés törlése',
+  'packing.menuDuplicate': 'Duplikálás',
+  'packing.copySuffix': 'másolat',
   'packing.menuDeleteCat': 'Kategória törlése',
   'packing.noMembers': 'Nincsenek utazási tagok',
   'packing.addItem': 'Tétel hozzáadása',
@@ -1330,6 +1304,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Nem sikerült menteni',
   'packing.toast.deleteError': 'Nem sikerült törölni',
   'packing.toast.renameError': 'Nem sikerült átnevezni',
+  'packing.toast.duplicated': 'Kategória duplikálva',
+  'packing.toast.duplicateError': 'Nem sikerült duplikálni a kategóriát',
   'packing.toast.addError': 'Nem sikerült hozzáadni',
 
   // Csomagolási javaslatok
@@ -1872,7 +1848,6 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'todo.sortByPrio': 'Prioritás',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'Új verzió elérhető',
   'settings.notificationPreferences.noChannels': 'Nincsenek értesítési csatornák beállítva. Kérd meg a rendszergazdát, hogy állítson be e-mail vagy webhook értesítéseket.',
   'settings.webhookUrl.label': 'Webhook URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1932,9 +1907,6 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'admin.notifications.tripReminders.enabled': 'Utazási emlékeztetők engedélyezve',
   'admin.notifications.tripReminders.disabled': 'Utazási emlékeztetők letiltva',
   'admin.tabs.notifications': 'Értesítések',
-  'notifications.versionAvailable.title': 'Elérhető frissítés',
-  'notifications.versionAvailable.text': 'A TREK {version} már elérhető.',
-  'notifications.versionAvailable.button': 'Részletek megtekintése',
   'notif.test.title': '[Teszt] Értesítés',
   'notif.test.simple.text': 'Ez egy egyszerű teszt értesítés.',
   'notif.test.boolean.text': 'Elfogadod ezt a teszt értesítést?',
@@ -1957,8 +1929,6 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'notif.collab_message.text': '{actor} üzenetet küldött a(z) {trip} utazásban',
   'notif.packing_tagged.title': 'Csomagolási feladat',
   'notif.packing_tagged.text': '{actor} hozzárendelte Önt a {category} kategóriához a(z) {trip} utazásban',
-  'notif.version_available.title': 'Új verzió elérhető',
-  'notif.version_available.text': 'A TREK {version} elérhető',
   'notif.action.view_trip': 'Utazás megtekintése',
   'notif.action.view_collab': 'Üzenetek megtekintése',
   'notif.action.view_packing': 'Csomagolás megtekintése',
@@ -2349,8 +2319,6 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'system_notice.v3_mcp.highlight_tools':      'Bővített eszközkészlet és promptok',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Egy személyes gondolat tőlem',
-  'system_notice.v3_thankyou.body': 'Mielőtt továbbmennél — szeretnék egy pillanatra megállni.\n\nA TREK egy hobbiprojektként indult, amit a saját utazásaimhoz építettem. Sosem gondoltam volna, hogy valami olyanná nő, amire 4000-en bízzátok a kalandjaitok tervezését. Minden csillagot, minden issue-t, minden funkciókérést — mindet elolvasom, és ezek tartanak életben a késő éjszakákon a teljes állás és az egyetem között.\n\nSzeretnétek, ha tudnátok: a TREK mindig nyílt forráskódú marad, mindig self-hosted, mindig a tiétek. Nincs nyomkövetés, nincs előfizetés, nincsenek rejtett feltételek. Csak egy eszköz, amit valaki épített, aki ugyanúgy szereti az utazást, mint ti.\n\nKülönleges köszönet [jubnl](https://github.com/jubnl)-nek — hihetetlen társsá váltál. A 3.0 nagyszerűségének nagy része a te kézjegyedet viseli. Köszönöm, hogy hittél ebben a projektben, amikor még nyers volt.\n\nÉs mindannyiótoknak, akik hibát jelentettetek, szöveget fordítottatok, megosztottátok a TREK-et egy baráttal, vagy egyszerűen csak egy utazást terveztetek vele — **köszönöm**. Ti vagytok az ok, amiért ez létezik.\n\nSok további közös kalandért.\n\n— Maurice\n\n---\n\n[Csatlakozz a közösséghez a Discordon](https://discord.gg/7Q6M6jDwzf)\n\nHa a TREK jobbá teszi az utazásaidat, egy [kis kávé](https://ko-fi.com/mauriceboe) mindig segít, hogy égve maradjanak a fények.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Szükséges beavatkozás: felhasználói fiókütközés',
   'system_notice.v3014_whitespace_collision.body': 'A 3.0.14-es frissítés egy vagy több felhasználónév- vagy e-mail-ütközést észlelt, amelyeket a tárolt értékek elején vagy végén lévő szóközök okoztak. Az érintett fiókok automatikusan át lettek nevezve. Ellenőrizze a szervernaplókat a **[migration] WHITESPACE COLLISION** kezdetű soroknál a felülvizsgálatot igénylő fiókok azonosításához.',
@@ -2413,6 +2381,40 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.unplanned.subheading': 'Az utazáshoz hozzáadott, de még nem ütemezett helyek.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Szállás',
+  'publicTrip.tiers.subheading': 'Az, hogy hol szállunk meg, a jelentkezők számától függ.',
+  'publicTrip.tiers.participants': '{count} megerősítve',
+  'publicTrip.tiers.nextTier': 'Még {count} kell a(z) {name} feloldásához',
+  'publicTrip.tiers.allReached': 'Elérted a legmagasabb szintet!',
+  'publicTrip.tiers.paidNote': 'Csak a kifizetett jelentkezések számítanak.',
+  'publicTrip.tiers.active': 'Jelenlegi',
+  'publicTrip.tiers.range': '{min}–{max} résztvevő',
+  'publicTrip.tiers.rangeSingle': '{min} résztvevő',
+  'publicTrip.tiers.rangeOpen': '{min}+ résztvevő',
+  'publicTrip.tiers.viewPlace': "Szállás megtekintése",
+  'publicTrip.tiers.viewOnMap': "Megnyitás térképen",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Szállásszintek",
+  'tripForm.tiers.hint': "A szállás a megerősített résztvevők számától függ (tulajdonos + jelentkezések; díj esetén csak a kifizetettek). A nyilvános utazási oldalon jelenik meg.",
+  'tripForm.tiers.status': "{count} megerősítve",
+  'tripForm.tiers.current': "jelenlegi: {name}",
+  'tripForm.tiers.add': "Szint hozzáadása",
+  'tripForm.tiers.name': "Név",
+  'tripForm.tiers.namePlaceholder': "pl. Fjellro faház",
+  'tripForm.tiers.minParticipants': "Résztvevőtől",
+  'tripForm.tiers.place': "Hely (opcionális)",
+  'tripForm.tiers.noPlace': "Nincs hely",
+  'tripForm.tiers.pricePerPerson': "Ár/fő ({currency})",
+  'tripForm.tiers.description': "Leírás (opcionális)",
+  'tripForm.tiers.nameRequired': "A név kötelező",
+  'tripForm.tiers.minInvalid': "A résztvevők száma legalább 1 egész szám legyen",
+  'tripForm.tiers.priceInvalid': "Az ár legyen 0 vagy több",
+  'tripForm.tiers.saveError': "A szint mentése sikertelen",
+  'tripForm.tiers.deleteError': "A szint törlése sikertelen",
+  'tripForm.tiers.confirmDelete': "Törlöd a(z) „{name}” szintet?",
 }
 
 export default hu

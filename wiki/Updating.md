@@ -6,29 +6,41 @@ How to update TREK to a newer version without losing data.
 
 Back up your data first. Go to Admin Panel → Backups and create a manual backup, or copy your `./data` and `./uploads` directories to a safe location. See [Backups](Backups) for details.
 
+## No Automatic Update Check
+
+This build does not poll GitHub. There is no "update available" banner in the
+admin panel, no release list, and no version notification — the admin version
+card simply shows the version you are running. You decide when to update.
+
 ## Image Tags
+
+This repository publishes images only through the manual **GHCR Manual Build &
+Push** workflow, which pushes whatever tag you type plus `latest`. There are no
+GitHub releases and therefore no automatic major-version or full-version tags.
 
 | Tag | Example | Behavior |
 |---|---|---|
-| `latest` | `mauriceboe/trek:latest` | Always the newest release across all major versions |
-| Major version | `mauriceboe/trek:3` | Latest release pinned to that major version |
-| Full version | `mauriceboe/trek:3.0.15` | Exact release; never changes |
+| `latest` | `ghcr.io/lilfire/trek:latest` | Whatever the workflow pushed most recently |
+| Manual tag | `ghcr.io/lilfire/trek:v1.0` | Whatever tag you typed when running the workflow |
+| Local build | `trek:local` | Built on your own machine by `rebuildDocker.ps1` — what `docker-compose.yml` pins |
 
-Use `latest` or a major-version tag if you want updates on each redeploy. Use a full version tag for explicit control — update by changing the tag, not by re-pulling.
+For local development the normal path is `.ebuildDocker.ps1`, which rebuilds
+`trek:local` from source and brings the stack back up. `docker compose pull`
+can never overwrite it, because `trek:local` is not a registry tag.
 
 ## Docker Compose (Recommended)
 
-**`latest` or major-version tag:**
+**`latest` tag:**
 
 ```bash
 docker compose pull && docker compose up -d
 ```
 
-This pulls the newest matching image and recreates the container with your existing volumes. Your data is untouched.
+This pulls the newest image and recreates the container with your existing volumes. Your data is untouched.
 
-**Pinned full-version tag:**
+**Pinned manual tag:**
 
-Edit `docker-compose.yml`, update the tag in the `image:` line (e.g. `3.0.15` → `3.0.16`), then redeploy:
+Edit `docker-compose.yml`, update the tag in the `image:` line, then redeploy:
 
 ```bash
 docker compose up -d
@@ -39,14 +51,14 @@ docker compose up -d
 If you started TREK with `docker run`, pull the new image and replace the container:
 
 ```bash
-docker pull mauriceboe/trek
+docker pull ghcr.io/lilfire/trek
 docker rm -f trek
 docker run -d --name trek -p 3000:3000 \
   -v ./data:/app/data \
   -v ./uploads:/app/uploads \
   -e ENCRYPTION_KEY=<your-key> \
   --restart unless-stopped \
-  mauriceboe/trek
+  ghcr.io/lilfire/trek
 ```
 
 > **Tip:** Not sure which volume paths you used? Check before removing:
@@ -87,7 +99,7 @@ journalctl -u trek -n 50
 
 Open the **Stacks** list, click the TREK stack, then click **Redeploy**.
 
-**`latest` or major-version tag** — enable the **Re-pull image and redeploy** switch before confirming. Portainer pulls the newest matching image and recreates the container.
+**`latest` tag** — enable the **Re-pull image and redeploy** switch before confirming. Portainer pulls the newest image and recreates the container.
 
 ![Re-pull image and redeploy switch ticked, with arrows pointing to the switch and the Update button](assets/portainer-force-pull.png)
 

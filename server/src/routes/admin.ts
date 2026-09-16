@@ -176,17 +176,6 @@ router.post('/save-demo-baseline', (req: Request, res: Response) => {
   res.json({ success: true, message: result.message });
 });
 
-// ── GitHub / Version ───────────────────────────────────────────────────────
-
-router.get('/github-releases', async (req: Request, res: Response) => {
-  const { per_page = '10', page = '1' } = req.query;
-  res.json(await svc.getGithubReleases(String(per_page), String(page)));
-});
-
-router.get('/version-check', async (_req: Request, res: Response) => {
-  res.json(await svc.checkVersion());
-});
-
 // ── Admin notification preferences ────────────────────────────────────────
 
 router.get('/notification-preferences', (req: Request, res: Response) => {

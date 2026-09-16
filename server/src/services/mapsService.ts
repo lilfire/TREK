@@ -1,6 +1,7 @@
 import { db } from '../db/database';
 import { decrypt_api_key } from './apiKeyCrypto';
 import { checkSsrf } from '../utils/ssrfGuard';
+import { USER_AGENT } from '../config';
 import { getAppUrl } from './notifications';
 
 // ── Google API call counter ───────────────────────────────────────────────────
@@ -71,7 +72,7 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const UA = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
+const UA = USER_AGENT;
 
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import * as placePhotoCache from './placePhotoCache';

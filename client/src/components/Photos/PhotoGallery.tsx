@@ -51,9 +51,9 @@ export default function PhotoGallery({ photos, onUpload, onDelete, onUpdate, pla
       {/* Header */}
       <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
         <div style={{ marginRight: 'auto' }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>Fotos</h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>{t('photos.title')}</h2>
           <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#9ca3af' }}>
-            {photos.length} {photos.length !== 1 ? 'Fotos' : 'Foto'}
+            {t(photos.length === 1 ? 'common.photoCountOne' : 'common.photoCount', { count: photos.length })}
           </p>
         </div>
 

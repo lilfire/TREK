@@ -61,10 +61,10 @@ beforeEach(() => {
 // ── RootRedirect ───────────────────────────────────────────────────────────────
 
 describe('RootRedirect', () => {
-  it('FE-COMP-APP-001: / redirects to /login when not authenticated', async () => {
+  it('FE-COMP-APP-001: / shows the public trips page with a login link when not authenticated', async () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/')
-    await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('login-link')).toHaveAttribute('href', '/login'))
   })
 
   it('FE-COMP-APP-002: / redirects to /dashboard when authenticated', async () => {
@@ -77,7 +77,7 @@ describe('RootRedirect', () => {
     seedAuth({ isLoading: true, isAuthenticated: false })
     renderApp('/')
     expect(document.querySelector('.animate-spin')).toBeInTheDocument()
-    expect(screen.queryByText('Login')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('login-link')).not.toBeInTheDocument()
   })
 })
 
@@ -181,10 +181,10 @@ describe('Public routes', () => {
     expect(screen.getByText('SharedTrip')).toBeInTheDocument()
   })
 
-  it('FE-COMP-APP-014: unknown routes redirect to / which then redirects to /login', async () => {
+  it('FE-COMP-APP-014: unknown routes redirect to / which shows the public trips page', async () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/does-not-exist')
-    await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('login-link')).toBeInTheDocument())
   })
 })
 

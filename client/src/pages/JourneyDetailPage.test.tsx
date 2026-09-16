@@ -2993,7 +2993,7 @@ describe('JourneyDetailPage', () => {
       // The settings dialog shows trips with unlink buttons (Trash2 icon buttons)
       const settingsDialog = screen.getByText('Journey Settings').closest('[class*="fixed"]')!;
       // Find the unlink button (it's a red trash button next to Italy Trip)
-      const trashBtns = settingsDialog.querySelectorAll('button[title="Unlink trip"]');
+      const trashBtns = settingsDialog.querySelectorAll('button[title="Unlink Trip"]');
       expect(trashBtns.length).toBeGreaterThanOrEqual(1);
       await user.click(trashBtns[0] as HTMLElement);
 

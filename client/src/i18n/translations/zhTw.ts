@@ -209,7 +209,6 @@ const zhTw: Record<string, string> = {
   'settings.notifyCollabMessage': '聊天訊息 (Collab)',
   'settings.notifyPackingTagged': '行李清單：分配',
   'settings.notifyWebhook': 'Webhook 通知',
-  'settings.notifyVersionAvailable': '有新版本可用',
   'settings.notificationPreferences.email': '電子郵件',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': '應用程式內',
@@ -780,7 +779,6 @@ const zhTw: Record<string, string> = {
   'admin.oauthSessions.loadError': '載入 OAuth 工作階段失敗',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
 
   'admin.audit.subtitle': '安全與管理員操作記錄（備份、使用者、MFA、設定）。',
   'admin.audit.empty': '暫無審計記錄。',
@@ -794,35 +792,8 @@ const zhTw: Record<string, string> = {
   'admin.audit.col.ip': 'IP',
   'admin.audit.col.details': '詳情',
 
-  'admin.github.title': '版本歷史',
-  'admin.github.subtitle': '{repo} 的最新更新',
-  'admin.github.latest': '最新',
-  'admin.github.prerelease': '預釋出',
-  'admin.github.showDetails': '顯示詳情',
-  'admin.github.hideDetails': '隱藏詳情',
-  'admin.github.loadMore': '載入更多',
-  'admin.github.loading': '載入中...',
-  'admin.github.support': '幫助我繼續開發 TREK',
-  'admin.github.error': '載入版本失敗',
-  'admin.github.by': '作者',
+  'admin.version.prerelease': '預釋出',
 
-  'admin.update.available': '有可用更新',
-  'admin.update.text': 'TREK {version} 已釋出。你當前使用的是 {current}。',
-  'admin.update.button': '在 GitHub 檢視',
-  'admin.update.install': '安裝更新',
-  'admin.update.confirmTitle': '確定安裝更新？',
-  'admin.update.confirmText': 'TREK 將從 {current} 更新到 {version}。伺服器將自動重啟。',
-  'admin.update.dataInfo': '你的所有資料（旅行、使用者、API 金鑰、上傳檔案、Vacay、Atlas、預算）將被保留。',
-  'admin.update.warning': '重啟期間應用將短暫不可用。',
-  'admin.update.confirm': '立即更新',
-  'admin.update.installing': '更新中…',
-  'admin.update.success': '更新已安裝！伺服器正在重啟…',
-  'admin.update.failed': '更新失敗',
-  'admin.update.backupHint': '建議在更新前建立備份。',
-  'admin.update.backupLink': '前往備份',
-  'admin.update.howTo': '如何更新',
-  'admin.update.dockerText': '你的 TREK 例項執行在 Docker 中。要更新到 {version}，請在伺服器上執行以下命令：',
-  'admin.update.reloadHint': '請在幾秒後重新整理頁面。',
 
   // Vacay addon
   'vacay.subtitle': '規劃和管理假期',
@@ -1364,6 +1335,8 @@ const zhTw: Record<string, string> = {
   'packing.menuRename': '重新命名',
   'packing.menuCheckAll': '全部勾選',
   'packing.menuUncheckAll': '取消全部勾選',
+  'packing.menuDuplicate': '複製',
+  'packing.copySuffix': '副本',
   'packing.menuDeleteCat': '刪除分類',
   'packing.addItem': '新增物品',
   'packing.addItemPlaceholder': '物品名稱...',
@@ -1389,6 +1362,8 @@ const zhTw: Record<string, string> = {
   'packing.toast.saveError': '儲存失敗',
   'packing.toast.deleteError': '刪除失敗',
   'packing.toast.renameError': '重新命名失敗',
+  'packing.toast.duplicated': '分類已複製',
+  'packing.toast.duplicateError': '複製分類失敗',
   'packing.toast.addError': '新增失敗',
 
   // Packing suggestions
@@ -2194,9 +2169,6 @@ const zhTw: Record<string, string> = {
   'dayplan.mobile.createNew': '建立新地點',
   'admin.addons.catalog.journey.name': '旅程',
   'admin.addons.catalog.journey.description': '旅行追蹤與旅行日誌，包含打卡、照片和每日故事',
-  'notifications.versionAvailable.title': '有可用更新',
-  'notifications.versionAvailable.text': 'TREK {version} 現已推出。',
-  'notifications.versionAvailable.button': '查看詳情',
   'notif.test.title': '[測試] 通知',
   'notif.test.simple.text': '這是一則簡單的測試通知。',
   'notif.test.boolean.text': '你是否接受這則測試通知？',
@@ -2217,8 +2189,6 @@ const zhTw: Record<string, string> = {
   'notif.collab_message.text': '{actor} 在 {trip} 中傳送了一則訊息',
   'notif.packing_tagged.title': '打包指派',
   'notif.packing_tagged.text': '{actor} 在 {trip} 中將 {category} 指派給你',
-  'notif.version_available.title': '有新版本可用',
-  'notif.version_available.text': 'TREK {version} 現已推出',
   'notif.action.view_trip': '查看旅行',
   'notif.action.view_collab': '查看訊息',
   'notif.action.view_packing': '查看打包',
@@ -2349,8 +2319,6 @@ const zhTw: Record<string, string> = {
   'system_notice.v3_mcp.highlight_tools':      '擴展工具集與提示詞',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': '來自我的一封私人信',
-  'system_notice.v3_thankyou.body': '在你繼續之前——我想停下來說幾句。\n\nTREK 最初只是我為自己的旅行而做的一個業餘專案。我從未想過它會成長為 4,000 人信賴的冒險規劃工具。每一顆星標、每一個 issue、每一個功能請求——我都會讀，它們在全職工作和大學學業之間的深夜裡支撐著我繼續前行。\n\n我想讓你們知道：TREK 將永遠開源，永遠可自託管，永遠屬於你們。沒有追蹤，沒有訂閱，沒有任何附加條件。只是一個熱愛旅行的人為同樣熱愛旅行的你們打造的工具。\n\n特別感謝 [jubnl](https://github.com/jubnl)——你已經成為一位不可思議的合作者。3.0 版本中許多精彩之處都留下了你的印記。感謝你在這個專案還很粗糙的時候就選擇了相信它。\n\n也感謝你們每一位——回報了 bug、翻譯了文字、向朋友分享了 TREK，或者只是用它規劃了一次旅行——**謝謝你們**。你們是這一切存在的原因。\n\n願我們一起踏上更多的冒險旅程。\n\n— Maurice\n\n---\n\n[加入 Discord 社群](https://discord.gg/7Q6M6jDwzf)\n\n如果 TREK 讓你的旅行更美好，一杯[小小的咖啡](https://ko-fi.com/mauriceboe)能讓這盞燈一直亮著。',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': '需要操作：使用者帳戶衝突',
   'system_notice.v3014_whitespace_collision.body': '3.0.14 版本升級偵測到一個或多個由儲存帳戶中前後空白字元引發的使用者名稱或電子郵件衝突。受影響的帳戶已自動重新命名。請檢查伺服器日誌中以 **[migration] WHITESPACE COLLISION** 開頭的行，以確認哪些帳戶需要審查。',
@@ -2413,6 +2381,40 @@ const zhTw: Record<string, string> = {
   'publicTrip.unplanned.subheading': '已新增至此行程但尚未安排的地點。',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': '住宿',
+  'publicTrip.tiers.subheading': '住宿安排取決於報名人數。',
+  'publicTrip.tiers.participants': '已確認 {count} 人',
+  'publicTrip.tiers.nextTier': '再 {count} 人即可解鎖 {name}',
+  'publicTrip.tiers.allReached': '已達到最高等級！',
+  'publicTrip.tiers.paidNote': '僅計算已付款的報名。',
+  'publicTrip.tiers.active': '目前',
+  'publicTrip.tiers.range': '{min}–{max} 人',
+  'publicTrip.tiers.rangeSingle': '{min} 人',
+  'publicTrip.tiers.rangeOpen': '{min}+ 人',
+  'publicTrip.tiers.viewPlace': "查看住宿",
+  'publicTrip.tiers.viewOnMap': "在地圖上查看",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "住宿等級",
+  'tripForm.tiers.hint': "適用的住宿取決於已確認的參與人數（主辦者 + 報名；設有費用時僅計已付款）。顯示在公開行程頁面上。",
+  'tripForm.tiers.status': "已確認 {count} 人",
+  'tripForm.tiers.current': "目前：{name}",
+  'tripForm.tiers.add': "新增等級",
+  'tripForm.tiers.name': "名稱",
+  'tripForm.tiers.namePlaceholder': "例如：Fjellro 小屋",
+  'tripForm.tiers.minParticipants': "起始人數",
+  'tripForm.tiers.place': "地點（選填）",
+  'tripForm.tiers.noPlace': "無地點",
+  'tripForm.tiers.pricePerPerson': "每人價格（{currency}）",
+  'tripForm.tiers.description': "描述（選填）",
+  'tripForm.tiers.nameRequired': "名稱為必填",
+  'tripForm.tiers.minInvalid': "人數必須是不小於 1 的整數",
+  'tripForm.tiers.priceInvalid': "價格必須大於或等於 0",
+  'tripForm.tiers.saveError': "無法儲存等級",
+  'tripForm.tiers.deleteError': "無法刪除等級",
+  'tripForm.tiers.confirmDelete': "刪除等級「{name}」？",
 }
 
 export default zhTw

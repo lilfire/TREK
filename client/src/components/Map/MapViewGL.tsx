@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
+import { useTranslation } from '../../i18n'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
@@ -149,6 +150,7 @@ export function MapViewGL({
   showReservationStats = false,
   onReservationClick,
 }: Props) {
+  const { t } = useTranslation()
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
@@ -591,8 +593,8 @@ export function MapViewGL({
     return (
       <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-center px-6">
         <div className="text-sm text-zinc-500">
-          No Mapbox access token configured.<br />
-          <span className="text-xs">Settings → Map → Mapbox GL</span>
+          {t('map.mapboxTokenMissing')}<br />
+          <span className="text-xs">{t('map.mapboxTokenMissingHint')}</span>
         </div>
       </div>
     )

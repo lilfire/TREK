@@ -37,7 +37,8 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
-  GITHUB_REPO: process.env.GITHUB_REPO || 'mauriceboe/TREK',
+  GITHUB_REPO: process.env.GITHUB_REPO || 'lilfire/TREK',
+  USER_AGENT: `TREK Travel Planner (https://github.com/${process.env.GITHUB_REPO || 'lilfire/TREK'})`,
 }));
 
 const { mockSendRsvpEmail } = vi.hoisted(() => ({
@@ -449,6 +450,64 @@ describe('GET /api/public/trips/:id', () => {
     expect(res.status).toBe(200);
     expect(res.body.trip.currency).toBe('EUR');
     expect(res.body.trip.fee_currency).toBeNull();
+  });
+
+  it('PTRIP-014 — returns transport reservations without booking refs, notes or non-public metadata', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Transport Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    const day = createDay(testDb, trip.id, { date: '2026-09-10' });
+
+    testDb.prepare(`
+      INSERT INTO reservations (trip_id, day_id, title, type, reservation_time, confirmation_number, notes, metadata)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      trip.id, day.id, 'Flight to Brussels', 'flight', '2026-09-10T08:15', 'ABC123', 'Private note',
+      JSON.stringify({ airline: 'SAS', flight_number: 'SK4743', departure_airport: 'OSL', arrival_airport: 'BRU', seat: '12A' }),
+    );
+    testDb.prepare(`
+      INSERT INTO reservations (trip_id, day_id, title, type, confirmation_number)
+      VALUES (?, ?, ?, ?, ?)
+    `).run(trip.id, day.id, 'Dinner booking', 'restaurant', 'R-999');
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.reservations).toHaveLength(1);
+
+    const r = res.body.reservations[0];
+    expect(r.title).toBe('Flight to Brussels');
+    expect(r.type).toBe('flight');
+    expect(r.day_id).toBe(day.id);
+    expect(r.reservation_time).toBe('2026-09-10T08:15');
+    expect(r.metadata).toEqual({ airline: 'SAS', flight_number: 'SK4743', departure_airport: 'OSL', arrival_airport: 'BRU' });
+    expect(r).not.toHaveProperty('confirmation_number');
+    expect(r).not.toHaveProperty('notes');
+    expect(JSON.stringify(res.body)).not.toContain('ABC123');
+    expect(JSON.stringify(res.body)).not.toContain('R-999');
+  });
+});
+
+describe('GET /api/public/trips/:id — accommodation tiers', () => {
+  it('PTRIP-TIER-001 — includes tier status with counts only (no participant personal data)', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: guest } = createUser(testDb);
+    const trip = createTrip(testDb, owner.id, { title: 'Tiered Trip' });
+    testDb.prepare('UPDATE trips SET is_public = 1 WHERE id = ?').run(trip.id);
+    testDb.prepare('INSERT INTO trip_rsvps (trip_id, user_id, name, email) VALUES (?, ?, ?, ?)')
+      .run(trip.id, guest.id, 'Secret Guest', 'secret-guest@example.com');
+    testDb.prepare('INSERT INTO trip_accommodation_tiers (trip_id, name, min_participants, price_per_person) VALUES (?, ?, ?, ?), (?, ?, ?, ?)')
+      .run(trip.id, 'Cabin', 1, 900, trip.id, 'Hotel', 5, null);
+
+    const res = await request(app).get(`/api/public/trips/${trip.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.accommodationTiers.participant_count).toBe(2);
+    expect(res.body.accommodationTiers.tiers.map((t: any) => t.name)).toEqual(['Cabin', 'Hotel']);
+    expect(res.body.accommodationTiers.next_tier).toMatchObject({ name: 'Hotel', participants_needed: 3 });
+    // Accommodation is included in the registration fee — prices are not exposed publicly
+    for (const tier of res.body.accommodationTiers.tiers) expect(tier).not.toHaveProperty('price_per_person');
+    const json = JSON.stringify(res.body.accommodationTiers);
+    expect(json).not.toContain('secret-guest@example.com');
+    expect(json).not.toContain('Secret Guest');
   });
 });
 

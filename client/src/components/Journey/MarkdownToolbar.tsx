@@ -1,4 +1,5 @@
 import { Bold, Italic, Heading2, Link, Quote, List, ListOrdered, Minus } from 'lucide-react'
+import { useTranslation } from '../../i18n'
 
 interface Props {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>
@@ -8,18 +9,19 @@ interface Props {
 
 type FormatAction = { type: 'wrap'; before: string; after: string } | { type: 'line'; prefix: string } | { type: 'insert'; text: string }
 
-const ACTIONS: Array<{ icon: typeof Bold; label: string; action: FormatAction }> = [
-  { icon: Bold, label: 'Bold', action: { type: 'wrap', before: '**', after: '**' } },
-  { icon: Italic, label: 'Italic', action: { type: 'wrap', before: '_', after: '_' } },
-  { icon: Heading2, label: 'Heading', action: { type: 'line', prefix: '## ' } },
-  { icon: Quote, label: 'Quote', action: { type: 'line', prefix: '> ' } },
-  { icon: Link, label: 'Link', action: { type: 'wrap', before: '[', after: '](url)' } },
-  { icon: List, label: 'List', action: { type: 'line', prefix: '- ' } },
-  { icon: ListOrdered, label: 'Ordered', action: { type: 'line', prefix: '1. ' } },
-  { icon: Minus, label: 'Divider', action: { type: 'insert', text: '\n\n---\n\n' } },
+const ACTIONS: Array<{ icon: typeof Bold; label: string; action: FormatAction }> = [  // label is a translation key
+  { icon: Bold, label: 'journey.markdown.bold', action: { type: 'wrap', before: '**', after: '**' } },
+  { icon: Italic, label: 'journey.markdown.italic', action: { type: 'wrap', before: '_', after: '_' } },
+  { icon: Heading2, label: 'journey.markdown.heading', action: { type: 'line', prefix: '## ' } },
+  { icon: Quote, label: 'journey.markdown.quote', action: { type: 'line', prefix: '> ' } },
+  { icon: Link, label: 'journey.markdown.link', action: { type: 'wrap', before: '[', after: '](url)' } },
+  { icon: List, label: 'journey.markdown.list', action: { type: 'line', prefix: '- ' } },
+  { icon: ListOrdered, label: 'journey.markdown.ordered', action: { type: 'line', prefix: '1. ' } },
+  { icon: Minus, label: 'journey.markdown.divider', action: { type: 'insert', text: '\n\n---\n\n' } },
 ]
 
 export default function MarkdownToolbar({ textareaRef, onUpdate, dark }: Props) {
+  const { t } = useTranslation()
   const apply = (action: FormatAction) => {
     const ta = textareaRef.current
     if (!ta) return
@@ -64,7 +66,7 @@ export default function MarkdownToolbar({ textareaRef, onUpdate, dark }: Props) 
         <button
           key={a.label}
           type="button"
-          title={a.label}
+          title={t(a.label)}
           onClick={() => apply(a.action)}
           style={{
             width: 32, height: 32, borderRadius: 6,

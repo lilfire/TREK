@@ -720,7 +720,6 @@ const nl: Record<string, string> = {
   'admin.oauthSessions.loadError': 'OAuth-sessies konden niet worden geladen',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
 
   'admin.audit.subtitle': 'Beveiligingsgevoelige en beheerdersgebeurtenissen (back-ups, gebruikers, MFA, instellingen).',
   'admin.audit.empty': 'Nog geen auditregistraties.',
@@ -734,35 +733,8 @@ const nl: Record<string, string> = {
   'admin.audit.col.ip': 'IP',
   'admin.audit.col.details': 'Details',
 
-  'admin.github.title': 'Release-geschiedenis',
-  'admin.github.subtitle': 'Laatste updates van {repo}',
-  'admin.github.latest': 'Nieuwste',
-  'admin.github.prerelease': 'Pre-release',
-  'admin.github.showDetails': 'Details tonen',
-  'admin.github.hideDetails': 'Details verbergen',
-  'admin.github.loadMore': 'Meer laden',
-  'admin.github.loading': 'Laden...',
-  'admin.github.support': 'Helpt mij TREK verder te ontwikkelen',
-  'admin.github.error': 'Releases laden mislukt',
-  'admin.github.by': 'door',
+  'admin.version.prerelease': 'Pre-release',
 
-  'admin.update.available': 'Update beschikbaar',
-  'admin.update.text': 'TREK {version} is beschikbaar. Je draait {current}.',
-  'admin.update.button': 'Bekijk op GitHub',
-  'admin.update.install': 'Update installeren',
-  'admin.update.confirmTitle': 'Update installeren?',
-  'admin.update.confirmText': 'TREK wordt bijgewerkt van {current} naar {version}. De server herstart automatisch.',
-  'admin.update.dataInfo': 'Al je gegevens (reizen, gebruikers, API-sleutels, uploads, Vacay, Atlas, budgetten) worden bewaard.',
-  'admin.update.warning': 'De app is kort niet beschikbaar tijdens het herstarten.',
-  'admin.update.confirm': 'Nu bijwerken',
-  'admin.update.installing': 'Bijwerken…',
-  'admin.update.success': 'Update geïnstalleerd! Server herstart…',
-  'admin.update.failed': 'Update mislukt',
-  'admin.update.backupHint': 'We raden aan een back-up te maken voordat je bijwerkt.',
-  'admin.update.backupLink': 'Naar back-up',
-  'admin.update.howTo': 'Hoe bij te werken',
-  'admin.update.dockerText': 'Je TREK-instantie draait in Docker. Om bij te werken naar {version}, voer de volgende commando\'s uit op je server:',
-  'admin.update.reloadHint': 'Herlaad de pagina over een paar seconden.',
 
   // Vacay addon
   'vacay.subtitle': 'Plan en beheer vakantiedagen',
@@ -1304,6 +1276,8 @@ const nl: Record<string, string> = {
   'packing.menuRename': 'Hernoemen',
   'packing.menuCheckAll': 'Alles aanvinken',
   'packing.menuUncheckAll': 'Alles uitvinken',
+  'packing.menuDuplicate': 'Dupliceren',
+  'packing.copySuffix': 'kopie',
   'packing.menuDeleteCat': 'Categorie verwijderen',
   'packing.addItem': 'Item toevoegen',
   'packing.addItemPlaceholder': 'Itemnaam...',
@@ -1329,6 +1303,8 @@ const nl: Record<string, string> = {
   'packing.toast.saveError': 'Opslaan mislukt',
   'packing.toast.deleteError': 'Verwijderen mislukt',
   'packing.toast.renameError': 'Hernoemen mislukt',
+  'packing.toast.duplicated': 'Categorie gedupliceerd',
+  'packing.toast.duplicateError': 'Dupliceren van categorie mislukt',
   'packing.toast.addError': 'Toevoegen mislukt',
 
   // Packing suggestions
@@ -1874,7 +1850,6 @@ const nl: Record<string, string> = {
   'todo.sortByPrio': 'Prioriteit',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'Nieuwe versie beschikbaar',
   'settings.notificationPreferences.noChannels': 'Er zijn geen meldingskanalen geconfigureerd. Vraag een beheerder om e-mail- of webhookmeldingen in te stellen.',
   'settings.webhookUrl.label': 'Webhook-URL',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1934,9 +1909,6 @@ const nl: Record<string, string> = {
   'admin.notifications.tripReminders.enabled': 'Reisherinneringen ingeschakeld',
   'admin.notifications.tripReminders.disabled': 'Reisherinneringen uitgeschakeld',
   'admin.tabs.notifications': 'Meldingen',
-  'notifications.versionAvailable.title': 'Update beschikbaar',
-  'notifications.versionAvailable.text': 'TREK {version} is nu beschikbaar.',
-  'notifications.versionAvailable.button': 'Details bekijken',
   'notif.test.title': '[Test] Melding',
   'notif.test.simple.text': 'Dit is een eenvoudige testmelding.',
   'notif.test.boolean.text': 'Accepteer je deze testmelding?',
@@ -1959,8 +1931,6 @@ const nl: Record<string, string> = {
   'notif.collab_message.text': '{actor} heeft een bericht gestuurd in {trip}',
   'notif.packing_tagged.title': 'Paklijsttaak',
   'notif.packing_tagged.text': '{actor} heeft je toegewezen aan {category} in {trip}',
-  'notif.version_available.title': 'Nieuwe versie beschikbaar',
-  'notif.version_available.text': 'TREK {version} is nu beschikbaar',
   'notif.action.view_trip': 'Reis bekijken',
   'notif.action.view_collab': 'Berichten bekijken',
   'notif.action.view_packing': 'Paklijst bekijken',
@@ -2348,8 +2318,6 @@ const nl: Record<string, string> = {
   'system_notice.v3_mcp.highlight_tools':      'Uitgebreide tools & prompts',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Een persoonlijk woord van mij',
-  'system_notice.v3_thankyou.body': 'Voordat je verdergaat — ik wil even stilstaan.\n\nTREK begon als een zijproject dat ik bouwde voor mijn eigen reizen. Ik had nooit gedacht dat het zou uitgroeien tot iets waar 4.000 van jullie op vertrouwen om avonturen te plannen. Elke ster, elke issue, elk functieverzoek — ik lees ze allemaal, en ze houden me op de been tijdens de late avonden tussen een fulltime baan en de universiteit.\n\nIk wil dat jullie weten: TREK zal altijd open source zijn, altijd self-hosted, altijd van jullie. Geen tracking, geen abonnementen, geen addertjes. Gewoon een tool gebouwd door iemand die net zo veel van reizen houdt als jullie.\n\nSpeciale dank aan [jubnl](https://github.com/jubnl) — je bent een ongelooflijke medewerker geworden. Zo veel van wat 3.0 geweldig maakt draagt jouw vingerafdruk. Bedankt dat je in dit project geloofde toen het nog ruw was.\n\nEn aan ieder van jullie die een bug meldde, een string vertaalde, TREK deelde met een vriend of het simpelweg gebruikte om een reis te plannen — **bedankt**. Jullie zijn de reden dat dit bestaat.\n\nOp nog vele avonturen samen.\n\n— Maurice\n\n---\n\n[Sluit je aan bij de community op Discord](https://discord.gg/7Q6M6jDwzf)\n\nAls TREK je reizen beter maakt, houdt een [klein kopje koffie](https://ko-fi.com/mauriceboe) altijd de lichten aan.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Actie vereist: gebruikersaccountconflict',
   'system_notice.v3014_whitespace_collision.body': 'De 3.0.14-upgrade heeft één of meer conflicten in gebruikersnaam of e-mailadres gedetecteerd, veroorzaakt door spaties aan het begin of einde van opgeslagen waarden. Getroffen accounts zijn automatisch hernoemd. Controleer de serverlogboeken op regels die beginnen met **[migration] WHITESPACE COLLISION** om te achterhalen welke accounts moeten worden beoordeeld.',
@@ -2412,6 +2380,40 @@ const nl: Record<string, string> = {
   'publicTrip.unplanned.subheading': 'Plaatsen toegevoegd aan deze reis maar nog niet gepland.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Accommodatie',
+  'publicTrip.tiers.subheading': 'Waar we verblijven hangt af van hoeveel mensen zich aanmelden.',
+  'publicTrip.tiers.participants': '{count} bevestigd',
+  'publicTrip.tiers.nextTier': 'Nog {count} om {name} te ontgrendelen',
+  'publicTrip.tiers.allReached': 'Hoogste niveau bereikt!',
+  'publicTrip.tiers.paidNote': 'Alleen betaalde aanmeldingen tellen.',
+  'publicTrip.tiers.active': 'Huidig',
+  'publicTrip.tiers.range': '{min}–{max} deelnemers',
+  'publicTrip.tiers.rangeSingle': '{min} deelnemers',
+  'publicTrip.tiers.rangeOpen': '{min}+ deelnemers',
+  'publicTrip.tiers.viewPlace': "Bekijk accommodatie",
+  'publicTrip.tiers.viewOnMap': "Bekijk op kaart",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Accommodatieniveaus",
+  'tripForm.tiers.hint': "Welke accommodatie geldt, hangt af van bevestigde deelnemers (eigenaar + aanmeldingen; alleen betaalde bij inschrijfgeld). Getoond op de openbare reispagina.",
+  'tripForm.tiers.status': "{count} bevestigd",
+  'tripForm.tiers.current': "huidig: {name}",
+  'tripForm.tiers.add': "Niveau toevoegen",
+  'tripForm.tiers.name': "Naam",
+  'tripForm.tiers.namePlaceholder': "bijv. Hut Fjellro",
+  'tripForm.tiers.minParticipants': "Vanaf deelnemers",
+  'tripForm.tiers.place': "Plaats (optioneel)",
+  'tripForm.tiers.noPlace': "Geen plaats",
+  'tripForm.tiers.pricePerPerson': "Prijs/persoon ({currency})",
+  'tripForm.tiers.description': "Beschrijving (optioneel)",
+  'tripForm.tiers.nameRequired': "Naam is verplicht",
+  'tripForm.tiers.minInvalid': "Deelnemers moet een geheel getal van minstens 1 zijn",
+  'tripForm.tiers.priceInvalid': "Prijs moet 0 of meer zijn",
+  'tripForm.tiers.saveError': "Niveau kon niet worden opgeslagen",
+  'tripForm.tiers.deleteError': "Niveau kon niet worden verwijderd",
+  'tripForm.tiers.confirmDelete': "Niveau \"{name}\" verwijderen?",
 }
 
 export default nl

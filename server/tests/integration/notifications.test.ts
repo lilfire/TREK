@@ -38,7 +38,8 @@ vi.mock('../../src/config', () => ({
   JWT_SECRET: 'test-jwt-secret-for-trek-testing-only',
   ENCRYPTION_KEY: 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2a3b4c5d6a7b8c9d0e1f2',
   updateJwtSecret: () => {},
-  GITHUB_REPO: process.env.GITHUB_REPO || 'mauriceboe/TREK',
+  GITHUB_REPO: process.env.GITHUB_REPO || 'lilfire/TREK',
+  USER_AGENT: `TREK Travel Planner (https://github.com/${process.env.GITHUB_REPO || 'lilfire/TREK'})`,
 }));
 vi.mock('../../src/websocket', () => ({ broadcastToUser: vi.fn() }));
 vi.mock('../../src/services/notifications', async (importOriginal) => {
@@ -65,7 +66,8 @@ import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
-import { createUser, createAdmin, disableNotificationPref } from '../helpers/factories';
+import { createUser, createAdmin, disableNotificationPref, setAppSetting } from '../helpers/factories';
+import { testNtfy } from '../../src/services/ntfyService';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 
@@ -193,31 +195,33 @@ describe('GET /api/notifications/preferences — matrix format', () => {
     expect(res.body.available_channels.inapp).toBe(true);
   });
 
-  it('NROUTE-003 — regular user does not see version_available in event_types', async () => {
+  it('NROUTE-003 — user preferences endpoint lists every implemented event type', async () => {
     const { user } = createUser(testDb);
     const res = await request(app)
       .get('/api/notifications/preferences')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body.event_types).not.toContain('version_available');
+    expect(res.body.event_types).toContain('trip_invite');
+    expect(res.body.event_types.length).toBe(Object.keys(res.body.implemented_combos).length);
   });
 
-  it('NROUTE-004 — user preferences endpoint excludes version_available even for admins', async () => {
+  it('NROUTE-004 — user preferences endpoint is identical for admins', async () => {
     const { user } = createAdmin(testDb);
     const res = await request(app)
       .get('/api/notifications/preferences')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body.event_types).not.toContain('version_available');
+    expect(res.body.event_types).toContain('trip_invite');
+    expect(res.body.event_types.length).toBe(Object.keys(res.body.implemented_combos).length);
   });
 
-  it('NROUTE-004b — admin notification preferences endpoint returns version_available', async () => {
+  it('NROUTE-004b — admin preferences endpoint is empty while no admin-scoped events exist', async () => {
     const { user } = createAdmin(testDb);
     const res = await request(app)
       .get('/api/admin/notification-preferences')
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
-    expect(res.body.event_types).toContain('version_available');
+    expect(res.body.event_types).toEqual([]);
   });
 
   it('NROUTE-005 — all preferences default to true for new user with no stored prefs', async () => {
@@ -397,6 +401,22 @@ describe('Notification test endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('success');
   });
+
+  it('NOTIF-010 — POST /api/notifications/test-ntfy does not leak the admin ntfy token to a caller-supplied server', async () => {
+    const { user } = createUser(testDb);
+    setAppSetting(testDb, 'admin_ntfy_token', 'super-secret-operator-token');
+
+    vi.mocked(testNtfy).mockClear();
+    const res = await request(app)
+      .post('/api/notifications/test-ntfy')
+      .set('Cookie', authCookie(user.id))
+      .send({ topic: 'attacker-topic', server: 'https://attacker.example' });
+
+    expect(res.status).toBe(200);
+    expect(vi.mocked(testNtfy)).toHaveBeenCalledWith(
+      expect.objectContaining({ server: 'https://attacker.example', token: null }),
+    );
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -494,22 +514,22 @@ describe('POST /api/notifications/in-app/:id/respond', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('PUT /api/admin/notification-preferences', () => {
-  it('NROUTE-015 — admin can disable email for version_available, persists in GET', async () => {
+  it('NROUTE-015 — admin PUT is accepted and the admin matrix stays empty while no admin-scoped events exist', async () => {
     const { user } = createAdmin(testDb);
 
     const putRes = await request(app)
       .put('/api/admin/notification-preferences')
       .set('Cookie', authCookie(user.id))
-      .send({ version_available: { email: false } });
+      .send({ trip_invite: { email: false } });
 
     expect(putRes.status).toBe(200);
-    expect(putRes.body.preferences['version_available']['email']).toBe(false);
+    expect(putRes.body.event_types).toEqual([]);
 
     const getRes = await request(app)
       .get('/api/admin/notification-preferences')
       .set('Cookie', authCookie(user.id));
     expect(getRes.status).toBe(200);
-    expect(getRes.body.preferences['version_available']['email']).toBe(false);
+    expect(getRes.body.event_types).toEqual([]);
   });
 
   it('NROUTE-016 — non-admin is rejected with 403', async () => {
@@ -518,7 +538,7 @@ describe('PUT /api/admin/notification-preferences', () => {
     const res = await request(app)
       .put('/api/admin/notification-preferences')
       .set('Cookie', authCookie(user.id))
-      .send({ version_available: { email: false } });
+      .send({ trip_invite: { email: false } });
 
     expect(res.status).toBe(403);
   });

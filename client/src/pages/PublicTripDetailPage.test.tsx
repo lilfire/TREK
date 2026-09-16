@@ -3,6 +3,7 @@ import { render, screen, waitFor, fireEvent } from '../../tests/helpers/render';
 import { Routes, Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../tests/helpers/msw/server';
+import { publicTrip } from '../../tests/helpers/msw/handlers/publicTrips';
 import { resetAllStores } from '../../tests/helpers/store';
 import { useSettingsStore } from '../store/settingsStore';
 import PublicTripDetailPage, { formatDuration, truncateText } from './PublicTripDetailPage';
@@ -1346,6 +1347,46 @@ describe('FE-PUB-TRIP-020: Leaflet map renders for places with coordinates', () 
     expect(screen.getByTestId('map-container')).toBeInTheDocument();
   });
 
+  it('renders the map below the itinerary', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    const map = await screen.findByTestId('trip-map');
+    const itinerary = screen.getByTestId('itinerary');
+    expect(itinerary.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('renders the description in its own card, not in the hero', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () =>
+        HttpResponse.json({ ...tripWithPlaces, trip: { ...tripWithPlaces.trip, description: 'Line one with **bold**\nLine two' } }),
+      ),
+    );
+
+    renderPublicTrip('42');
+
+    const desc = await screen.findByTestId('trip-description');
+    expect(desc).toHaveTextContent('Line one');
+    expect(desc.querySelector('strong')).toHaveTextContent('bold');
+    const hero = screen.getByTestId('trip-title').parentElement!;
+    expect(hero).not.toHaveTextContent('Line one');
+    expect(desc.compareDocumentPosition(screen.getByTestId('itinerary')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('omits the description card when description is null', async () => {
+    server.use(
+      http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
+    );
+
+    renderPublicTrip('42');
+
+    await screen.findByTestId('trip-map');
+    expect(screen.queryByTestId('trip-description')).not.toBeInTheDocument();
+  });
+
   it('renders a marker for each place with coordinates', async () => {
     server.use(
       http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithPlaces)),
@@ -1968,5 +2009,215 @@ describe('FE-PUB-TRIP-022: State-aware RSVP section headings', () => {
     });
 
     expect(screen.getByTestId('rsvp-section-heading')).toHaveTextContent('Join this trip');
+  });
+  describe('FE-PUB-TRIP-TIERS: Accommodation tiers', () => {
+    const tierBase = {
+      trip_id: 42, place_id: null, price_per_person: null, description: null,
+      place_name: null, place_address: null, place_lat: null, place_lng: null, place_image_url: null, place_website: null,
+    };
+
+    it('does not render the tier section when the trip has no tiers', async () => {
+      renderPublicTrip('42');
+      await waitFor(() => {
+        expect(screen.getByTestId('rsvp-section')).toBeInTheDocument();
+      });
+      expect(screen.queryByTestId('accommodation-tiers')).not.toBeInTheDocument();
+    });
+
+    it('renders tiers with the active tier, participant count and next tier', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json({
+          ...publicTrip,
+          trip: { ...publicTrip.trip, currency: 'NOK' },
+          accommodationTiers: {
+            participant_count: 6,
+            active_tier_id: 1,
+            next_tier: { id: 2, name: 'Hotel Fjord', min_participants: 10, participants_needed: 4 },
+            tiers: [
+              { ...tierBase, id: 1, name: 'Cabin Fjellro', min_participants: 1, max_participants: 9, is_active: true, is_reached: true,
+                place_id: 301, place_name: 'Fjellro', place_address: 'Hemsedal', price_per_person: 900 },
+              { ...tierBase, id: 2, name: 'Hotel Fjord', min_participants: 10, max_participants: null, is_active: false, is_reached: false },
+            ],
+          },
+        })),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('accommodation-tiers')).toBeInTheDocument();
+      });
+
+      expect(screen.getByTestId('tier-participant-count')).toHaveTextContent('6 confirmed');
+      expect(screen.getByTestId('tier-next')).toHaveTextContent('4 more to unlock Hotel Fjord');
+      expect(screen.getByTestId('tier-1')).toHaveAttribute('data-active', 'true');
+      expect(screen.getByTestId('tier-2')).not.toHaveAttribute('data-active');
+      expect(screen.getByTestId('tier-1')).toHaveTextContent('1–9 participants');
+      expect(screen.getByTestId('tier-1')).toHaveTextContent('Fjellro · Hemsedal');
+      expect(screen.getByTestId('tier-2')).toHaveTextContent('10+ participants');
+      // Accommodation is included in the registration fee — no per-tier price shown
+      expect(screen.getByTestId('tier-1')).not.toHaveTextContent('900');
+      expect(screen.getByTestId('tier-1')).not.toHaveTextContent('per person');
+      expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '56');
+    });
+
+    it('links to the accommodation website and map, ignoring non-http websites', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json({
+          ...publicTrip,
+          accommodationTiers: {
+            participant_count: 1,
+            active_tier_id: 1,
+            next_tier: null,
+            tiers: [
+              { ...tierBase, id: 1, name: 'Hotel', min_participants: 1, max_participants: 2, is_active: true, is_reached: true,
+                place_id: 301, place_name: 'Hotel Bliss', place_address: "'t Zand 21, Brugge", place_website: 'https://www.hotelbliss.be/' },
+              { ...tierBase, id: 2, name: 'Flat', min_participants: 3, max_participants: null, is_active: false, is_reached: false,
+                place_id: 302, place_name: 'Flat', place_address: 'Twijnstraat 17', place_website: 'javascript:alert(1)' },
+              { ...tierBase, id: 3, name: 'No place', min_participants: 5, max_participants: null, is_active: false, is_reached: false },
+            ],
+          },
+        })),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('accommodation-tiers')).toBeInTheDocument();
+      });
+      const website = screen.getByTestId('tier-website-1');
+      expect(website).toHaveAttribute('href', 'https://www.hotelbliss.be/');
+      expect(website).toHaveAttribute('target', '_blank');
+      expect(website).toHaveAttribute('rel', 'noopener noreferrer');
+      expect(screen.getByTestId('tier-map-1').getAttribute('href')).toContain(encodeURIComponent("Hotel Bliss, 't Zand 21, Brugge"));
+      expect(screen.queryByTestId('tier-website-2')).not.toBeInTheDocument();
+      expect(screen.getByTestId('tier-map-2')).toBeInTheDocument();
+      expect(screen.queryByTestId('tier-map-3')).not.toBeInTheDocument();
+    });
+
+    it('does not list tier-linked places again under unplanned activities', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json({
+          ...publicTrip,
+          places: [
+            { id: 501, name: 'Hotel Tier', lat: 51.2, lng: 3.2, category_name: 'Hotel' },
+            { id: 502, name: 'Museum Idea', lat: 51.2, lng: 3.2, category_name: 'Attraction' },
+          ],
+          accommodationTiers: {
+            participant_count: 1,
+            active_tier_id: 1,
+            next_tier: null,
+            tiers: [{ ...tierBase, id: 1, name: 'Cabin', min_participants: 1, max_participants: null, is_active: true, is_reached: true, place_id: 501, place_name: 'Hotel Tier' }],
+          },
+        })),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('unplanned-activities')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('unplanned-activity-502')).toBeInTheDocument();
+      expect(screen.queryByTestId('unplanned-activity-501')).not.toBeInTheDocument();
+    });
+
+    it('shows the paid-only note and top-tier message', async () => {
+      server.use(
+        http.get('/api/public/trips/:id', () => HttpResponse.json({
+          ...publicTrip,
+          trip: { ...publicTrip.trip, registration_fee: 500, fee_mode: 'rsvp' },
+          accommodationTiers: {
+            participant_count: 3,
+            active_tier_id: 1,
+            next_tier: null,
+            tiers: [{ ...tierBase, id: 1, name: 'Cabin', min_participants: 2, max_participants: null, is_active: true, is_reached: true }],
+          },
+        })),
+      );
+
+      renderPublicTrip('42');
+
+      await waitFor(() => {
+        expect(screen.getByTestId('accommodation-tiers')).toBeInTheDocument();
+      });
+      expect(screen.getByTestId('tier-next')).toHaveTextContent('Top tier reached!');
+      expect(screen.getByText('Only paid registrations count.')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('FE-PUB-TRIP-024: Transport in itinerary', () => {
+  beforeEach(() => {
+    resetAllStores();
+  });
+
+  const place = (id: number, name: string, time: string | null) => ({
+    id, name, description: null, lat: null, lng: null, address: `${name} street`, category_id: null,
+    price: null, currency: null, website: null, phone: null, notes: null,
+    place_time: time, end_time: null, duration_minutes: null, image_url: null, transport_mode: null,
+    category: null, tags: [], files: [],
+  });
+
+  const tripWithTransport = {
+    trip: { id: 7, title: 'Bruges Trip', start_date: '2026-09-10', end_date: '2026-09-11', cover_image: null, currency: 'EUR' },
+    days: [
+      { id: 201, day_number: 1, date: '2026-09-10', title: null },
+      { id: 202, day_number: 2, date: '2026-09-11', title: null },
+    ],
+    assignments: {
+      '202': [
+        { id: 1, day_id: 202, order_index: 0, notes: null, place: place(11, 'Morning Museum', '09:00') },
+        { id: 2, day_id: 202, order_index: 1, notes: null, place: place(12, 'Evening Dinner', '19:00') },
+      ],
+    },
+    dayNotes: {},
+    places: [],
+    categories: [],
+    reservations: [
+      {
+        id: 501, trip_id: 7, day_id: 201, end_day_id: 201, assignment_id: null, type: 'flight',
+        title: 'Flight to Brussels', status: 'confirmed',
+        reservation_time: '2026-09-10T08:15', reservation_end_time: '2026-09-10T10:30',
+        metadata: { airline: 'SAS', flight_number: 'SK4743', departure_airport: 'OSL', arrival_airport: 'BRU' },
+        day_positions: null,
+      },
+      {
+        id: 502, trip_id: 7, day_id: 202, end_day_id: 202, assignment_id: null, type: 'train',
+        title: 'Train to Ghent', status: 'confirmed',
+        reservation_time: '2026-09-11T13:00', reservation_end_time: null,
+        metadata: '{"train_number":"IC 1234","platform":"4"}',
+        day_positions: null,
+      },
+    ],
+    accommodations: [],
+  };
+
+  it('renders a transport on a day with no places', async () => {
+    server.use(http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithTransport)));
+
+    renderPublicTrip('7');
+
+    await waitFor(() => {
+      expect(screen.getByText('Flight to Brussels')).toBeInTheDocument();
+    });
+    expect(screen.getByText('SAS · SK4743 · OSL → BRU')).toBeInTheDocument();
+    expect(screen.getByText('08:15')).toBeInTheDocument();
+  });
+
+  it('sorts a transport between places by time', async () => {
+    server.use(http.get('/api/public/trips/:id', () => HttpResponse.json(tripWithTransport)));
+
+    renderPublicTrip('7');
+
+    await waitFor(() => {
+      expect(screen.getByText('Train to Ghent')).toBeInTheDocument();
+    });
+    expect(screen.getByText('IC 1234 · Platform 4')).toBeInTheDocument();
+
+    const museum = screen.getByText('Morning Museum');
+    const train = screen.getByText('Train to Ghent');
+    const dinner = screen.getByText('Evening Dinner');
+    expect(museum.compareDocumentPosition(train) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(train.compareDocumentPosition(dinner) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

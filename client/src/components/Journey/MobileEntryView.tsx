@@ -6,6 +6,7 @@ import {
   ThumbsUp, ThumbsDown, ChevronDown,
 } from 'lucide-react'
 import JournalBody from './JournalBody'
+import { useTranslation } from '../../i18n'
 import { formatLocationName } from '../../utils/formatters'
 import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 
@@ -41,6 +42,7 @@ interface Props {
 }
 
 export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClose, onEdit, onDelete, onPhotoClick }: Props) {
+  const { t } = useTranslation()
   const photos = entry.photos || []
   const mood = entry.mood ? MOOD_CONFIG[entry.mood] : null
   const weather = entry.weather ? WEATHER_CONFIG[entry.weather] : null
@@ -68,7 +70,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
               className="h-8 px-3 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-[12px] font-medium flex items-center gap-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
             >
               <Pencil size={13} />
-              Edit
+              {t('common.edit')}
             </button>
             <button
               onClick={() => { onClose(); onDelete(); }}
@@ -95,7 +97,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
             {photos.length > 1 && (
               <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white rounded-full px-2.5 py-1 text-[11px] font-medium">
                 <Camera size={12} />
-                {photos.length} photos
+                {photos.length} {t('journey.detail.photos')}
               </div>
             )}
             {/* Photo strip for multiple photos */}
@@ -151,13 +153,13 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
               {mood && (
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${mood.bg} ${mood.text}`}>
                   <mood.icon size={13} />
-                  {mood.label}
+                  {t(`journey.mood.${entry.mood}`)}
                 </span>
               )}
               {weather && (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
                   <weather.icon size={13} />
-                  {weather.label}
+                  {t(`journey.weather.${entry.weather}`)}
                 </span>
               )}
             </div>
@@ -187,7 +189,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
               {prosArr.length > 0 && (
                 <div className="px-4 py-3">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-2">
-                    <ThumbsUp size={12} /> Pros
+                    <ThumbsUp size={12} /> {t('journey.editor.pros')}
                   </div>
                   <ul className="space-y-1">
                     {prosArr.map((p, i) => (
@@ -204,7 +206,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
               {consArr.length > 0 && (
                 <div className="px-4 py-3">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-red-500 dark:text-red-400 uppercase tracking-wide mb-2">
-                    <ThumbsDown size={12} /> Cons
+                    <ThumbsDown size={12} /> {t('journey.editor.cons')}
                   </div>
                   <ul className="space-y-1">
                     {consArr.map((c, i) => (

@@ -188,7 +188,7 @@ describe('PhotoLightbox', () => {
     }
     render(<PhotoLightbox {...props} initialIndex={0} />)
 
-    expect(screen.getByText(/Tag 2/)).toBeInTheDocument()
+    expect(screen.getByText(/Day 2/)).toBeInTheDocument()
     expect(screen.getByText(/Colosseum/)).toBeInTheDocument()
   })
 })

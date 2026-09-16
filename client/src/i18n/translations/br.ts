@@ -706,36 +706,8 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'admin.audit.col.details': 'Detalhes',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
-  'admin.github.title': 'Histórico de versões',
-  'admin.github.subtitle': 'Últimas atualizações de {repo}',
-  'admin.github.latest': 'Mais recente',
-  'admin.github.prerelease': 'Pré-lançamento',
-  'admin.github.showDetails': 'Mostrar detalhes',
-  'admin.github.hideDetails': 'Ocultar detalhes',
-  'admin.github.loadMore': 'Carregar mais',
-  'admin.github.loading': 'Carregando...',
-  'admin.github.error': 'Falha ao carregar versões',
-  'admin.github.by': 'por',
-  'admin.github.support': 'Ajuda a continuar desenvolvendo o TREK',
+  'admin.version.prerelease': 'Pré-lançamento',
 
-  'admin.update.available': 'Atualização disponível',
-  'admin.update.text': 'O TREK {version} está disponível. Você está na {current}.',
-  'admin.update.button': 'Ver no GitHub',
-  'admin.update.install': 'Instalar atualização',
-  'admin.update.confirmTitle': 'Instalar atualização?',
-  'admin.update.confirmText': 'O TREK será atualizado de {current} para {version}. O servidor reiniciará automaticamente em seguida.',
-  'admin.update.dataInfo': 'Todos os seus dados (viagens, usuários, chaves de API, envios, Vacay, Atlas, orçamentos) serão preservados.',
-  'admin.update.warning': 'O app ficará brevemente indisponível durante o reinício.',
-  'admin.update.confirm': 'Atualizar agora',
-  'admin.update.installing': 'Atualizando…',
-  'admin.update.success': 'Atualização instalada! O servidor está reiniciando…',
-  'admin.update.failed': 'Falha na atualização',
-  'admin.update.backupHint': 'Recomendamos criar um backup antes de atualizar.',
-  'admin.update.backupLink': 'Ir para Backup',
-  'admin.update.howTo': 'Como atualizar',
-  'admin.update.dockerText': 'Sua instância TREK roda no Docker. Para atualizar para {version}, execute no servidor:',
-  'admin.update.reloadHint': 'Recarregue a página em alguns segundos.',
 
   // Vacay addon
   'vacay.subtitle': 'Planeje e gerencie dias de férias',
@@ -1280,6 +1252,8 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Renomear',
   'packing.menuCheckAll': 'Marcar todos',
   'packing.menuUncheckAll': 'Desmarcar todos',
+  'packing.menuDuplicate': 'Duplicar',
+  'packing.copySuffix': 'cópia',
   'packing.menuDeleteCat': 'Excluir categoria',
   'packing.noMembers': 'Nenhum membro na viagem',
   'packing.addItem': 'Adicionar item',
@@ -1302,6 +1276,8 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Falha ao salvar',
   'packing.toast.deleteError': 'Falha ao excluir',
   'packing.toast.renameError': 'Falha ao renomear',
+  'packing.toast.duplicated': 'Categoria duplicada',
+  'packing.toast.duplicateError': 'Falha ao duplicar categoria',
   'packing.toast.addError': 'Falha ao adicionar',
 
   // Packing suggestions
@@ -1870,7 +1846,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'todo.sortByPrio': 'Prioridade',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'Nova versão disponível',
   'settings.notificationPreferences.noChannels': 'Nenhum canal de notificação configurado. Peça a um administrador para configurar notificações por e-mail ou webhook.',
   'settings.webhookUrl.label': 'URL do webhook',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1930,9 +1905,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'admin.notifications.tripReminders.enabled': 'Lembretes de viagem ativados',
   'admin.notifications.tripReminders.disabled': 'Lembretes de viagem desativados',
   'admin.tabs.notifications': 'Notificações',
-  'notifications.versionAvailable.title': 'Atualização disponível',
-  'notifications.versionAvailable.text': 'TREK {version} já está disponível.',
-  'notifications.versionAvailable.button': 'Ver detalhes',
   'notif.test.title': '[Teste] Notificação',
   'notif.test.simple.text': 'Esta é uma notificação de teste simples.',
   'notif.test.boolean.text': 'Você aceita esta notificação de teste?',
@@ -1955,8 +1927,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'notif.collab_message.text': '{actor} enviou uma mensagem em {trip}',
   'notif.packing_tagged.title': 'Atribuição de bagagem',
   'notif.packing_tagged.text': '{actor} atribuiu você a {category} em {trip}',
-  'notif.version_available.title': 'Nova versão disponível',
-  'notif.version_available.text': 'TREK {version} está disponível',
   'notif.action.view_trip': 'Ver viagem',
   'notif.action.view_collab': 'Ver mensagens',
   'notif.action.view_packing': 'Ver bagagem',
@@ -2348,8 +2318,6 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'system_notice.v3_mcp.highlight_tools':      'Conjunto de ferramentas e prompts expandido',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Uma nota pessoal minha',
-  'system_notice.v3_thankyou.body': 'Antes de seguir em frente — quero fazer uma pausa.\n\nO TREK começou como um projeto paralelo que criei para minhas próprias viagens. Nunca imaginei que cresceria a ponto de 4.000 de vocês confiarem nele para planejar suas aventuras. Cada estrela, cada issue, cada pedido de recurso — eu leio todos, e eles me mantêm firme nas noites longas entre um trabalho em tempo integral e a universidade.\n\nQuero que saibam: o TREK sempre será open source, sempre self-hosted, sempre de vocês. Sem rastreamento, sem assinaturas, sem pegadinhas. Apenas uma ferramenta feita por alguém que ama viajar tanto quanto vocês.\n\nAgradecimento especial ao [jubnl](https://github.com/jubnl) — você se tornou um colaborador incrível. Muito do que torna a versão 3.0 especial tem a sua marca. Obrigado por acreditar neste projeto quando ele ainda era bem cru.\n\nE a cada um de vocês que reportou um bug, traduziu uma string, compartilhou o TREK com um amigo ou simplesmente o usou para planejar uma viagem — **obrigado**. Vocês são a razão de tudo isso existir.\n\nQue venham muitas mais aventuras juntos.\n\n— Maurice\n\n---\n\n[Junte-se à comunidade no Discord](https://discord.gg/7Q6M6jDwzf)\n\nSe o TREK torna suas viagens melhores, um [cafezinho](https://ko-fi.com/mauriceboe) sempre mantém as luzes acesas.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Ação necessária: conflito de conta de usuário',
   'system_notice.v3014_whitespace_collision.body': 'A atualização 3.0.14 detectou um ou mais conflitos de nome de usuário ou e-mail causados por espaços em branco no início ou fim dos valores armazenados. As contas afetadas foram renomeadas automaticamente. Verifique os logs do servidor por linhas começando com **[migration] WHITESPACE COLLISION** para identificar quais contas precisam de revisão.',
@@ -2412,6 +2380,40 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.unplanned.subheading': 'Lugares adicionados a esta viagem mas ainda não agendados.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Hospedagem',
+  'publicTrip.tiers.subheading': 'Onde vamos ficar depende de quantas pessoas se inscreverem.',
+  'publicTrip.tiers.participants': '{count} confirmados',
+  'publicTrip.tiers.nextTier': 'Faltam {count} para desbloquear {name}',
+  'publicTrip.tiers.allReached': 'Nível máximo alcançado!',
+  'publicTrip.tiers.paidNote': 'Apenas inscrições pagas contam.',
+  'publicTrip.tiers.active': 'Atual',
+  'publicTrip.tiers.range': '{min}–{max} participantes',
+  'publicTrip.tiers.rangeSingle': '{min} participantes',
+  'publicTrip.tiers.rangeOpen': '{min}+ participantes',
+  'publicTrip.tiers.viewPlace': "Ver hospedagem",
+  'publicTrip.tiers.viewOnMap': "Ver no mapa",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Níveis de hospedagem",
+  'tripForm.tiers.hint': "A hospedagem depende dos participantes confirmados (organizador + inscrições; apenas pagas quando há taxa). Exibido na página pública da viagem.",
+  'tripForm.tiers.status': "{count} confirmados",
+  'tripForm.tiers.current': "atual: {name}",
+  'tripForm.tiers.add': "Adicionar nível",
+  'tripForm.tiers.name': "Nome",
+  'tripForm.tiers.namePlaceholder': "ex.: Cabana Fjellro",
+  'tripForm.tiers.minParticipants': "A partir de participantes",
+  'tripForm.tiers.place': "Local (opcional)",
+  'tripForm.tiers.noPlace': "Nenhum local",
+  'tripForm.tiers.pricePerPerson': "Preço/pessoa ({currency})",
+  'tripForm.tiers.description': "Descrição (opcional)",
+  'tripForm.tiers.nameRequired': "O nome é obrigatório",
+  'tripForm.tiers.minInvalid': "Participantes deve ser um número inteiro de pelo menos 1",
+  'tripForm.tiers.priceInvalid': "O preço deve ser 0 ou mais",
+  'tripForm.tiers.saveError': "Não foi possível salvar o nível",
+  'tripForm.tiers.deleteError': "Não foi possível excluir o nível",
+  'tripForm.tiers.confirmDelete': "Excluir o nível \"{name}\"?",
 }
 
 export default br

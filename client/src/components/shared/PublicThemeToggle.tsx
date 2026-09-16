@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Sun, Moon } from 'lucide-react'
+import { useTranslation } from '../../i18n'
 
 const STORAGE_KEY = 'trek-public-theme'
 
@@ -14,6 +15,7 @@ function applyTheme(isDark: boolean) {
 }
 
 export default function PublicThemeToggle() {
+  const { t } = useTranslation()
   const [isDark, setIsDark] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored === 'dark') return true
@@ -49,7 +51,7 @@ export default function PublicThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label={isDark ? t('publicTrip.theme.light') : t('publicTrip.theme.dark')}
       aria-pressed={isDark}
       className="public-theme-toggle"
       style={{

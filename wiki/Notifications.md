@@ -39,7 +39,6 @@ The following events are shown in the admin panel (Admin → Notifications) and 
 
 | Event | Description | Channels |
 |-------|-------------|---------|
-| `version_available` | A new TREK version is available | in-app, email, webhook, ntfy |
 
 ### System-only events
 

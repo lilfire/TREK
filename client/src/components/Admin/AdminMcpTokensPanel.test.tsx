@@ -261,7 +261,7 @@ describe('AdminMcpTokensPanel', () => {
     expect(moreBtn).toBeInTheDocument();
     await user.click(moreBtn);
     // After expand, "show less" appears
-    expect(await screen.findByText('show less')).toBeInTheDocument();
+    expect(await screen.findByText(/show less/i)).toBeInTheDocument();
   });
 
   it('FE-ADMIN-MCP-015: revoke session confirmation and successful revoke', async () => {

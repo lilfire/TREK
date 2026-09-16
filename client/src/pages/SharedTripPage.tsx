@@ -116,7 +116,7 @@ export default function SharedTripPage() {
           <img src="/icons/icon-white.svg" alt="TREK" width="26" height="26" />
         </div>
 
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12 }}>Travel Resource &amp; Exploration Kit</div>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12 }}>{t('journey.public.tagline')}</div>
 
         <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{trip.title}</h1>
 
@@ -145,7 +145,7 @@ export default function SharedTripPage() {
               background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
               color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
             }}>
-              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
+              {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || t('settings.language')}
             </button>
             {showLangPicker && (
               <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'var(--bg-card)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150 }}>
@@ -413,7 +413,7 @@ export default function SharedTripPage() {
             <img src="/icons/icon.svg" alt="TREK" width="18" height="18" style={{ borderRadius: 4 }} />
             <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('shared.sharedVia')} <strong style={{ color: 'var(--text-muted)' }}>TREK</strong></span>
           </div>
-          <div style={{ marginTop: 8, fontSize: 10, color: 'var(--border-primary)' }}>Made with <span style={{ color: '#ef4444' }}>&hearts;</span> by Maurice · <a href={`https://github.com/${githubRepo}`} style={{ color: 'var(--text-faint)', textDecoration: 'none' }}>GitHub</a></div>
+          <div style={{ marginTop: 8, fontSize: 10, color: 'var(--border-primary)' }}>{t('journey.public.madeWith')} <span style={{ color: '#ef4444' }}>&hearts;</span> · <a href={`https://github.com/${githubRepo}`} style={{ color: 'var(--text-faint)', textDecoration: 'none' }}>GitHub</a></div>
         </div>
       </div>
     </div>

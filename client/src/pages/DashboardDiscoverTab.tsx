@@ -5,6 +5,7 @@ import { publicTripsApi, type PublicTripSummary } from '../api/client'
 import { useToast } from '../components/shared/Toast'
 import { type DashboardTrip } from './DashboardTripCards'
 import { formatDateRange } from '../utils/formatters'
+import { useTranslation } from '../i18n'
 
 interface Props {
   userTrips: DashboardTrip[]
@@ -13,11 +14,12 @@ interface Props {
 export default function DashboardDiscoverTab({ userTrips }: Props) {
   const navigate = useNavigate()
   const toast = useToast()
+  const { t } = useTranslation()
   const [publicTrips, setPublicTrips] = useState<PublicTripSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [joining, setJoining] = useState<number | null>(null)
 
-  const userTripIds = new Set(userTrips.map(t => t.id))
+  const userTripIds = new Set(userTrips.map(trip => trip.id))
 
   useEffect(() => {
     publicTripsApi
@@ -27,20 +29,20 @@ export default function DashboardDiscoverTab({ userTrips }: Props) {
       .finally(() => setLoading(false))
   }, [])
 
-  const discoverTrips = publicTrips.filter(t => !userTripIds.has(t.id))
+  const discoverTrips = publicTrips.filter(trip => !userTripIds.has(trip.id))
 
   async function handleJoinTrip(tripId: number) {
     setJoining(tripId)
     try {
       const result = await publicTripsApi.rsvpAuthenticated(tripId)
       if (result?.alreadyMember) {
-        toast.success("You're already on the list for this trip.")
+        toast.success(t('discover.alreadyMember'))
       } else {
-        toast.success("🎉 You've joined the trip! It will appear in My Trips shortly.")
+        toast.success(t('discover.joined'))
       }
       navigate('/dashboard')
     } catch {
-      toast.error('Something went wrong. Please try again.')
+      toast.error(t('rsvp.error.unknown'))
     } finally {
       setJoining(null)
     }
@@ -61,8 +63,8 @@ export default function DashboardDiscoverTab({ userTrips }: Props) {
         className="flex flex-col items-center justify-center py-24 text-center"
       >
         <div className="text-5xl mb-4">🗺️</div>
-        <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-1">No public trips to discover right now.</h3>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400">Check back later — more trips may be added soon.</p>
+        <h3 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200 mb-1">{t('discover.empty')}</h3>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('discover.emptyHint')}</p>
       </div>
     )
   }
@@ -117,7 +119,7 @@ export default function DashboardDiscoverTab({ userTrips }: Props) {
 
             <div className="flex items-center gap-1 text-xs text-zinc-400 dark:text-zinc-500 mb-3">
               <MapPin size={11} className="flex-shrink-0" />
-              <span>{trip.place_count} {trip.place_count === 1 ? 'place' : 'places'}</span>
+              <span>{t(trip.place_count === 1 ? 'common.placeCountOne' : 'common.placeCount', { count: trip.place_count })}</span>
             </div>
 
             <button
@@ -128,7 +130,7 @@ export default function DashboardDiscoverTab({ userTrips }: Props) {
               className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
             >
               {joining === trip.id && <Loader2 size={12} className="animate-spin" />}
-              {joining === trip.id ? 'Joining...' : 'Join Trip'}
+              {joining === trip.id ? t('rsvp.joining') : t('rsvp.joinTrip')}
             </button>
           </div>
         </div>

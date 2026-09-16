@@ -212,7 +212,6 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'settings.notifyCollabMessage': 'Pesan chat (Collab)',
   'settings.notifyPackingTagged': 'Daftar bawaan: penugasan',
   'settings.notifyWebhook': 'Notifikasi webhook',
-  'settings.notifyVersionAvailable': 'Versi baru tersedia',
   'settings.notificationPreferences.email': 'Email',
   'settings.notificationPreferences.webhook': 'Webhook',
   'settings.notificationPreferences.inapp': 'In-App',
@@ -782,7 +781,6 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'admin.oauthSessions.revokeSuccess': 'Sesi dicabut',
   'admin.oauthSessions.revokeError': 'Gagal mencabut sesi',
   'admin.oauthSessions.loadError': 'Gagal memuat sesi OAuth',
-  'admin.tabs.github': 'GitHub',
 
   'admin.audit.subtitle': 'Peristiwa sensitif keamanan dan administrasi (backup, pengguna, MFA, pengaturan).',
   'admin.audit.empty': 'Belum ada entri audit.',
@@ -795,35 +793,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'admin.audit.col.resource': 'Sumber Daya',
   'admin.audit.col.ip': 'IP',
   'admin.audit.col.details': 'Detail',
-  'admin.github.title': 'Riwayat Rilis',
-  'admin.github.subtitle': 'Pembaruan terbaru dari {repo}',
-  'admin.github.latest': 'Terbaru',
-  'admin.github.prerelease': 'Pra-rilis',
-  'admin.github.showDetails': 'Tampilkan detail',
-  'admin.github.hideDetails': 'Sembunyikan detail',
-  'admin.github.loadMore': 'Muat lebih banyak',
-  'admin.github.loading': 'Memuat...',
-  'admin.github.error': 'Gagal memuat rilis',
-  'admin.github.by': 'oleh',
-  'admin.github.support': 'Bantu saya terus mengembangkan TREK',
+  'admin.version.prerelease': 'Pra-rilis',
 
-  'admin.update.available': 'Pembaruan tersedia',
-  'admin.update.text': 'TREK {version} tersedia. Kamu menggunakan {current}.',
-  'admin.update.button': 'Lihat di GitHub',
-  'admin.update.install': 'Pasang Pembaruan',
-  'admin.update.confirmTitle': 'Pasang Pembaruan?',
-  'admin.update.confirmText': 'TREK akan diperbarui dari {current} ke {version}. Server akan restart otomatis setelahnya.',
-  'admin.update.dataInfo': 'Semua datamu (perjalanan, pengguna, kunci API, unggahan, Vacay, Atlas, anggaran) akan dipertahankan.',
-  'admin.update.warning': 'Aplikasi akan tidak tersedia sebentar selama restart.',
-  'admin.update.confirm': 'Perbarui Sekarang',
-  'admin.update.installing': 'Memperbarui…',
-  'admin.update.success': 'Pembaruan terpasang! Server sedang restart…',
-  'admin.update.failed': 'Pembaruan gagal',
-  'admin.update.backupHint': 'Kami merekomendasikan membuat backup sebelum memperbarui.',
-  'admin.update.backupLink': 'Pergi ke Backup',
-  'admin.update.howTo': 'Cara Memperbarui',
-  'admin.update.dockerText': 'Instans TREK kamu berjalan di Docker. Untuk memperbarui ke {version}, jalankan perintah berikut di servermu:',
-  'admin.update.reloadHint': 'Muat ulang halaman dalam beberapa detik.',
 
   // Vacay addon
   'vacay.subtitle': 'Rencanakan dan kelola hari cuti',
@@ -1365,6 +1336,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'packing.menuRename': 'Ganti Nama',
   'packing.menuCheckAll': 'Centang Semua',
   'packing.menuUncheckAll': 'Hapus Centang Semua',
+  'packing.menuDuplicate': 'Duplikat',
+  'packing.copySuffix': 'salinan',
   'packing.menuDeleteCat': 'Hapus Kategori',
   'packing.noMembers': 'Tidak ada anggota perjalanan',
   'packing.addItem': 'Tambah item',
@@ -1390,6 +1363,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'packing.toast.saveError': 'Gagal menyimpan',
   'packing.toast.deleteError': 'Gagal menghapus',
   'packing.toast.renameError': 'Gagal mengganti nama',
+  'packing.toast.duplicated': 'Kategori diduplikasi',
+  'packing.toast.duplicateError': 'Gagal menduplikasi kategori',
   'packing.toast.addError': 'Gagal menambahkan',
 
   // Packing suggestions
@@ -1888,9 +1863,6 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'notifications.synologySessionCleared.text': 'Server atau akun kamu berubah — buka Pengaturan untuk menguji koneksi lagi.',
 
   // Notification test keys (dev only)
-  'notifications.versionAvailable.title': 'Pembaruan Tersedia',
-  'notifications.versionAvailable.text': 'TREK {version} kini tersedia.',
-  'notifications.versionAvailable.button': 'Lihat Detail',
   'notifications.test.title': 'Notifikasi uji dari {actor}',
   'notifications.test.text': 'Ini adalah notifikasi uji sederhana.',
   'notifications.test.booleanTitle': '{actor} meminta persetujuanmu',
@@ -1966,8 +1938,6 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'notif.collab_message.text': '{actor} mengirim pesan di {trip}',
   'notif.packing_tagged.title': 'Penugasan Perlengkapan',
   'notif.packing_tagged.text': '{actor} menugaskanmu ke {category} di {trip}',
-  'notif.version_available.title': 'Versi Baru Tersedia',
-  'notif.version_available.text': 'TREK {version} kini tersedia',
   'notif.action.view_trip': 'Lihat Perjalanan',
   'notif.action.view_collab': 'Lihat Pesan',
   'notif.action.view_packing': 'Lihat Perlengkapan',
@@ -2390,8 +2360,6 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'system_notice.v3_mcp.highlight_tools':      'Perangkat dan prompt yang diperluas',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Catatan pribadi dari saya',
-  'system_notice.v3_thankyou.body': 'Sebelum kamu lanjut — saya ingin berhenti sejenak.\n\nTREK dimulai sebagai proyek sampingan yang saya buat untuk perjalanan saya sendiri. Saya tidak pernah membayangkan ia akan tumbuh menjadi sesuatu yang dipercaya oleh 4.000 dari kalian untuk merencanakan petualangan. Setiap bintang, setiap issue, setiap permintaan fitur — saya membaca semuanya, dan itulah yang membuat saya terus bertahan di malam-malam larut antara pekerjaan penuh waktu dan kuliah.\n\nSaya ingin kalian tahu: TREK akan selalu open source, selalu self-hosted, selalu milik kalian. Tanpa pelacakan, tanpa langganan, tanpa syarat tersembunyi. Hanya sebuah alat yang dibuat oleh seseorang yang mencintai traveling sama seperti kalian.\n\nTerima kasih khusus untuk [jubnl](https://github.com/jubnl) — kamu telah menjadi kolaborator yang luar biasa. Begitu banyak hal yang membuat versi 3.0 hebat memiliki jejakmu. Terima kasih telah percaya pada proyek ini ketika masih kasar.\n\nDan untuk setiap dari kalian yang melaporkan bug, menerjemahkan string, membagikan TREK kepada teman, atau sekadar menggunakannya untuk merencanakan perjalanan — **terima kasih**. Kalianlah alasan semua ini ada.\n\nUntuk lebih banyak petualangan bersama.\n\n— Maurice\n\n---\n\n[Bergabunglah dengan komunitas di Discord](https://discord.gg/7Q6M6jDwzf)\n\nJika TREK membuat perjalananmu lebih baik, [secangkir kopi kecil](https://ko-fi.com/mauriceboe) selalu membantu menjaga lampu tetap menyala.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Tindakan diperlukan: konflik akun pengguna',
   'system_notice.v3014_whitespace_collision.body': 'Pembaruan 3.0.14 mendeteksi satu atau lebih konflik nama pengguna atau email yang disebabkan oleh spasi di awal atau akhir nilai yang tersimpan. Akun yang terpengaruh telah diganti nama secara otomatis. Periksa log server untuk baris yang dimulai dengan **[migration] WHITESPACE COLLISION** guna mengidentifikasi akun mana yang perlu ditinjau.',
@@ -2454,6 +2422,40 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'publicTrip.unplanned.subheading': 'Tempat yang ditambahkan ke perjalanan ini tetapi belum dijadwalkan.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Akomodasi',
+  'publicTrip.tiers.subheading': 'Tempat menginap tergantung pada jumlah pendaftar.',
+  'publicTrip.tiers.participants': '{count} terkonfirmasi',
+  'publicTrip.tiers.nextTier': '{count} lagi untuk membuka {name}',
+  'publicTrip.tiers.allReached': 'Tingkat tertinggi tercapai!',
+  'publicTrip.tiers.paidNote': 'Hanya pendaftaran yang sudah dibayar yang dihitung.',
+  'publicTrip.tiers.active': 'Saat ini',
+  'publicTrip.tiers.range': '{min}–{max} peserta',
+  'publicTrip.tiers.rangeSingle': '{min} peserta',
+  'publicTrip.tiers.rangeOpen': '{min}+ peserta',
+  'publicTrip.tiers.viewPlace': "Lihat akomodasi",
+  'publicTrip.tiers.viewOnMap': "Lihat di peta",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Tingkat akomodasi",
+  'tripForm.tiers.hint': "Akomodasi bergantung pada peserta terkonfirmasi (pemilik + pendaftar; hanya yang sudah bayar jika ada biaya). Ditampilkan di halaman publik perjalanan.",
+  'tripForm.tiers.status': "{count} terkonfirmasi",
+  'tripForm.tiers.current': "saat ini: {name}",
+  'tripForm.tiers.add': "Tambah tingkat",
+  'tripForm.tiers.name': "Nama",
+  'tripForm.tiers.namePlaceholder': "mis. Kabin Fjellro",
+  'tripForm.tiers.minParticipants': "Mulai dari peserta",
+  'tripForm.tiers.place': "Tempat (opsional)",
+  'tripForm.tiers.noPlace': "Tanpa tempat",
+  'tripForm.tiers.pricePerPerson': "Harga/orang ({currency})",
+  'tripForm.tiers.description': "Deskripsi (opsional)",
+  'tripForm.tiers.nameRequired': "Nama wajib diisi",
+  'tripForm.tiers.minInvalid': "Jumlah peserta harus bilangan bulat minimal 1",
+  'tripForm.tiers.priceInvalid': "Harga harus 0 atau lebih",
+  'tripForm.tiers.saveError': "Gagal menyimpan tingkat",
+  'tripForm.tiers.deleteError': "Gagal menghapus tingkat",
+  'tripForm.tiers.confirmDelete': "Hapus tingkat \"{name}\"?",
 };
 
 export default id;

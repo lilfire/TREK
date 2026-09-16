@@ -1,4 +1,5 @@
 import { MapPin, Clock, FileText, ExternalLink, Phone, X } from 'lucide-react'
+import { useTranslation } from '../i18n'
 
 function mimeAbbr(mimeType: string): string {
   const map: Record<string, string> = {
@@ -21,12 +22,12 @@ function formatFileSize(bytes: number | null | undefined): string | null {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function formatDuration(minutes: number): string {
+function formatDuration(minutes: number, t: (key: string, params?: Record<string, string | number>) => string): string {
   const hours = Math.floor(minutes / 60)
   const mins = minutes % 60
-  if (hours === 0) return `${mins}min`
-  if (mins === 0) return `${hours}hr`
-  return `${hours}hr ${mins}min`
+  if (hours === 0) return t('publicTrip.duration.minutes', { count: mins })
+  if (mins === 0) return t('publicTrip.duration.hours', { count: hours })
+  return `${t('publicTrip.duration.hours', { count: hours })} ${t('publicTrip.duration.minutes', { count: mins })}`
 }
 
 function truncateText(text: string, maxLen = 120): string {
@@ -44,6 +45,7 @@ interface Props {
 }
 
 export default function PublicActivityModal({ assignment, tripCurrency, budgetItems, onClose }: Props) {
+  const { t } = useTranslation()
   const place = assignment.place
   const files: any[] = place.files || []
   const budgetMatchKey = place.budget_category || place.name
@@ -81,7 +83,7 @@ export default function PublicActivityModal({ assignment, tripCurrency, budgetIt
             )}
           </div>
           <button
-            aria-label="Close"
+            aria-label={t('common.close')}
             onClick={onClose}
             className="flex-shrink-0 p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-400"
           >
@@ -124,7 +126,7 @@ export default function PublicActivityModal({ assignment, tripCurrency, budgetIt
                   {place.end_time
                     ? ` – ${place.end_time}`
                     : place.duration_minutes
-                      ? ` (${formatDuration(place.duration_minutes)})`
+                      ? ` (${formatDuration(place.duration_minutes, t)})`
                       : ''}
                 </span>
               </div>
@@ -166,7 +168,7 @@ export default function PublicActivityModal({ assignment, tripCurrency, budgetIt
           {placeBudgetItems.length > 0 && (
             <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                Budget
+                {t('budget.title')}
               </p>
               <div className="flex flex-col gap-1.5">
                 {placeBudgetItems.map((item: any) => (
@@ -190,7 +192,7 @@ export default function PublicActivityModal({ assignment, tripCurrency, budgetIt
           {files.length > 0 && (
             <div className="border-t border-zinc-100 dark:border-zinc-800 pt-4">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                Files ({files.length})
+                {t('files.title')} ({files.length})
               </p>
               <div className="flex flex-col gap-1.5">
                 {files.map((f: any) => {

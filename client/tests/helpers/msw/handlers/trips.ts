@@ -43,6 +43,10 @@ export const tripsHandlers = [
     return HttpResponse.json({ owner, members: [] });
   }),
 
+  http.get('/api/trips/:id/accommodation-tiers', () => {
+    return HttpResponse.json({ participant_count: 1, active_tier_id: null, next_tier: null, tiers: [] });
+  }),
+
   http.get('/api/trips/:id/accommodations', () => {
     return HttpResponse.json({ accommodations: [] });
   }),

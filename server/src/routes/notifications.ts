@@ -3,7 +3,7 @@ import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { testSmtp, testBrevo, getAdminWebhookUrl, getUserWebhookUrl } from '../services/notifications';
 import { testWebhook } from '../services/webhookService';
-import { testNtfy, getUserNtfyConfig, getAdminNtfyConfig } from '../services/ntfyService';
+import { testNtfy, getUserNtfyConfig, getAdminNtfyConfig, resolveNtfyToken, type NtfyConfig } from '../services/ntfyService';
 import {
   getNotifications,
   getUnreadCount,
@@ -66,12 +66,19 @@ router.post('/test-ntfy', authenticate, async (req: Request, res: Response) => {
 
   const resolvedTopic = topic || userCfg?.topic || undefined;
   const resolvedServer = server || userCfg?.server || adminCfg.server || undefined;
-  // Reuse saved token when request sends null, empty, or the masked placeholder
-  const resolvedToken = (token && token !== '••••••••')
-    ? token
-    : (userCfg?.token ?? adminCfg.token ?? null);
 
   if (!resolvedTopic) return res.status(400).json({ error: 'No ntfy topic configured' });
+
+  // Reuse the saved token when the request sends null, empty, or the masked placeholder.
+  // The operator's token is only ever handed out via resolveNtfyToken(), which refuses to
+  // attach it unless the server this test actually hits is the operator's own — never one
+  // the caller just supplied in `server`.
+  const candidateUserCfg: NtfyConfig = {
+    topic: resolvedTopic,
+    server: server || userCfg?.server || null,
+    token: (token && token !== '••••••••') ? token : (userCfg?.token ?? null),
+  };
+  const resolvedToken = resolveNtfyToken(adminCfg, candidateUserCfg);
 
   res.json(await testNtfy({ topic: resolvedTopic, server: resolvedServer ?? null, token: resolvedToken }));
 });

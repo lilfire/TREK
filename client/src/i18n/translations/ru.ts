@@ -720,7 +720,6 @@ const ru: Record<string, string> = {
   'admin.oauthSessions.loadError': 'Не удалось загрузить OAuth-сессии',
 
   // GitHub
-  'admin.tabs.github': 'GitHub',
 
   'admin.audit.subtitle': 'События, связанные с безопасностью и администрированием (резервные копии, пользователи, MFA, настройки).',
   'admin.audit.empty': 'Записей аудита пока нет.',
@@ -734,35 +733,8 @@ const ru: Record<string, string> = {
   'admin.audit.col.ip': 'IP',
   'admin.audit.col.details': 'Подробности',
 
-  'admin.github.title': 'История релизов',
-  'admin.github.subtitle': 'Последние обновления из {repo}',
-  'admin.github.latest': 'Последний',
-  'admin.github.prerelease': 'Пре-релиз',
-  'admin.github.showDetails': 'Показать подробности',
-  'admin.github.hideDetails': 'Скрыть подробности',
-  'admin.github.loadMore': 'Загрузить ещё',
-  'admin.github.loading': 'Загрузка...',
-  'admin.github.support': 'Помогает продолжать разработку TREK',
-  'admin.github.error': 'Не удалось загрузить релизы',
-  'admin.github.by': 'от',
+  'admin.version.prerelease': 'Пре-релиз',
 
-  'admin.update.available': 'Доступно обновление',
-  'admin.update.text': 'Доступна версия TREK {version}. У вас установлена {current}.',
-  'admin.update.button': 'Посмотреть на GitHub',
-  'admin.update.install': 'Установить обновление',
-  'admin.update.confirmTitle': 'Установить обновление?',
-  'admin.update.confirmText': 'TREK будет обновлён с {current} до {version}. Сервер перезапустится автоматически.',
-  'admin.update.dataInfo': 'Все ваши данные (поездки, пользователи, API-ключи, загрузки, Vacay, Atlas, бюджеты) будут сохранены.',
-  'admin.update.warning': 'Приложение будет кратковременно недоступно во время перезапуска.',
-  'admin.update.confirm': 'Обновить сейчас',
-  'admin.update.installing': 'Обновление…',
-  'admin.update.success': 'Обновление установлено! Сервер перезапускается…',
-  'admin.update.failed': 'Ошибка обновления',
-  'admin.update.backupHint': 'Рекомендуем создать резервную копию перед обновлением.',
-  'admin.update.backupLink': 'Перейти к резервным копиям',
-  'admin.update.howTo': 'Как обновить',
-  'admin.update.dockerText': 'Ваш экземпляр TREK работает в Docker. Для обновления до {version} выполните следующие команды на сервере:',
-  'admin.update.reloadHint': 'Перезагрузите страницу через несколько секунд.',
 
   // Vacay addon
   'vacay.subtitle': 'Планируйте и управляйте днями отпуска',
@@ -1304,6 +1276,8 @@ const ru: Record<string, string> = {
   'packing.menuRename': 'Переименовать',
   'packing.menuCheckAll': 'Отметить все',
   'packing.menuUncheckAll': 'Снять отметки',
+  'packing.menuDuplicate': 'Дублировать',
+  'packing.copySuffix': 'копия',
   'packing.menuDeleteCat': 'Удалить категорию',
   'packing.addItem': 'Добавить вещь',
   'packing.addItemPlaceholder': 'Название...',
@@ -1329,6 +1303,8 @@ const ru: Record<string, string> = {
   'packing.toast.saveError': 'Ошибка сохранения',
   'packing.toast.deleteError': 'Ошибка удаления',
   'packing.toast.renameError': 'Ошибка переименования',
+  'packing.toast.duplicated': 'Категория продублирована',
+  'packing.toast.duplicateError': 'Не удалось продублировать категорию',
   'packing.toast.addError': 'Ошибка добавления',
 
   // Packing suggestions
@@ -1871,7 +1847,6 @@ const ru: Record<string, string> = {
   'todo.sortByPrio': 'Приоритет',
 
   // Notification system (added from feat/notification-system)
-  'settings.notifyVersionAvailable': 'Доступна новая версия',
   'settings.notificationPreferences.noChannels': 'Каналы уведомлений не настроены. Попросите администратора настроить уведомления по электронной почте или через webhook.',
   'settings.webhookUrl.label': 'URL вебхука',
   'settings.webhookUrl.placeholder': 'https://discord.com/api/webhooks/...',
@@ -1931,9 +1906,6 @@ const ru: Record<string, string> = {
   'admin.notifications.tripReminders.enabled': 'Напоминания о поездках включены',
   'admin.notifications.tripReminders.disabled': 'Напоминания о поездках отключены',
   'admin.tabs.notifications': 'Уведомления',
-  'notifications.versionAvailable.title': 'Доступно обновление',
-  'notifications.versionAvailable.text': 'TREK {version} теперь доступен.',
-  'notifications.versionAvailable.button': 'Подробнее',
   'notif.test.title': '[Тест] Уведомление',
   'notif.test.simple.text': 'Это простое тестовое уведомление.',
   'notif.test.boolean.text': 'Вы принимаете это тестовое уведомление?',
@@ -1956,8 +1928,6 @@ const ru: Record<string, string> = {
   'notif.collab_message.text': '{actor} отправил сообщение в {trip}',
   'notif.packing_tagged.title': 'Задание для упаковки',
   'notif.packing_tagged.text': '{actor} назначил вас в {category} в {trip}',
-  'notif.version_available.title': 'Доступна новая версия',
-  'notif.version_available.text': 'TREK {version} теперь доступен',
   'notif.action.view_trip': 'Открыть поездку',
   'notif.action.view_collab': 'Открыть сообщения',
   'notif.action.view_packing': 'Открыть упаковку',
@@ -2348,8 +2318,6 @@ const ru: Record<string, string> = {
   'system_notice.v3_mcp.highlight_tools':      'Расширенный набор инструментов',
 
   // System notices — personal thank you
-  'system_notice.v3_thankyou.title': 'Личное слово от меня',
-  'system_notice.v3_thankyou.body': 'Прежде чем продолжить — хочу остановиться на мгновение.\n\nTREK начинался как сторонний проект, который я создал для собственных поездок. Я никогда не думал, что он вырастет во что-то, чему 4 000 из вас доверяют планирование своих приключений. Каждая звёздочка, каждый issue, каждый запрос на фичу — я читаю их все, и именно они поддерживают меня в поздние ночи между основной работой и университетом.\n\nХочу, чтобы вы знали: TREK всегда будет open source, всегда self-hosted, всегда вашим. Никакого отслеживания, никаких подписок, никаких подвохов. Просто инструмент, созданный человеком, который любит путешествовать так же, как и вы.\n\nОсобая благодарность [jubnl](https://github.com/jubnl) — ты стал невероятным соратником. Многое из того, что делает версию 3.0 великолепной, несёт твой отпечаток. Спасибо, что поверил в этот проект, когда он был ещё сырым.\n\nИ каждому из вас, кто сообщил об ошибке, перевёл строку, поделился TREK с другом или просто использовал его для планирования поездки — **спасибо**. Вы — причина, по которой всё это существует.\n\nЗа множество новых приключений вместе.\n\n— Maurice\n\n---\n\n[Присоединяйся к сообществу в Discord](https://discord.gg/7Q6M6jDwzf)\n\nЕсли TREK делает твои путешествия лучше, [маленький кофе](https://ko-fi.com/mauriceboe) всегда помогает держать свет включённым.',
   // System notices — 3.0.14
   'system_notice.v3014_whitespace_collision.title': 'Требуется действие: конфликт учётных записей',
   'system_notice.v3014_whitespace_collision.body': 'Обновление 3.0.14 обнаружило один или несколько конфликтов имён пользователей или адресов электронной почты, вызванных ведущими или завершающими пробелами в сохранённых значениях. Затронутые учётные записи были автоматически переименованы. Проверьте логи сервера на строки, начинающиеся с **[migration] WHITESPACE COLLISION**, чтобы определить учётные записи, требующие проверки.',
@@ -2412,6 +2380,40 @@ const ru: Record<string, string> = {
   'publicTrip.unplanned.subheading': 'Места, добавленные в эту поездку, но ещё не запланированные.',
 
   'places.budgetSelectEntry': 'Select an entry',
+
+  // Public trip page — Accommodation tiers
+  'publicTrip.tiers.heading': 'Проживание',
+  'publicTrip.tiers.subheading': 'Где мы остановимся, зависит от числа записавшихся.',
+  'publicTrip.tiers.participants': 'Подтверждено: {count}',
+  'publicTrip.tiers.nextTier': 'Ещё {count}, чтобы открыть «{name}»',
+  'publicTrip.tiers.allReached': 'Достигнут высший уровень!',
+  'publicTrip.tiers.paidNote': 'Учитываются только оплаченные регистрации.',
+  'publicTrip.tiers.active': 'Текущий',
+  'publicTrip.tiers.range': '{min}–{max} участников',
+  'publicTrip.tiers.rangeSingle': '{min} участников',
+  'publicTrip.tiers.rangeOpen': '{min}+ участников',
+  'publicTrip.tiers.viewPlace': "Посмотреть жильё",
+  'publicTrip.tiers.viewOnMap': "На карте",
+
+  // Trip form — Accommodation tiers editor
+  'tripForm.tiers.heading': "Уровни проживания",
+  'tripForm.tiers.hint': "Вариант проживания зависит от числа подтверждённых участников (владелец + регистрации; при взносе — только оплаченные). Показывается на публичной странице поездки.",
+  'tripForm.tiers.status': "Подтверждено: {count}",
+  'tripForm.tiers.current': "текущий: {name}",
+  'tripForm.tiers.add': "Добавить уровень",
+  'tripForm.tiers.name': "Название",
+  'tripForm.tiers.namePlaceholder': "напр. Домик Fjellro",
+  'tripForm.tiers.minParticipants': "От участников",
+  'tripForm.tiers.place': "Место (необязательно)",
+  'tripForm.tiers.noPlace': "Без места",
+  'tripForm.tiers.pricePerPerson': "Цена/чел. ({currency})",
+  'tripForm.tiers.description': "Описание (необязательно)",
+  'tripForm.tiers.nameRequired': "Название обязательно",
+  'tripForm.tiers.minInvalid': "Число участников должно быть целым и не меньше 1",
+  'tripForm.tiers.priceInvalid': "Цена должна быть 0 или больше",
+  'tripForm.tiers.saveError': "Не удалось сохранить уровень",
+  'tripForm.tiers.deleteError': "Не удалось удалить уровень",
+  'tripForm.tiers.confirmDelete': "Удалить уровень «{name}»?",
 }
 
 export default ru

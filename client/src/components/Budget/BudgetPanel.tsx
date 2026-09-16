@@ -240,6 +240,7 @@ interface ChipWithTooltipProps {
 }
 
 function ChipWithTooltip({ label, avatarUrl, size = 20, paid, onClick }: ChipWithTooltipProps) {
+  const { t } = useTranslation()
   const [hover, setHover] = useState(false)
   const [pos, setPos] = useState({ top: 0, left: 0 })
   const ref = useRef(null)
@@ -286,7 +287,7 @@ function ChipWithTooltip({ label, avatarUrl, size = 20, paid, onClick }: ChipWit
               fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
               background: 'rgba(34,197,94,0.15)', color: '#16a34a',
               textTransform: 'uppercase', letterSpacing: '0.03em',
-            }}>Paid</span>
+            }}>{t('budget.paid')}</span>
           )}
         </div>,
         document.body

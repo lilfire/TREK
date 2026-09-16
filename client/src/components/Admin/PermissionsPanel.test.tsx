@@ -30,6 +30,7 @@ const SAMPLE_PERMISSIONS = [
   buildPermission('reservation_edit'),
   buildPermission('budget_edit'),
   buildPermission('packing_edit'),
+  buildPermission('packing_check'),
   buildPermission('collab_edit'),
   buildPermission('share_manage'),
 ];

@@ -3,6 +3,7 @@ import fs from 'fs';
 import { db, canAccessTrip } from '../db/database';
 import { CollabNote, CollabPoll, CollabMessage, TripFile } from '../types';
 import { checkSsrf, createPinnedDispatcher } from '../utils/ssrfGuard';
+import { USER_AGENT } from '../config';
 
 /* ------------------------------------------------------------------ */
 /*  Internal row types                                                 */
@@ -414,7 +415,7 @@ export async function fetchLinkPreview(url: string): Promise<LinkPreviewResult> 
         redirect: 'error',
         signal: controller.signal,
         dispatcher: createPinnedDispatcher(ssrf.resolvedIp!),
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NOMAD/1.0; +https://github.com/mauriceboe/NOMAD)' },
+        headers: { 'User-Agent': USER_AGENT },
       } as any);
       clearTimeout(timeout);
       if (!r.ok) throw new Error('Fetch failed');

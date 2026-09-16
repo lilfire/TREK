@@ -14,13 +14,12 @@ import { useToast } from '../components/shared/Toast'
 import { useCountUp } from '../hooks/useCountUp'
 import CategoryManager from '../components/Admin/CategoryManager'
 import BackupPanel from '../components/Admin/BackupPanel'
-import GitHubPanel from '../components/Admin/GitHubPanel'
 import AddonManager from '../components/Admin/AddonManager'
 import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import PermissionsPanel from '../components/Admin/PermissionsPanel'
-import { Users, Map, Briefcase, Shield, Trash2, Edit2, FileText, Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, UserPlus, ArrowUpCircle, ExternalLink, Download, Sun, Link2, Copy, Plus, RefreshCw, AlertTriangle, SlidersHorizontal, UserCog, Puzzle, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
+import { Users, Map, Briefcase, Shield, Trash2, Edit2, FileText, Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, UserPlus, Sun, Link2, Copy, Plus, RefreshCw, AlertTriangle, SlidersHorizontal, UserCog, Puzzle, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
 import CustomSelect from '../components/shared/CustomSelect'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 
@@ -52,18 +51,9 @@ interface OidcConfig {
   discovery_url: string
 }
 
-interface UpdateInfo {
-  update_available: boolean
-  latest: string
-  current: string
-  release_url?: string
-  is_docker?: boolean
-  is_prerelease?: boolean
-}
-
-const ADMIN_EVENT_LABEL_KEYS: Record<string, string> = {
-  version_available: 'settings.notifyVersionAvailable',
-}
+// Admin-scoped notification events currently have no members. The matrix below
+// stays generic so a future admin-only event only needs a label key here.
+const ADMIN_EVENT_LABEL_KEYS: Record<string, string> = {}
 
 const ADMIN_CHANNEL_LABEL_KEYS: Record<string, string> = {
   inapp: 'settings.notificationPreferences.inapp',
@@ -80,7 +70,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
     adminApi.getNotificationPreferences().then((data: any) => setMatrix(data)).catch(() => {})
   }, [])
 
-  if (!matrix) return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+  if (!matrix) return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>{t('common.loading')}</p>
 
   const visibleChannels = (['inapp', 'email', 'webhook', 'ntfy'] as const).filter(ch => {
     if (!matrix.available_channels[ch]) return false
@@ -102,13 +92,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
     }
   }
 
-  if (matrix.event_types.length === 0) {
-    return (
-      <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>{t('settings.notificationPreferences.noChannels')}</p>
-      </div>
-    )
-  }
+  if (matrix.event_types.length === 0) return null
 
   return (
     <div className="space-y-4">
@@ -118,7 +102,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
           <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminNotificationsHint')}</p>
         </div>
         <div className="p-6">
-          {saving && <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>Saving…</p>}
+          {saving && <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>{t('common.saving')}</p>}
           {/* Header row */}
           <div style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid var(--border-primary)' }}>
             <span />
@@ -134,7 +118,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
             return (
               <div key={eventType} style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-primary)' }}>
                 <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
-                  {t(ADMIN_EVENT_LABEL_KEYS[eventType]) || eventType}
+                  {ADMIN_EVENT_LABEL_KEYS[eventType] ? t(ADMIN_EVENT_LABEL_KEYS[eventType]) : eventType}
                 </span>
                 {visibleChannels.map(ch => {
                   if (!implementedForEvent.includes(ch)) {
@@ -194,7 +178,6 @@ export default function AdminPage(): React.ReactElement {
     { id: 'backup', label: t('admin.tabs.backup'), icon: Database },
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound }] : []),
-    { id: 'github', label: t('admin.tabs.github'), icon: GitBranch },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
   ]
 
@@ -274,13 +257,7 @@ export default function AdminPage(): React.ReactElement {
   const [validating, setValidating] = useState<Record<string, boolean>>({})
   const [validation, setValidation] = useState<Record<string, boolean | undefined>>({})
 
-  // Version check & update
-  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null)
-  const [showUpdateModal, setShowUpdateModal] = useState<boolean>(false)
-  const [githubRepo, setLocalGithubRepo] = useState<string>('mauriceboe/TREK')
-  const [versionSource, setVersionSource] = useState<string | undefined>(undefined)
-
-  const { user: currentUser, updateApiKeys, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, logout } = useAuthStore()
+  const { user: currentUser, updateApiKeys, setAppRequireMfa, setTripRemindersEnabled, setPlacesPhotosEnabled, setPlacesAutocompleteEnabled, setPlacesDetailsEnabled, logout, appVersion, isPrerelease, githubRepo } = useAuthStore()
   const navigate = useNavigate()
   const toast = useToast()
 
@@ -295,9 +272,6 @@ export default function AdminPage(): React.ReactElement {
     adminApi.getPaypalSettings().then((d: { clientId: string; secretIsSet: boolean; mode: string }) => {
       setPaypalSettings(d)
       setPaypalForm(f => ({ ...f, clientId: d.clientId, mode: d.mode }))
-    }).catch(() => {})
-    adminApi.checkVersion().then(data => {
-      setUpdateInfo(data)
     }).catch(() => {})
   }, [])
 
@@ -330,8 +304,6 @@ export default function AdminPage(): React.ReactElement {
       setOidcConfigured(config.oidc_configured ?? false)
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
-      if (config.github_repo) setLocalGithubRepo(config.github_repo)
-      if (config.github_version_source) setVersionSource(config.github_version_source)
     } catch (err: unknown) {
       // ignore
     }
@@ -382,7 +354,7 @@ export default function AdminPage(): React.ReactElement {
       })
       toast.success(t('admin.keySaved'))
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : 'Unknown error')
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
     } finally {
       setSavingKeys(false)
     }
@@ -528,43 +500,6 @@ export default function AdminPage(): React.ReactElement {
             </div>
           </div>
 
-          {/* Update Banner */}
-          {updateInfo?.update_available && (
-            <div className="mb-6 p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-700">
-              <div className="flex items-center gap-4 flex-1 min-w-0">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-amber-500 dark:bg-amber-600">
-                  <ArrowUpCircle className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t('admin.update.available')}</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
-                    {t('admin.update.text').replace('{version}', `v${updateInfo.latest}`).replace('{current}', `v${updateInfo.current}`)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {updateInfo.release_url && (
-                  <a
-                    href={updateInfo.release_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    {t('admin.update.button')}
-                  </a>
-                )}
-                <button
-                  onClick={() => setShowUpdateModal(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('admin.update.howTo')}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Version Info Card */}
           <div
             className="mb-6 p-4 rounded-xl border"
@@ -581,7 +516,7 @@ export default function AdminPage(): React.ReactElement {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
-                    {updateInfo?.current ? `v${updateInfo.current}` : t('admin.version.unknown')}
+                    {appVersion ? `v${appVersion}` : t('admin.version.unknown')}
                   </p>
                   <p className="text-xs mt-0.5 flex flex-wrap items-center gap-2" style={{ color: 'var(--text-faint)' }}>
                     <a
@@ -594,49 +529,16 @@ export default function AdminPage(): React.ReactElement {
                     >
                       {githubRepo}
                     </a>
-                    {updateInfo?.is_prerelease && (
+                    {isPrerelease && (
                       <span
                         className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
                         style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706' }}
                       >
-                        {t('admin.github.prerelease')}
+                        {t('admin.version.prerelease')}
                       </span>
                     )}
                   </p>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {updateInfo?.update_available ? (
-                  <>
-                    <span
-                      className="text-xs font-medium px-2 py-1 rounded-full"
-                      style={{ background: 'rgba(34,197,94,0.12)', color: '#16a34a' }}
-                    >
-                      {t('admin.version.updateAvailable').replace('{version}', `v${updateInfo.latest}`)}
-                    </span>
-                    {updateInfo.release_url && (
-                      <a
-                        href={updateInfo.release_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        {t('admin.version.releaseNotes')}
-                      </a>
-                    )}
-                  </>
-                ) : (
-                  updateInfo && (
-                    <span
-                      className="text-xs font-medium px-2 py-1 rounded-full"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
-                    >
-                      {t('admin.version.upToDate')}
-                    </span>
-                  )
-                )}
               </div>
             </div>
           </div>
@@ -645,21 +547,21 @@ export default function AdminPage(): React.ReactElement {
           {demoMode && (
             <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
               <div>
-                <p className="text-sm font-semibold text-amber-900">Demo Baseline</p>
-                <p className="text-xs text-amber-700">Save current state as the hourly reset point. All admin trips and settings will be preserved.</p>
+                <p className="text-sm font-semibold text-amber-900">{t('admin.demo.title')}</p>
+                <p className="text-xs text-amber-700">{t('admin.demo.hint')}</p>
               </div>
               <button
                 onClick={async () => {
                   try {
                     await adminApi.saveDemoBaseline()
-                    toast.success('Baseline saved! Resets will restore to this state.')
+                    toast.success(t('admin.demo.saved'))
                   } catch (e) {
-                    toast.error(e.response?.data?.error || 'Failed to save baseline')
+                    toast.error(e.response?.data?.error || t('admin.demo.saveError'))
                   }
                 }}
                 className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors flex-shrink-0 ml-4"
               >
-                Save Baseline
+                {t('admin.demo.save')}
               </button>
             </div>
           )}
@@ -1241,7 +1143,7 @@ export default function AdminPage(): React.ReactElement {
                       type="text"
                       value={oidcConfig.display_name}
                       onChange={e => setOidcConfig(c => ({ ...c, display_name: e.target.value }))}
-                      placeholder='z.B. Google, Authentik, Keycloak'
+                      placeholder={t('admin.oidcDisplayNamePlaceholder')}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
                     />
                   </div>
@@ -1257,7 +1159,7 @@ export default function AdminPage(): React.ReactElement {
                     <p className="text-xs text-slate-400 mt-1">{t('admin.oidcIssuerHint')}</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Discovery URL <span className="text-slate-400 font-normal">(optional)</span></label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.oidcDiscoveryUrl')} <span className="text-slate-400 font-normal">{t('rsvp.messageOptional')}</span></label>
                     <input
                       type="url"
                       value={oidcConfig.discovery_url}
@@ -1265,10 +1167,10 @@ export default function AdminPage(): React.ReactElement {
                       placeholder='https://auth.example.com/application/o/trek/.well-known/openid-configuration'
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
                     />
-                    <p className="text-xs text-slate-400 mt-1">Override the auto-constructed discovery URL. Required for providers like Authentik where the endpoint is not at <code className="bg-slate-100 px-1 rounded">{'<issuer>/.well-known/openid-configuration'}</code>.</p>
+                    <p className="text-xs text-slate-400 mt-1">{t('admin.oidcDiscoveryUrlHint')} <code className="bg-slate-100 px-1 rounded">{'<issuer>/.well-known/openid-configuration'}</code>.</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Client ID</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.oauth.clientId')}</label>
                     <input
                       type="text"
                       value={oidcConfig.client_id}
@@ -1277,7 +1179,7 @@ export default function AdminPage(): React.ReactElement {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Client Secret</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.oauth.clientSecret')}</label>
                     <input
                       type="password"
                       value={oidcConfig.client_secret}
@@ -1313,15 +1215,15 @@ export default function AdminPage(): React.ReactElement {
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                   <div>
                     <h2 className="font-semibold text-slate-900">PayPal</h2>
-                    <p className="text-xs text-slate-400 mt-1">Configure PayPal credentials for trip registration fee payments.</p>
+                    <p className="text-xs text-slate-400 mt-1">{t('admin.paypal.hint')}</p>
                   </div>
                   <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${paypalSettings.secretIsSet && paypalSettings.clientId ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {paypalSettings.secretIsSet && paypalSettings.clientId ? 'Configured' : 'Not configured'}
+                    {paypalSettings.secretIsSet && paypalSettings.clientId ? t('admin.paypal.configured') : t('admin.paypal.notConfigured')}
                   </span>
                 </div>
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Client ID</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.oauth.clientId')}</label>
                     <input
                       type="text"
                       value={paypalForm.clientId}
@@ -1332,18 +1234,18 @@ export default function AdminPage(): React.ReactElement {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      Secret {paypalSettings.secretIsSet && <span className="text-slate-400 font-normal">(currently set — leave blank to keep)</span>}
+                      {t('admin.paypal.secret')} {paypalSettings.secretIsSet && <span className="text-slate-400 font-normal">{t('admin.paypal.secretSet')}</span>}
                     </label>
                     <input
                       type="password"
                       value={paypalForm.secret}
                       onChange={e => setPaypalForm(f => ({ ...f, secret: e.target.value }))}
-                      placeholder={paypalSettings.secretIsSet ? '••••••••' : 'Enter PayPal secret'}
+                      placeholder={paypalSettings.secretIsSet ? '••••••••' : t('admin.paypal.secretPlaceholder')}
                       className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">Mode</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.paypal.mode')}</label>
                     <div className="flex gap-4">
                       {(['sandbox', 'live'] as const).map(m => (
                         <label key={m} className="flex items-center gap-2 cursor-pointer">
@@ -1355,7 +1257,7 @@ export default function AdminPage(): React.ReactElement {
                             onChange={() => setPaypalForm(f => ({ ...f, mode: m }))}
                             className="w-4 h-4"
                           />
-                          <span className="text-sm text-slate-700 capitalize">{m}</span>
+                          <span className="text-sm text-slate-700">{t(`admin.paypal.mode.${m}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -1372,7 +1274,7 @@ export default function AdminPage(): React.ReactElement {
                           setPaypalSettings(updated)
                           setPaypalForm(f => ({ ...f, secret: '' }))
                           setPaypalTestResult(null)
-                          toast.success('PayPal settings saved')
+                          toast.success(t('admin.paypal.saved'))
                         } catch (err: unknown) {
                           toast.error(getApiErrorMessage(err, t('common.error')))
                         } finally {
@@ -1393,7 +1295,7 @@ export default function AdminPage(): React.ReactElement {
                           const result = await adminApi.testPaypalConnection()
                           setPaypalTestResult(result)
                         } catch {
-                          setPaypalTestResult({ ok: false, error: 'Request failed' })
+                          setPaypalTestResult({ ok: false, error: t('admin.paypal.requestFailed') })
                         } finally {
                           setTestingPaypal(false)
                         }
@@ -1402,13 +1304,13 @@ export default function AdminPage(): React.ReactElement {
                       className="flex items-center gap-2 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm hover:bg-slate-50 disabled:opacity-50"
                     >
                       {testingPaypal ? <div className="w-4 h-4 border-2 border-slate-400/30 border-t-slate-600 rounded-full animate-spin" /> : <CheckCircle className="w-4 h-4" />}
-                      Test Connection
+                      {t('admin.paypal.testConnection')}
                     </button>
                   </div>
                   {paypalTestResult && (
                     <div className={`flex items-center gap-2 text-sm mt-1 ${paypalTestResult.ok ? 'text-green-600' : 'text-red-600'}`}>
                       {paypalTestResult.ok ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                      {paypalTestResult.ok ? 'Connection successful' : paypalTestResult.error || 'Connection failed'}
+                      {paypalTestResult.ok ? t('admin.paypal.testSuccess') : paypalTestResult.error || t('admin.paypal.testFailed')}
                     </div>
                   )}
                 </div>
@@ -1419,21 +1321,21 @@ export default function AdminPage(): React.ReactElement {
                 <div className="px-6 py-4 border-b border-red-100 bg-red-50">
                   <h2 className="font-semibold text-red-700 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
-                    Danger Zone
+                    {t('admin.dangerZone.title')}
                   </h2>
                 </div>
                 <div className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-slate-700">Rotate JWT Secret</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Generate a new JWT signing secret. All active sessions will be invalidated immediately.</p>
+                      <p className="text-sm font-medium text-slate-700">{t('admin.jwt.title')}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t('admin.jwt.hint')}</p>
                     </div>
                     <button
                       onClick={() => setShowRotateJwtModal(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
                     >
                       <RefreshCw className="w-4 h-4" />
-                      Rotate
+                      {t('settings.oauth.rotateSecretConfirm')}
                     </button>
                   </div>
                 </div>
@@ -1500,11 +1402,11 @@ export default function AdminPage(): React.ReactElement {
                   </div>
                   <div className={`p-6 space-y-3 ${!emailActive ? 'opacity-50 pointer-events-none' : ''}`}>
                     {smtpLoaded && [
-                      { key: 'smtp_host', label: 'SMTP Host', placeholder: 'mail.example.com' },
-                      { key: 'smtp_port', label: 'SMTP Port', placeholder: '587' },
-                      { key: 'smtp_user', label: 'SMTP User', placeholder: 'trek@example.com' },
-                      { key: 'smtp_pass', label: 'SMTP Password', placeholder: '••••••••', type: 'password' },
-                      { key: 'smtp_from', label: 'From Address', placeholder: 'trek@example.com' },
+                      { key: 'smtp_host', label: t('admin.smtp.host'), placeholder: 'mail.example.com' },
+                      { key: 'smtp_port', label: t('admin.smtp.port'), placeholder: '587' },
+                      { key: 'smtp_user', label: t('admin.smtp.user'), placeholder: 'trek@example.com' },
+                      { key: 'smtp_pass', label: t('admin.smtp.password'), placeholder: '••••••••', type: 'password' },
+                      { key: 'smtp_from', label: t('admin.smtp.fromAddress'), placeholder: 'trek@example.com' },
                     ].map(field => (
                       <div key={field.key}>
                         <label className="block text-xs font-medium text-slate-500 mb-1">{field.label}</label>
@@ -1519,8 +1421,8 @@ export default function AdminPage(): React.ReactElement {
                     ))}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
                       <div>
-                        <span className="text-xs font-medium text-slate-500">Skip TLS certificate check</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Enable for self-signed certificates on local mail servers</p>
+                        <span className="text-xs font-medium text-slate-500">{t('admin.smtp.skipTls')}</span>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{t('admin.smtp.skipTlsHint')}</p>
                       </div>
                       <button onClick={() => {
                         const newVal = smtpValues.smtp_skip_tls_verify === 'true' ? 'false' : 'true'
@@ -1535,12 +1437,12 @@ export default function AdminPage(): React.ReactElement {
                     <div className="pt-4 mt-2 border-t border-slate-100 space-y-3">
                       <div>
                         <p className="text-sm font-medium text-slate-700">Brevo (HTTP API)</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Alternative to SMTP — sends through Brevo's servers, no mail server or DNS needed. Takes priority over SMTP when an API key is set.</p>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{t('admin.brevo.hint')}</p>
                       </div>
                       {[
-                        { key: 'brevo_api_key', label: 'Brevo API Key', placeholder: '••••••••', type: 'password' },
-                        { key: 'brevo_from', label: 'From Address', placeholder: 'noreply@yourbrevosender.com' },
-                        { key: 'brevo_from_name', label: 'From Name', placeholder: 'TREK' },
+                        { key: 'brevo_api_key', label: t('admin.brevo.apiKey'), placeholder: '••••••••', type: 'password' },
+                        { key: 'brevo_from', label: t('admin.smtp.fromAddress'), placeholder: 'noreply@yourbrevosender.com' },
+                        { key: 'brevo_from_name', label: t('admin.brevo.fromName'), placeholder: 'TREK' },
                       ].map(field => (
                         <div key={field.key}>
                           <label className="block text-xs font-medium text-slate-500 mb-1">{field.label}</label>
@@ -1842,7 +1744,6 @@ export default function AdminPage(): React.ReactElement {
 
           {activeTab === 'mcp-tokens' && <AdminMcpTokensPanel />}
 
-          {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} githubRepo={githubRepo} versionSource={versionSource} />}
 
           {activeTab === 'defaults' && <DefaultUserSettingsTab />}
 
@@ -1987,90 +1888,11 @@ export default function AdminPage(): React.ReactElement {
         )}
       </Modal>
 
-      {/* Update instructions popup */}
-      {showUpdateModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-          onClick={() => setShowUpdateModal(false)}
-        >
-          <div
-            onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-          >
-            <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <ArrowUpCircle size={20} style={{ color: 'white' }} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>{t('admin.update.howTo')}</h3>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
-                  v{updateInfo?.current} → v{updateInfo?.latest}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ padding: '20px 24px' }}>
-              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-                {t('admin.update.dockerText').replace('{version}', `v${updateInfo?.latest ?? ''}`)}
-              </p>
-
-              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, fontSize: 12, lineHeight: 1.8, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-                className="bg-gray-900 dark:bg-gray-950 text-gray-100 border border-gray-700"
-              >
-{`docker pull mauriceboe/trek:latest
-docker stop trek && docker rm trek
-docker run -d --name trek \\
-  -p 3000:3000 \\
-  -v /opt/trek/data:/app/data \\
-  -v /opt/trek/uploads:/app/uploads \\
-  --restart unless-stopped \\
-  mauriceboe/trek:latest`}
-              </div>
-
-              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5 }}
-                className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
-              >
-                <div className="flex items-start gap-2">
-                  <CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                  <span>{t('admin.update.dataInfo')}</span>
-                </div>
-              </div>
-
-              {updateInfo?.release_url && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5 }}
-                  className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
-                >
-                  <div className="flex items-start gap-2">
-                    <ExternalLink className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
-                    <span>
-                      <a href={updateInfo.release_url} target="_blank" rel="noopener noreferrer" className="underline font-semibold">
-                        {t('admin.update.button')}
-                      </a>
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div style={{ padding: '0 24px 20px', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowUpdateModal(false)}
-                className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
-              >
-                {t('common.close')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Rotate JWT Secret confirmation modal */}
       <Modal
         isOpen={showRotateJwtModal}
         onClose={() => setShowRotateJwtModal(false)}
-        title="Rotate JWT Secret"
+        title={t('admin.jwt.title')}
         size="sm"
         footer={
           <div className="flex gap-3 justify-end">
@@ -2098,7 +1920,7 @@ docker run -d --name trek \\
               className="flex items-center gap-2 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white rounded-lg font-medium"
             >
               {rotatingJwt ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-              Rotate &amp; Log out
+              {t('admin.jwt.rotateAndLogout')}
             </button>
           </div>
         }
@@ -2108,8 +1930,8 @@ docker run -d --name trek \\
             <AlertTriangle className="w-5 h-5 text-red-600" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-900 mb-1">Warning, this will invalidate all sessions and log you out.</p>
-            <p className="text-xs text-slate-500">A new JWT secret will be generated immediately. Every logged-in user — including you — will be signed out and will need to log in again.</p>
+            <p className="text-sm font-medium text-slate-900 mb-1">{t('admin.jwt.warning')}</p>
+            <p className="text-xs text-slate-500">{t('admin.jwt.warningDetail')}</p>
           </div>
         </div>
       </Modal>
