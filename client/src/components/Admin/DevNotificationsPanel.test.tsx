@@ -26,13 +26,13 @@ describe('DevNotificationsPanel', () => {
     expect(screen.getByText('DEV ONLY')).toBeInTheDocument();
   });
 
-  it('FE-ADMIN-DEVNOTIF-002: four section titles render after data loads', async () => {
+  it('FE-ADMIN-DEVNOTIF-002: three section titles render after data loads', async () => {
     render(<><ToastContainer /><DevNotificationsPanel /></>);
     // Wait for async data to populate conditional sections
     await screen.findByText('Trip-Scoped Events');
     await screen.findByText('User-Scoped Events');
     expect(screen.getByText('Type Testing')).toBeInTheDocument();
-    expect(screen.getByText('Admin-Scoped Events')).toBeInTheDocument();
+    expect(screen.queryByText('Admin-Scoped Events')).not.toBeInTheDocument();
   });
 
   it('FE-ADMIN-DEVNOTIF-003: trip selector populated from API', async () => {
