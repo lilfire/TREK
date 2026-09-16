@@ -258,6 +258,33 @@ router.put('/places-photos', (req: Request, res: Response) => {
   res.json(result);
 });
 
+// ── Public Map Tile URL ─────────────────────────────────────────────────
+
+router.get('/public-map-tile-url', (_req: Request, res: Response) => {
+  res.json(svc.getPublicMapTileUrl());
+});
+
+router.put('/public-map-tile-url', (req: Request, res: Response) => {
+  const url = req.body?.url;
+  if (url !== null && url !== undefined && typeof url !== 'string') {
+    return res.status(400).json({ error: 'url must be a string or null' });
+  }
+  let result;
+  try {
+    result = svc.updatePublicMapTileUrl(url ?? null);
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message });
+  }
+  const authReq = req as AuthRequest;
+  writeAudit({
+    userId: authReq.user.id,
+    action: 'admin.public_map_tile_url',
+    ip: getClientIp(req),
+    details: { url: result.url },
+  });
+  res.json(result);
+});
+
 // ── Places Autocomplete ──────────────────────────────────────────────────
 
 router.get('/places-autocomplete', (_req: Request, res: Response) => {

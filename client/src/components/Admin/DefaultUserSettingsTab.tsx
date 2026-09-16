@@ -6,7 +6,9 @@ import { useToast } from '../shared/Toast'
 import Section from '../Settings/Section'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
+import { useAuthStore } from '../../store/authStore'
 import type { Place } from '../../types'
+import { getApiErrorMessage } from '../../types'
 
 const MAP_PRESETS = [
   { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
@@ -78,6 +80,9 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
   const [defaults, setDefaults] = useState<Defaults>({})
   const [loaded, setLoaded] = useState(false)
   const [mapTileUrl, setMapTileUrl] = useState('')
+  const [publicTileUrl, setPublicTileUrl] = useState('')
+  const [savedPublicTileUrl, setSavedPublicTileUrl] = useState<string | null>(null)
+  const setAuthPublicMapTileUrl = useAuthStore(s => s.setPublicMapTileUrl)
 
   useEffect(() => {
     adminApi.getDefaultUserSettings().then((data: Defaults) => {
@@ -85,7 +90,24 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
       setMapTileUrl(data.map_tile_url || '')
       setLoaded(true)
     }).catch(() => setLoaded(true))
+    adminApi.getPublicMapTileUrl().then((data: { url: string | null }) => {
+      setPublicTileUrl(data.url || '')
+      setSavedPublicTileUrl(data.url)
+    }).catch(() => {})
   }, [])
+
+  const savePublicTileUrl = async (url: string | null) => {
+    if ((url || null) === savedPublicTileUrl) return
+    try {
+      const updated: { url: string | null } = await adminApi.updatePublicMapTileUrl(url)
+      setPublicTileUrl(updated.url || '')
+      setSavedPublicTileUrl(updated.url)
+      setAuthPublicMapTileUrl(updated.url)
+      toast.success(t(updated.url ? 'admin.defaultSettings.saved' : 'admin.defaultSettings.reset'))
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }
 
   const save = async (patch: Partial<Defaults>) => {
     try {
@@ -284,6 +306,39 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
             hasInspector: false,
           })}
         </div>
+      </div>
+
+      {/* Public Map Tile URL */}
+      <div>
+        <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+          {t('admin.publicMap.title')}
+          {savedPublicTileUrl && (
+            <button
+              onClick={() => savePublicTileUrl(null)}
+              className="text-xs ml-2"
+              style={{ color: 'var(--text-faint)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              {t('admin.defaultSettings.resetToBuiltIn')}
+            </button>
+          )}
+        </label>
+        <CustomSelect
+          value={publicTileUrl}
+          onChange={(value: string) => { if (value) { setPublicTileUrl(value); savePublicTileUrl(value) } }}
+          placeholder={t('settings.mapTemplatePlaceholder.select')}
+          options={MAP_PRESETS.map(p => ({ value: p.url, label: p.name }))}
+          size="sm"
+          style={{ marginBottom: 8 }}
+        />
+        <input
+          type="text"
+          value={publicTileUrl}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPublicTileUrl(e.target.value)}
+          onBlur={() => savePublicTileUrl(publicTileUrl.trim() || null)}
+          placeholder="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+        />
+        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('admin.publicMap.hint')}</p>
       </div>
     </Section>
   )
