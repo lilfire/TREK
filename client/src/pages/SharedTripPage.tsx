@@ -14,6 +14,7 @@ import { Clock, MapPin, FileText, Train, Plane, Bus, Car, Ship, Ticket, Hotel, M
 import { isDayInAccommodationRange } from '../utils/dayOrder'
 import { getTransportForDay, getMergedItems } from '../utils/dayMerge'
 import PublicThemeToggle from '../components/shared/PublicThemeToggle'
+import TripCover from '../components/shared/TripCover'
 
 const TRANSPORT_ICONS = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
 
@@ -101,12 +102,11 @@ export default function SharedTripPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-secondary)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+      {/* Cover banner */}
+      {trip.cover_image && <TripCover src={trip.cover_image} />}
+
       {/* Header */}
       <div style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', color: 'white', padding: '32px 20px 28px', textAlign: 'center', position: 'relative' }}>
-        {/* Cover image background */}
-        {trip.cover_image && (
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : trip.cover_image.startsWith('/') ? trip.cover_image : '/uploads/' + trip.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
-        )}
         {/* Background decoration */}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />

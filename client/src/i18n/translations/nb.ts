@@ -167,6 +167,7 @@ const nb: Record<string, string | { name: string; category: string }[]> = {
   'dashboard.noDateHint': 'Ingen dato satt — 7 standard dager vil bli opprettet. Du kan endre dette når som helst.',
   'dashboard.coverImage': 'Forsidebilde',
   'dashboard.addCoverImage': 'Legg til forsidebilde (eller dra og slipp)',
+  'dashboard.coverImageHint': 'Vises som banner i 5:1 overalt – f.eks. 2500×500 px. Hold viktig innhold unna kantene.',
   'dashboard.addMembers': 'Reisefølge',
   'dashboard.addMember': 'Legg til medlem',
   'dashboard.coverSaved': 'Forsidebilde lagret',

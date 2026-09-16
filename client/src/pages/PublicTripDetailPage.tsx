@@ -17,6 +17,7 @@ import AccommodationTierList from '../components/Trips/AccommodationTierList'
 import PublicActivityModal from '../components/PublicActivityModal'
 import UnplannedActivitiesSection from '../components/UnplannedActivitiesSection'
 import PublicThemeToggle from '../components/shared/PublicThemeToggle'
+import TripCover from '../components/shared/TripCover'
 import { getTransportForDay, getMergedItems, getDisplayTimeForDay } from '../utils/dayMerge'
 
 const TRANSPORT_ICONS: Record<string, typeof Plane> = { flight: Plane, train: Train, bus: Bus, car: Car, cruise: Ship }
@@ -215,25 +216,14 @@ export default function PublicTripDetailPage() {
       {/* Hero header */}
       <div
         className="relative text-white text-center"
-        style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px' }}
+        style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)' }}
       >
+        {/* Cover: a 5:1 banner above the title, so the text never sits on top of the image */}
         {trip.cover_image && (
-          <>
-            <div
-              data-testid="cover-image"
-              style={{
-                position: 'absolute', inset: 0,
-                backgroundImage: `url(${trip.cover_image.startsWith('http') || trip.cover_image.startsWith('/') ? trip.cover_image : '/uploads/' + trip.cover_image})`,
-                backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.5,
-              }}
-            />
-            <div
-              style={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.65) 100%)',
-              }}
-            />
-          </>
+          <TripCover src={trip.cover_image} data-testid="cover-image">
+            {/* Subtle top shade keeps the theme/language controls readable on bright images */}
+            <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 40%)' }} />
+          </TripCover>
         )}
         <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
         <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
@@ -283,7 +273,7 @@ export default function PublicTripDetailPage() {
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative" style={{ padding: trip.cover_image ? '24px 20px' : '32px 20px 28px' }}>
           <h1 data-testid="trip-title" style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>
             {trip.title}
           </h1>
@@ -305,6 +295,16 @@ export default function PublicTripDetailPage() {
             </div>
           )}
 
+          {trip.description && (
+            <div
+              data-testid="trip-description"
+              className="collab-note-md max-w-[640px] mx-auto text-sm leading-relaxed"
+              style={{ marginTop: 16, color: 'rgba(255,255,255,0.75)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+            >
+              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{trip.description}</Markdown>
+            </div>
+          )}
+
           <div style={{ marginTop: 12, fontSize: 9, fontWeight: 500, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.25 }}>
             {t('publicTrip.readOnly')}
           </div>
@@ -313,15 +313,6 @@ export default function PublicTripDetailPage() {
 
       {/* Content */}
       <div className="max-w-[900px] mx-auto px-4 py-6">
-        {/* Description */}
-        {trip.description && (
-          <section data-testid="trip-description" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-5 mb-6">
-            <div className="collab-note-md text-sm leading-relaxed text-zinc-700 dark:text-zinc-300" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
-              <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{trip.description}</Markdown>
-            </div>
-          </section>
-        )}
-
         {/* Itinerary */}
         <section data-testid="itinerary" aria-label={t('publicTrip.itineraryAria')} className="flex flex-col gap-3 mb-10">
           <h2 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-1">{t('publicTrip.itinerary')}</h2>

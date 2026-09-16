@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { MapPin, Calendar, Loader2 } from 'lucide-react'
 import { publicTripsApi, type PublicTripSummary } from '../api/client'
 import { useToast } from '../components/shared/Toast'
+import TripCover, { COVER_ASPECT } from '../components/shared/TripCover'
 import { type DashboardTrip } from './DashboardTripCards'
 import { formatDateRange } from '../utils/formatters'
 import { useTranslation } from '../i18n'
@@ -81,24 +82,17 @@ export default function DashboardDiscoverTab({ userTrips }: Props) {
           className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden hover:shadow-md hover:border-zinc-300 dark:hover:border-zinc-600 transition-all"
         >
           {trip.cover_image_url ? (
-            <div
-              className="h-36 overflow-hidden cursor-pointer"
-              onClick={() => navigate(`/public/trips/${trip.id}`)}
-            >
-              <img
-                src={trip.cover_image_url.startsWith('http') || trip.cover_image_url.startsWith('/') ? trip.cover_image_url : `/uploads/${trip.cover_image_url}`}
-                alt=""
-                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-              />
+            <div className="cursor-pointer" onClick={() => navigate(`/public/trips/${trip.id}`)}>
+              <TripCover src={trip.cover_image_url} imgClassName="hover:scale-105 transition-transform duration-300" />
             </div>
           ) : (
             <div
-              className="h-36 flex items-center justify-center cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}
+              className="flex items-center justify-center cursor-pointer"
+              style={{ aspectRatio: COVER_ASPECT, background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)' }}
               onClick={() => navigate(`/public/trips/${trip.id}`)}
               aria-hidden="true"
             >
-              <span className="text-4xl opacity-30">✈️</span>
+              <span className="text-2xl opacity-30">✈️</span>
             </div>
           )}
 

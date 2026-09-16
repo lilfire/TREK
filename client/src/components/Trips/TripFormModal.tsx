@@ -3,6 +3,7 @@ import Modal from '../shared/Modal'
 import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Globe, DollarSign } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
+import { COVER_ASPECT } from '../shared/TripCover'
 import AccommodationTierEditor from './AccommodationTierEditor'
 import { useAuthStore } from '../../store/authStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -345,7 +346,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.coverImage')}</label>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverChange} />
           {coverPreview ? (
-            <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', height: 130 }}>
+            <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', aspectRatio: COVER_ASPECT }}>
               <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
@@ -369,6 +370,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
             </button>
           )}
+          <p className="text-xs text-slate-400 mt-1.5">{t('dashboard.coverImageHint')}</p>
         </div>}
 
         <div>

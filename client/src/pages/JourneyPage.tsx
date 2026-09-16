@@ -4,6 +4,7 @@ import { useJourneyStore } from '../store/journeyStore'
 import { journeyApi } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
+import TripCover from '../components/shared/TripCover'
 import { useTranslation } from '../i18n'
 import {
   Plus, Search, Sparkles, Calendar, MapPin, BookOpen, Camera,
@@ -407,11 +408,7 @@ export default function JourneyPage() {
                       }`}>
                         {selected && <Check size={12} className="text-white dark:text-zinc-900" />}
                       </div>
-                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden" style={{ background: pickGradient(trip.id) }}>
-                        {trip.cover_image && (
-                          <img src={trip.cover_image} className="w-full h-full object-cover" alt="" />
-                        )}
-                      </div>
+                      <TripCover src={trip.cover_image} fallback={pickGradient(trip.id)} className="w-[110px] rounded-md flex-shrink-0" />
                       <div className="flex-1 min-w-0">
                         <div className="text-[14px] font-semibold text-zinc-900 dark:text-white">{trip.title}</div>
                         <div className="text-[12px] text-zinc-500 flex items-center gap-2.5 mt-0.5">

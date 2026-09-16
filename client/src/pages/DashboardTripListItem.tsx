@@ -4,6 +4,7 @@ import {
   type TripCardProps,
   tripGradient, getTripStatus, daysUntil, formatDateShort,
 } from './DashboardTripCardTypes'
+import TripCover from '../components/shared/TripCover'
 
 // ── Card Action (shared helper, used only in list/archived views) ─────────────
 export function CardAction({ onClick, icon, label, danger }: { onClick: () => void; icon: React.ReactNode; label: string; danger?: boolean }): React.ReactElement {
@@ -25,10 +26,6 @@ export function TripListItem({ trip, onEdit, onCopy, onDelete, onArchive, onClic
   const status = getTripStatus(trip)
   const [hovered, setHovered] = useState(false)
 
-  const coverBg = trip.cover_image
-    ? `url(${trip.cover_image}) center/cover no-repeat`
-    : tripGradient(trip.id)
-
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -42,10 +39,7 @@ export function TripListItem({ trip, onEdit, onCopy, onDelete, onArchive, onClic
         boxShadow: hovered ? '0 4px 16px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.03)',
       }}
     >
-      <div style={{
-        width: 52, height: 52, borderRadius: 12, flexShrink: 0,
-        background: coverBg, position: 'relative', overflow: 'hidden',
-      }}>
+      <TripCover src={trip.cover_image} fallback={tripGradient(trip.id)} style={{ width: 130, borderRadius: 8, flexShrink: 0 }}>
         {status === 'ongoing' && (
           <span style={{
             position: 'absolute', top: 4, left: 4,
@@ -53,7 +47,7 @@ export function TripListItem({ trip, onEdit, onCopy, onDelete, onArchive, onClic
             animation: 'blink 1s ease-in-out infinite',
           }} />
         )}
-      </div>
+      </TripCover>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>

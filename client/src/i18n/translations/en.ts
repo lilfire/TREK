@@ -157,6 +157,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'dashboard.noDateHint': 'No date set — 7 default days will be created. You can change this anytime.',
   'dashboard.coverImage': 'Cover Image',
   'dashboard.addCoverImage': 'Add cover image (or drag & drop)',
+  'dashboard.coverImageHint': 'Shown as a 5:1 banner everywhere — e.g. 2500×500 px. Keep important content away from the edges.',
   'dashboard.addMembers': 'Travel buddies',
   'dashboard.addMember': 'Add member',
   'dashboard.coverSaved': 'Cover image saved',

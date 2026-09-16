@@ -263,11 +263,7 @@ describe('PublicTripDetailPage', () => {
         expect(screen.getByTestId('trip-title')).toBeInTheDocument();
       });
 
-      const heroDiv = document.querySelector('[style*="background-image"]') as HTMLElement;
-      expect(heroDiv).not.toBeNull();
-      // JSDOM wraps URL values in quotes; use toContain to avoid quoting differences
-      expect(heroDiv.style.backgroundImage).toContain('/uploads/covers/abc.jpg');
-      expect(heroDiv.style.backgroundImage).not.toContain('//uploads');
+      expect(screen.getByTestId('cover-image')).toHaveAttribute('src', '/uploads/covers/abc.jpg');
     });
 
     it('uses an external http URL as-is', async () => {
@@ -286,9 +282,7 @@ describe('PublicTripDetailPage', () => {
         expect(screen.getByTestId('trip-title')).toBeInTheDocument();
       });
 
-      const heroDiv = document.querySelector('[style*="background-image"]') as HTMLElement;
-      expect(heroDiv).not.toBeNull();
-      expect(heroDiv.style.backgroundImage).toContain('https://example.com/photo.jpg');
+      expect(screen.getByTestId('cover-image')).toHaveAttribute('src', 'https://example.com/photo.jpg');
     });
 
     it('prepends /uploads/ for a relative path without leading slash', async () => {
@@ -307,9 +301,7 @@ describe('PublicTripDetailPage', () => {
         expect(screen.getByTestId('trip-title')).toBeInTheDocument();
       });
 
-      const heroDiv = document.querySelector('[style*="background-image"]') as HTMLElement;
-      expect(heroDiv).not.toBeNull();
-      expect(heroDiv.style.backgroundImage).toContain('/uploads/covers/abc.jpg');
+      expect(screen.getByTestId('cover-image')).toHaveAttribute('src', '/uploads/covers/abc.jpg');
     });
   });
 
@@ -341,7 +333,7 @@ describe('PublicTripDetailPage', () => {
   });
 
   describe('FE-PUB-TRIP-009: Cover image is visibly displayed', () => {
-    it('renders the cover image with opacity >= 0.4 when cover_image is set', async () => {
+    it('renders the cover image as a fully opaque 5:1 banner when cover_image is set', async () => {
       server.use(
         http.get('/api/public/trips/:id', () =>
           HttpResponse.json({
@@ -371,10 +363,10 @@ describe('PublicTripDetailPage', () => {
         expect(screen.getByTestId('trip-title')).toBeInTheDocument();
       });
 
-      const coverImageEl = screen.getByTestId('cover-image');
-      expect(coverImageEl).toBeInTheDocument();
-      const opacity = parseFloat((coverImageEl as HTMLElement).style.opacity);
-      expect(opacity).toBeGreaterThanOrEqual(0.4);
+      const coverImageEl = screen.getByTestId('cover-image') as HTMLElement;
+      expect(coverImageEl).toHaveAttribute('src', '/uploads/paris.jpg');
+      expect(coverImageEl.style.opacity).toBe('');
+      expect(coverImageEl.parentElement!.style.aspectRatio).toBe('5 / 1');
     });
 
     it('does not render cover image element when cover_image is null', async () => {
@@ -1359,7 +1351,7 @@ describe('FE-PUB-TRIP-020: Leaflet map renders for places with coordinates', () 
     expect(itinerary.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('renders the description in its own card, not in the hero', async () => {
+  it('renders the description in the hero, below the title', async () => {
     server.use(
       http.get('/api/public/trips/:id', () =>
         HttpResponse.json({ ...tripWithPlaces, trip: { ...tripWithPlaces.trip, description: 'Line one with **bold**\nLine two' } }),
@@ -1372,7 +1364,8 @@ describe('FE-PUB-TRIP-020: Leaflet map renders for places with coordinates', () 
     expect(desc).toHaveTextContent('Line one');
     expect(desc.querySelector('strong')).toHaveTextContent('bold');
     const hero = screen.getByTestId('trip-title').parentElement!;
-    expect(hero).not.toHaveTextContent('Line one');
+    expect(hero).toContainElement(desc);
+    expect(screen.getByTestId('trip-title').compareDocumentPosition(desc) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(desc.compareDocumentPosition(screen.getByTestId('itinerary')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

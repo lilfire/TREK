@@ -4,6 +4,7 @@ import {
   type TripCardProps,
   tripGradient, getTripStatus, daysUntil, formatDateShort,
 } from './DashboardTripCardTypes'
+import TripCover from '../components/shared/TripCover'
 
 // ── Mobile Trip Card ─────────────────────────────────────────────────────────
 export function MobileTripCard({ trip, onEdit, onCopy, onDelete, onArchive, onClick, t, locale }: Omit<TripCardProps, 'dark'>): React.ReactElement {
@@ -26,11 +27,12 @@ export function MobileTripCard({ trip, onEdit, onCopy, onDelete, onArchive, onCl
       className="group rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden cursor-pointer transition-[transform,box-shadow,border-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 hover:shadow-md"
       style={{ background: 'var(--bg-card)', isolation: 'isolate' }}
     >
-      <div className="relative h-[120px] overflow-hidden" style={{ background: trip.cover_image ? undefined : tripGradient(trip.id) }}>
-        {trip.cover_image && (
-          <img src={trip.cover_image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.08]" alt="" />
-        )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.5) 100%)' }} />
+      <TripCover
+        src={trip.cover_image}
+        fallback={tripGradient(trip.id)}
+        imgClassName="transition-transform duration-[800ms] ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.08]"
+      >
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(0,0,0,0.25) 0%, transparent 60%)' }} />
 
         <div className="absolute top-3 right-3 z-[2] flex gap-1">
           {onEdit && <button title={t('common.edit')} onClick={e => { e.stopPropagation(); onEdit(trip) }} className="w-[30px] h-[30px] rounded-[8px] bg-black/30 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white"><Edit2 size={12} /></button>}
@@ -53,13 +55,13 @@ export function MobileTripCard({ trip, onEdit, onCopy, onDelete, onArchive, onCl
             </span>
           </div>
         )}
+      </TripCover>
 
-        <div className="absolute bottom-3.5 left-3.5 right-3.5 z-[2] text-white">
-          <h3 className="text-[22px] font-extrabold tracking-[-0.02em] leading-none">{trip.title}</h3>
-          {trip.description && (
-            <p className="text-[11px] opacity-75 font-medium mt-1 truncate">{trip.description}</p>
-          )}
-        </div>
+      <div className="px-4 pt-3">
+        <h3 className="text-[22px] font-extrabold tracking-[-0.02em] leading-none truncate" style={{ color: 'var(--text-primary)' }}>{trip.title}</h3>
+        {trip.description && (
+          <p className="text-[11px] font-medium mt-1 truncate" style={{ color: 'var(--text-muted)' }}>{trip.description}</p>
+        )}
       </div>
 
       <div className="flex items-center justify-between px-4 py-3">
